@@ -1,0 +1,12 @@
+Java library for encoding and decoding data in LZF format,
+written by Tatu Saloranta (tatu.saloranta@iki.fi)
+
+Data format and algorithm based on original LZF library
+(http://freshmeat.net/projects/liblzf) by Marc A Lehmann
+
+Format differs slightly from some other adaptations, such as
+one used by H2 database project
+(http://www.h2database.com, by Thomas Mueller); although internal
+block compression structure is the same, block identifiers
+differ: this package uses the original LZF identifiers to be 100%
+compatible with existing command-line lzf tool(s).
