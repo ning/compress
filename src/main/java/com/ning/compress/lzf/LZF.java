@@ -9,13 +9,16 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 import java.io.*;
 
 /**
  * Simple command-line utility that can be used for testing LZF
- * compression.
+ * compression, or as rudimentary command-line tool.
+ * Arguments are the same as used by the "standard" lzf command line tool
+ * 
+ * @author tatu@ning.com
  */
 public class LZF
 {

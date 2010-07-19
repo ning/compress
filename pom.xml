@@ -7,23 +7,40 @@
         <version>2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>tatu</groupId>
-    <artifactId>lzf</artifactId>
-    <name>tatu-lzf</name>
-    <version>0.0.1</version>
-    <packaging>jar</packaging>
+    <groupId>com.ning</groupId>
+    <artifactId>compress-lzf</artifactId>
+    <name>Ning-compress-LZF</name>
+    <version>0.5.0</version>
+    <packaging>bundle</packaging>
     <description>
-Compression code for LZF encoding for faster encoding/decoding with adequate compression.
-    </description>
-    <url>http://github.com/cowtowncoder/tatu-lzf</url>
+Compression code for LZF encoding for faster encoding/decoding with reasonable compression.
+See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF package.
+    </description>    
     <prerequisites>
         <maven>2.0.9</maven>
     </prerequisites>
+    <url>http://github.com/ning/compress</url>
+    <scm>
+        <connection>scm:git:git://github.com/ning/compress.git</connection>
+        <url>scm:git:git@github.com:ning/compress.git</url>
+        <developerConnection>scm:git:git@github.com:ning/compress.git</developerConnection>
+    </scm>
+    <issueManagement>
+        <url>http://github.com/ning/compress/issues</url>
+    </issueManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <developers>
         <developer>
-            <id>cowtowncoder</id>
+            <id>tatu</id>
             <name>Tatu Saloranta</name>
-            <email>tsaloranta@gmail.com</email>
+            <email>tatu@ning.com</email>
+        </developer>
+        <developer>
+            <id>jon</id>
+            <name>Jon Hartlaub</name>
         </developer>
     </developers>
     <licenses>
@@ -98,7 +115,7 @@ Compression code for LZF encoding for faster encoding/decoding with adequate com
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.5</version>
+                <version>2.6</version>
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
@@ -118,6 +135,27 @@ Compression code for LZF encoding for faster encoding/decoding with adequate com
                     </execution>
                 </executions>
             </plugin>
+       <!-- Plus, let's make jars OSGi bundles as well  -->
+        <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-bundle-plugin</artifactId>
+<!--version>2.0.0</version-->
+          <extensions>true</extensions>
+          <configuration>
+            <instructions>
+              <Bundle-Name>Ning-compress-lzf</Bundle-Name>
+              <Bundle-SymbolicName>${pom.artifactId}</Bundle-SymbolicName>
+              <Bundle-Description>Ning LZF compression codec
+</Bundle-Description>
+              <Bundle-Vendor>Ning.com</Bundle-Vendor>
+              <Import-Package></Import-Package>
+              <DynamicImport-Package></DynamicImport-Package>
+              <Private-Package></Private-Package>
+              <Export-Package>com.ning.compress.lzf</Export-Package>
+            </instructions>
+          </configuration>
+       </plugin>
+
         </plugins>
     </build>
     <profiles>

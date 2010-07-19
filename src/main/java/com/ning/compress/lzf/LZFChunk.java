@@ -9,11 +9,13 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 /**
  * Helper class used to store LZF encoded segments (compressed and non-compressed)
  * that can be sequenced to produce LZF files/streams.
+ * 
+ * @author tatu@ning.com
  */
 public class LZFChunk
 {

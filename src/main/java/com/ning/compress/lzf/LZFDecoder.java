@@ -9,13 +9,15 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 import java.io.IOException;
 
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
  * combining them into a single contiguous result byte array
+ * 
+ * @author tatu@ning.com
  */
 public class LZFDecoder
 {

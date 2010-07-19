@@ -9,7 +9,7 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 import java.io.IOException;
 
@@ -17,6 +17,8 @@ import java.io.IOException;
  * Encoder that handles splitting of input into chunks to encode,
  * calls {@link ChunkEncoder} to compress individual chunks and
  * combines resulting chunks into contiguous output byte array.
+ * 
+ * @author tatu@ning.com
  */
 public class LZFEncoder
 {

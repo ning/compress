@@ -9,20 +9,23 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 /**
  * Class that handles actual encoding of individual chunks.
  * Resulting chunks can be compressed or non-compressed; compression
  * is only used if it actually reduces chunk size (including overhead
  * of additional header bytes)
+ * 
+ * @author tatu@ning.com
  */
 public class ChunkEncoder
 {
-    // Beyond certain point we won't be able to compress:
+    // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off
     private static final int MIN_BLOCK_TO_COMPRESS = 16;
 
     private static final int MIN_HASH_SIZE = 256;
+
     // Not much point in bigger tables, with 8k window
     private static final int MAX_HASH_SIZE = 16384;
 
