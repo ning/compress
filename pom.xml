@@ -24,7 +24,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         <url>scm:git:git@github.com:ning/compress.git</url>
 -->
         <connection>scm:git:git://github.com/ning/compress.git</connection>
-        <developerConnection>scm:git:git://github.com:ning/compress.git</developerConnection>
+        <developerConnection>scm:git:git://github.com/ning/compress.git</developerConnection>
     </scm>
     <issueManagement>
         <url>http://github.com/ning/compress/issues</url>
