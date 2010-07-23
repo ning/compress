@@ -98,6 +98,9 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.0</version>
+                <configuration>
+                  <mavenExecutorId>forked-path</mavenExecutorId>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
