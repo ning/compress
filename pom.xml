@@ -20,8 +20,8 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
     </prerequisites>
     <url>http://github.com/ning/compress</url>
     <scm>
-        <connection>scm:git:git://github.com/ning/compress.git</connection>
-        <developerConnection>scm:git:git@github.com/ning/compress.git</developerConnection>
+        <connection>scm:git:git@github.com:ning/compress.git</connection>
+        <developerConnection>scm:git:git@github.com:ning/compress.git</developerConnection>
         <url>http://github.com/ning/compress</url>
     </scm>
     <issueManagement>
