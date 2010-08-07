@@ -12,6 +12,7 @@
 package com.ning.compress.lzf;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
@@ -21,44 +22,52 @@ import java.io.IOException;
  */
 public class LZFDecoder
 {
-    private final static byte BYTE_NULL = 0;    
+    private final static byte BYTE_NULL = 0;
+    private final static int HEADER_BYTES = 5;
 
     // static methods, no need to instantiate
     private LZFDecoder() { }
+    
+    public static byte[] decode(final byte[] sourceBuffer) throws IOException
+    {
+    	byte[] result = new byte[calculateUncompressedSize(sourceBuffer)];
+    	decode(sourceBuffer, result);
+    	return result;
+    }
     
     /**
      * Method for decompressing whole input data, which encoded in LZF
      * block structure (compatible with lzf command line utility),
      * and can consist of any number of blocks
      */
-    public static byte[] decode(byte[] data) throws IOException
+    public static int decode(final byte[] sourceBuffer, final byte[] targetBuffer) throws IOException
     {
         /* First: let's calculate actual size, so we can allocate
          * exact result size. Also useful for basic sanity checking;
          * so that after call we know header structure is not corrupt
          * (to the degree that lengths etc seem valid)
          */
-        byte[] result = new byte[calculateUncompressedSize(data)];
+        byte[] result = targetBuffer;
         int inPtr = 0;
         int outPtr = 0;
 
-        while (inPtr < (data.length - 1)) { // -1 to offset possible end marker
+        while (inPtr < (sourceBuffer.length - 1)) { // -1 to offset possible end marker
             inPtr += 2; // skip 'ZV' marker
-            int type = data[inPtr++];
-            int len = uint16(data, inPtr);
+            int type = sourceBuffer[inPtr++];
+            int len = uint16(sourceBuffer, inPtr);
             inPtr += 2;
             if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
-                System.arraycopy(data, inPtr, result, outPtr, len);
+                System.arraycopy(sourceBuffer, inPtr, result, outPtr, len);
                 outPtr += len;
             } else { // compressed
-                int uncompLen = uint16(data, inPtr);
+                int uncompLen = uint16(sourceBuffer, inPtr);
                 inPtr += 2;
-                decompressChunk(data, inPtr, result, outPtr, outPtr+uncompLen);
+                decompressChunk(sourceBuffer, inPtr, result, outPtr, outPtr+uncompLen);
                 outPtr += uncompLen;
             }
             inPtr += len;
         }
-        return result;
+        return outPtr;
     }
 
     private static int calculateUncompressedSize(byte[] data) throws IOException
@@ -102,6 +111,43 @@ public class LZFDecoder
         return uncompressedSize;
     }
 
+    /**
+     * Main decode from a stream.  Decompressed bytes are placed in the outputBuffer, inputBuffer is a "scratch-area".
+     * 
+     * @param is An input stream of LZF compressed bytes
+     * @param inputBuffer A byte array used as a scratch area.
+     * @param outputBuffer A byte array in which the result is returned
+     * @return The number of bytes placed in the outputBuffer.
+     */
+    public static int decompressChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
+     	throws IOException
+    {
+    	int bytesInOutput;
+    	int headerLength = is.read(inputBuffer, 0, HEADER_BYTES);
+    	if(headerLength != HEADER_BYTES) {
+    		return -1;
+    	}
+    	int inPtr =0;
+    	if (inputBuffer[inPtr] != LZFChunk.BYTE_Z || inputBuffer[inPtr+1] != LZFChunk.BYTE_V) {
+            throw new IOException("Corrupt input data, block did not start with 'ZV' signature bytes");
+        }
+    	inPtr += 2;
+        int type = inputBuffer[inPtr++];
+        int len = uint16(inputBuffer, inPtr);
+        inPtr += 2;
+        if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
+        	is.read(outputBuffer, 0, len);
+            bytesInOutput = len;
+        } else { // compressed
+        	is.read(inputBuffer, inPtr, 2);
+            int uncompLen = uint16(inputBuffer, inPtr);
+            is.read(inputBuffer, 0, len);
+            decompressChunk(inputBuffer, 0, outputBuffer, 0, uncompLen);
+            bytesInOutput = uncompLen;
+        }
+        return bytesInOutput;
+    }
+    
     /**
      * Main decode method for individual chunks.
      */

@@ -25,14 +25,19 @@ public class LZFEncoder
     // Static methods only, no point in instantiating
     private LZFEncoder() { }
     
+    public static byte[] encode(byte[] data) throws IOException
+    {
+    	return encode(data, data.length);
+    }
+    
     /**
      * Method for compressing given input data using LZF encoding and
      * block structure (compatible with lzf command line utility).
      * Result consists of a sequence of chunks.
      */
-    public static byte[] encode(byte[] data) throws IOException
+    public static byte[] encode(byte[] data, int length) throws IOException
     {
-        int left = data.length;
+        int left = length;
         ChunkEncoder enc = new ChunkEncoder(left);
         int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
         LZFChunk first = enc.encodeChunk(data, 0, chunkLen);

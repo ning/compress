@@ -51,6 +51,13 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         </license>
     </licenses>
     <dependencies>
+    	<dependency>
+    		<groupId>org.testng</groupId>
+    		<artifactId>testng</artifactId>
+    		<version>5.12.1</version>
+    		<type>jar</type>
+    		<scope>test</scope>
+    	</dependency>
     </dependencies>
     <build>
         <defaultGoal>install</defaultGoal>
