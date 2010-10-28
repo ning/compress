@@ -47,20 +47,19 @@ public class LZFInputStream extends InputStream
     public int read(final byte[] buffer, final int offset, final int length) throws IOException
     {
     	int outputPos = offset;
-		readyBuffer();
-		if(bufferLength == -1)
-		{
-			return -1;
-		}
-		
-		while(outputPos < buffer.length && bufferPosition < bufferLength) {
-			int chunkLength = Math.min(bufferLength - bufferPosition, buffer.length - outputPos);
-			System.arraycopy(uncompressedBytes, bufferPosition, buffer, outputPos, chunkLength);
-			outputPos += chunkLength;
-			bufferPosition += chunkLength;
-			readyBuffer();
-		}
-		return outputPos;
+    	readyBuffer();
+    	if(bufferLength == -1) {
+    	    return -1;
+    	}
+
+    	while(outputPos < buffer.length && bufferPosition < bufferLength) {
+    	    int chunkLength = Math.min(bufferLength - bufferPosition, buffer.length - outputPos);
+    	    System.arraycopy(uncompressedBytes, bufferPosition, buffer, outputPos, chunkLength);
+    	    outputPos += chunkLength;
+    	    bufferPosition += chunkLength;
+    	    readyBuffer();
+    	}
+    	return outputPos - offset;
     }
     
     public void close() throws IOException
