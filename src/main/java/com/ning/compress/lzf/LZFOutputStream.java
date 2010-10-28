@@ -6,12 +6,10 @@ import java.io.OutputStream;
 public class LZFOutputStream extends OutputStream 
 {
 	private static int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
-	private static int BYTE_MASK = 0xff;
 	
-	private final OutputStream outputStream;
-
-	private byte[] outputBuffer = new byte[OUTPUT_BUFFER_SIZE];
-	private int position = 0;
+	protected final OutputStream outputStream;
+	protected byte[] outputBuffer = new byte[OUTPUT_BUFFER_SIZE];
+	protected int position = 0;
 	
 	public LZFOutputStream(final OutputStream outputStream)
 	{
@@ -24,7 +22,7 @@ public class LZFOutputStream extends OutputStream
 		if(position >= outputBuffer.length) {
 			writeCompressedBlock();
 		}
-		outputBuffer[position++] = (byte) (singleByte & BYTE_MASK);
+		outputBuffer[position++] = (byte) singleByte;
 	}
 
 	@Override
@@ -47,21 +45,18 @@ public class LZFOutputStream extends OutputStream
 	@Override
 	public void flush() throws IOException
 	{
-		try {
-			writeCompressedBlock();
-		} finally {
-			outputStream.flush();
-		}
+	    writeCompressedBlock();
+	    outputStream.flush();
 	}
 	
 	@Override
 	public void close() throws IOException  
 	{
-		try {
-			flush();
-		} finally {
-			outputStream.close();
-		}
+	    try {
+	        flush();
+	    } finally {
+	        outputStream.close();
+	    }
 	}
 
 	/** 
