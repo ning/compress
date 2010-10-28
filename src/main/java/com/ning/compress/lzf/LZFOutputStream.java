@@ -64,8 +64,10 @@ public class LZFOutputStream extends OutputStream
 	 */
 	private void writeCompressedBlock() throws IOException
 	{
+	    if (position > 0) {
 		final byte[] compressedBytes = LZFEncoder.encode(outputBuffer, position);
 		outputStream.write(compressedBytes);
 		position = 0;
+	    }
 	}
 }
