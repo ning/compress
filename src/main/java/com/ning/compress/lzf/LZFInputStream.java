@@ -7,9 +7,19 @@ public class LZFInputStream extends InputStream
 {
 	public static int EOF_FLAG = -1;
 	
-	/* stream to be decompressed */
-	private final InputStream inputStream;
+	/**
+	 * stream to be decompressed
+	 * */
+	protected final InputStream inputStream;
 
+	/**
+	 * Flag that indicates whether we force full reads (reading of as many
+	 * bytes as requested), or 'optimal' reads (up to as many as available,
+	 * but at least one). Default is false, meaning that 'optimal' read
+	 * is used.
+	 */
+	protected boolean cfgFullReads = false;
+	
 	/* the current buffer of compressed bytes */
 	private final byte[] compressedBytes = new byte[LZFChunk.MAX_CHUNK_LEN];
 	
@@ -24,8 +34,20 @@ public class LZFInputStream extends InputStream
     
 	public LZFInputStream(final InputStream inputStream) throws IOException
 	{
-		super();
-		this.inputStream = inputStream;
+	    this(inputStream, false);
+	}
+
+	/**
+	 * @param inputStream Underlying input stream to use
+	 * @param fullReads Whether {@link #read(byte[])} should try to read exactly
+	 *   as many bytes as requested (true); or just however many happen to be
+	 *   available (false)
+	 */
+	public LZFInputStream(final InputStream inputStream, boolean fullReads) throws IOException
+	{
+	    super();
+	    this.inputStream = inputStream;
+	    cfgFullReads = fullReads;
 	}
 	
 	@Override
@@ -44,26 +66,43 @@ public class LZFInputStream extends InputStream
 		
 	}
 
-    public int read(final byte[] buffer, final int offset, final int length) throws IOException
+    public int read(final byte[] buffer, int offset, int length) throws IOException
     {
-    	int outputPos = offset;
+        if (length < 1) {
+            return 0;
+        }
     	readyBuffer();
     	if(bufferLength == -1) {
     	    return -1;
     	}
+    	// First let's read however much data we happen to have...
+    	int chunkLength = Math.min(bufferLength - bufferPosition, length);
+    	System.arraycopy(uncompressedBytes, bufferPosition, buffer, offset, chunkLength);
+    	bufferPosition += chunkLength;
 
-    	while(outputPos < buffer.length && bufferPosition < bufferLength) {
-    	    int chunkLength = Math.min(bufferLength - bufferPosition, buffer.length - outputPos);
-    	    System.arraycopy(uncompressedBytes, bufferPosition, buffer, outputPos, chunkLength);
-    	    outputPos += chunkLength;
-    	    bufferPosition += chunkLength;
-    	    readyBuffer();
+    	if (chunkLength == length || !cfgFullReads) {
+    	    return chunkLength;
     	}
-    	return outputPos - offset;
+    	// Need more data, then
+    	int totalRead = chunkLength;
+    	do {
+            offset += chunkLength;
+    	    readyBuffer();
+            if(bufferLength == -1) {
+                break;
+            }
+            chunkLength = Math.min(bufferLength - bufferPosition, (length - totalRead));
+            System.arraycopy(uncompressedBytes, bufferPosition, buffer, offset, chunkLength);
+            bufferPosition += chunkLength;
+            totalRead += chunkLength;
+    	} while (totalRead < length);
+
+    	return totalRead;
     }
     
     public void close() throws IOException
     {
+        bufferPosition = bufferLength = 0;
     	inputStream.close();
     }
     
@@ -71,7 +110,7 @@ public class LZFInputStream extends InputStream
      * Fill the uncompressed bytes buffer by reading the underlying inputStream.
      * @throws IOException
      */
-    private void readyBuffer() throws IOException
+    private final void readyBuffer() throws IOException
     {
     	if(bufferPosition >= bufferLength) 
     	{

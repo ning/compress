@@ -62,7 +62,27 @@ public class TestLZFInputStream
 		doDecompressReadBlock(compressed.toByteArray(), bytesToWrite);
 	}
 
-	@Test void testIncremental() throws IOException
+        @Test void testIncrementalWithFullReads() throws IOException
+        {
+            doTestIncremental(true);
+        }
+
+        @Test void testIncrementalWithMinimalReads() throws IOException
+        {
+            doTestIncremental(false);
+        }
+
+        /*
+        ///////////////////////////////////////////////////////////////////
+        // Helper methods
+        ///////////////////////////////////////////////////////////////////
+         */
+
+        /**
+         * Test that creates a longer piece of content, compresses it, and reads
+         * back in arbitrary small reads.
+         */
+	private void doTestIncremental(boolean fullReads) throws IOException
 	{
 	    // first need to compress something...
 	    String[] words = new String[] { "what", "ever", "some", "other", "words", "too" };
@@ -85,8 +105,9 @@ public class TestLZFInputStream
 
 	    // read back, in chunks
             bytes = new ByteArrayOutputStream(uncomp.length);
-            byte[] buffer = new byte[64];
-            LZFInputStream lzIn = new LZFInputStream(new ByteArrayInputStream(comp));
+            byte[] buffer = new byte[500];
+            LZFInputStream lzIn = new LZFInputStream(new ByteArrayInputStream(comp), fullReads);
+            int pos = 0;
             
             while (true) {
                 int len = 1 + ((rnd.nextInt() & 0x7FFFFFFF) % buffer.length);
@@ -99,18 +120,22 @@ public class TestLZFInputStream
                 if (count > len) {
                     Assert.fail("Requested "+len+" bytes (offset "+offset+", array length "+buffer.length+"), got "+count);
                 }
+                pos += count;
+                // with full reads, ought to get full results
+                if (count != len) {
+                    if (fullReads) {
+                        // Except at the end, with last incomplete chunk
+                        if (pos != uncomp.length) {
+                            Assert.fail("Got partial read (when requested full read!), position "+pos+" (of full "+uncomp.length+")");
+                        }
+                    }
+                }
                 bytes.write(buffer, offset, count);
             }
             byte[] result = bytes.toByteArray();
             Assert.assertEquals(result.length, uncomp.length);
             Assert.assertEquals(result, uncomp);
 	}
-
-	/*
-	///////////////////////////////////////////////////////////////////
-	// Helper methods
-        ///////////////////////////////////////////////////////////////////
-	 */
 	
 	protected void doDecompressNonEncodableReadByte(byte[] bytes, byte[] reference) throws IOException
 	{
