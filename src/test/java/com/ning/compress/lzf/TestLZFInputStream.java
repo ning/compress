@@ -41,7 +41,7 @@ public class TestLZFInputStream
 	@Test
 	public void testDecompressNonEncodableReadByte() throws IOException
 	{
-		doDecompressReadBlock(nonCompressed.toByteArray(), nonEncodableBytesToWrite);
+		doDecompressReadByte(nonCompressed.toByteArray(), nonEncodableBytesToWrite);
 	}
 	
 	@Test
@@ -53,13 +53,28 @@ public class TestLZFInputStream
 	@Test
 	public void testDecompressEncodableReadByte() throws IOException
 	{
-		doDecompressReadBlock(compressed.toByteArray(), bytesToWrite);
+		doDecompressReadByte(compressed.toByteArray(), bytesToWrite);
 	}
 	
 	@Test
 	public void testDecompressEncodableReadBlock() throws IOException
 	{
 		doDecompressReadBlock(compressed.toByteArray(), bytesToWrite);
+	}
+	
+	@Test
+	public void testRead0() throws IOException
+	{
+		ByteArrayInputStream bis = new ByteArrayInputStream(compressed.toByteArray());
+		InputStream is = new LZFInputStream(bis);
+		byte[] buffer = new byte[65536+23];
+		int val = is.read(buffer, 0, 0);
+		// read of 0 or less should return a 0-byte read.
+		Assert.assertEquals(0, val);
+		val = is.read(buffer, 0, -1);
+		Assert.assertEquals(0, val);
+		// close should work.
+		is.close();
 	}
 
         @Test void testIncrementalWithFullReads() throws IOException
@@ -137,20 +152,20 @@ public class TestLZFInputStream
             Assert.assertEquals(result, uncomp);
 	}
 	
-	protected void doDecompressNonEncodableReadByte(byte[] bytes, byte[] reference) throws IOException
+	
+	private void doDecompressReadByte(byte[] bytes, byte[] reference) throws IOException
 	{
 		ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-		int outputBytes = 0;
 		InputStream is = new LZFInputStream(bis);
-		int val;
-		while((val=is.read()) != -1) {
-			byte testVal = (byte)(val & 255);
-			Assert.assertTrue(testVal == reference[outputBytes]);
-			outputBytes++;
+		int i = 0;
+		int testVal = 0;
+		while((testVal=is.read()) != -1) {
+			int rVal = ((int)reference[i]) & 255;
+			Assert.assertEquals(rVal, testVal);
+			i++;
 		}
-		Assert.assertTrue(outputBytes == reference.length);
 	}
-	
+
 	
 	private void doDecompressReadBlock(byte[] bytes, byte[] reference) throws IOException
 	{
