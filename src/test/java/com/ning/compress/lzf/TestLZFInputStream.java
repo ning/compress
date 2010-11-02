@@ -77,26 +77,26 @@ public class TestLZFInputStream
 		is.close();
 	}
 
-        @Test void testIncrementalWithFullReads() throws IOException
-        {
-            doTestIncremental(true);
-        }
+	@Test void testIncrementalWithFullReads() throws IOException
+	{
+		doTestIncremental(true);
+	}
 
-        @Test void testIncrementalWithMinimalReads() throws IOException
-        {
-            doTestIncremental(false);
-        }
+	@Test void testIncrementalWithMinimalReads() throws IOException
+	{
+		doTestIncremental(false);
+	}
 
-        /*
+	/*
         ///////////////////////////////////////////////////////////////////
         // Helper methods
         ///////////////////////////////////////////////////////////////////
-         */
+	 */
 
-        /**
-         * Test that creates a longer piece of content, compresses it, and reads
-         * back in arbitrary small reads.
-         */
+	/**
+	 * Test that creates a longer piece of content, compresses it, and reads
+	 * back in arbitrary small reads.
+	 */
 	private void doTestIncremental(boolean fullReads) throws IOException
 	{
 	    // first need to compress something...

@@ -1,5 +1,6 @@
 package com.ning.compress.lzf;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.security.SecureRandom;
@@ -35,6 +36,7 @@ public class TestLZFOutputStream {
 		os.write(nonEncodableBytesToWrite);
 		os.close();
 		Assert.assertTrue(bos.toByteArray().length > nonEncodableBytesToWrite.length);
+		verifyOutputStream(bos, nonEncodableBytesToWrite);
 	}
 	
 	@Test
@@ -46,6 +48,7 @@ public class TestLZFOutputStream {
 		os.close();
 		Assert.assertTrue(bos.toByteArray().length > 10);
 		Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+		verifyOutputStream(bos, bytesToWrite);
 	}
 	
 	@Test
@@ -53,15 +56,17 @@ public class TestLZFOutputStream {
 	{
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		OutputStream os = new LZFOutputStream(bos);
-		for(int idx = 0; idx < BUFFER_SIZE; idx++) {
+		int idx = 0;
+		for(; idx < BUFFER_SIZE; idx++) {
 			os.write(bytesToWrite[idx]);
-			if(idx % 1023 == 0) {
+			if(idx % 1023 == 0 && idx > BUFFER_SIZE/2) {
 				os.flush();
 			}
 		}
 		os.close();
 		Assert.assertTrue(bos.toByteArray().length > 10);
 		Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+		verifyOutputStream(bos, bytesToWrite);
 	}
 	
 	@Test
@@ -75,5 +80,22 @@ public class TestLZFOutputStream {
 		os.close();
 		Assert.assertTrue(bos.toByteArray().length > 10);
 		Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+		int bytesToCopy = Math.min(len, bytesToWrite.length);
+		byte[] compareBytes = new byte[bytesToCopy];
+		System.arraycopy(bytesToWrite, offset, compareBytes, 0, bytesToCopy);
+		verifyOutputStream(bos, compareBytes);
+	}
+	
+	private void verifyOutputStream(ByteArrayOutputStream bos, byte[] reference) throws Exception
+	{
+		ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+		LZFInputStream lzfi = new LZFInputStream(bis);
+		int val =0;
+		int idx = 0;
+		while((val = lzfi.read()) != -1)
+		{
+			int refVal = ((int)reference[idx++]) & 255;
+			Assert.assertEquals(refVal, val);
+		}
 	}
 }
