@@ -10,3 +10,16 @@ one used by H2 database project
 block compression structure is the same, block identifiers
 differ: this package uses the original LZF identifiers to be 100%
 compatible with existing command-line lzf tool(s).
+
+LZF alfgorithm itself is optimized for speed, with somewhat more modest
+compression: comparess to Deflate (algorithm gzip uses) LZF can be
+up to three times as fast to compress, and 50% faster to decompress.
+
+Note that resulting jar is both an OSGi bundle, and a command-line tool
+(has manifest that points to 'com.ning.compress.lzf.LZF' as the class
+having main() method to call).
+This means that you can use it like:
+
+  java -jar compress-lzf-0.6.1.jar
+  
+(which will display necessary usage arguments)
