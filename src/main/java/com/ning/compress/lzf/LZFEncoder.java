@@ -37,8 +37,17 @@ public class LZFEncoder
      */
     public static byte[] encode(byte[] data, int length) throws IOException
     {
+        ChunkEncoder enc = new ChunkEncoder(length);
+        byte[] result = encode(enc, data, length);
+        // important: may be able to reuse buffers
+        enc.close();
+        return result;
+    }
+    
+    public static byte[] encode(ChunkEncoder enc, byte[] data, int length)
+        throws IOException
+    {
         int left = length;
-        ChunkEncoder enc = new ChunkEncoder(left);
         int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
         LZFChunk first = enc.encodeChunk(data, 0, chunkLen);
         left -= chunkLen;

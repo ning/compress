@@ -2,8 +2,7 @@ package perf;
 
 import java.io.*;
 
-import com.ning.compress.lzf.LZFDecoder;
-import com.ning.compress.lzf.LZFEncoder;
+import com.ning.compress.lzf.*;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and
@@ -16,15 +15,15 @@ public class ManualPerfComparison
     private void test(byte[] input) throws Exception
     {
         int i = 0;
-        // Let's try to guestimate suitable size... to get to 10 megs to process
-        final int REPS = (int) ((double) (10 * 1000 * 1000) / (double) input.length);
+        // Let's try to guestimate suitable size... to get to 7 megs to process
+        final int REPS = (int) ((double) (7 * 1000 * 1000) / (double) input.length);
 
         System.out.println("Read "+input.length+" bytes to compress, uncompress; will do "+REPS+" repetitions");
 
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
-            // Use 9 to test all...
-            int round = (i++ % 4);
+//            int round = (i++ % 4);
+            int round = 1;
 
             String msg;
             boolean lf = (round == 0);
@@ -34,18 +33,22 @@ public class ManualPerfComparison
             switch (round) {
 
             case 0:
-                msg = "LZF compress";
+                msg = "LZF compress/block";
                 msecs = testLZFCompress(REPS, input);
                 break;
             case 1:
+                msg = "LZF compress/stream";
+                msecs = testLZFCompressStream(REPS, input);
+                break;
+            case 2:
                 msg = "LZF decompress"; // byte
                 msecs = testLZFDecompress(REPS, input);
                 break;
-            case 2:
+            case 3:
                 msg = "QuickLZ compress";
                 msecs = testQuickLZCompress(REPS, input);
                 break;
-            case 3:
+            case 4:
                 msg = "QuickLZ decompress"; // byte
                 msecs = testQuickLZDecompress(REPS, input);
                 break;
@@ -71,6 +74,19 @@ public class ManualPerfComparison
         return System.currentTimeMillis() - start;
     }
 
+    private final long testLZFCompressStream(int REPS, byte[] input) throws Exception
+    {
+        long start = System.currentTimeMillis();
+        while (--REPS >= 0) {
+            BogusOutputStream bogus = new BogusOutputStream();
+            LZFOutputStream out = new LZFOutputStream(bogus);
+            out.write(input);
+            out.close();
+            size = bogus.length();
+        }
+        return System.currentTimeMillis() - start;
+    }
+    
     private final long testLZFDecompress(int REPS, byte[] input) throws Exception
     {
         final byte[] encoded = LZFEncoder.encode(input);
@@ -126,6 +142,23 @@ public class ManualPerfComparison
         new ManualPerfComparison().test(bytes.toByteArray());
     }
 
+    final static class BogusOutputStream extends OutputStream
+    {
+        protected int _bytes;
+        
+        public void write(byte[] buf) { write(buf, 0, buf.length); }
+        public void write(byte[] buf, int offset, int len) {
+            _bytes += len;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            _bytes++;
+        }
+
+        public int length() { return _bytes; }
+    }
+    
     /*
      * Embedded version of QuickLZ (1.5), from http://www.quicklz.com/
      */

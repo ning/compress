@@ -11,6 +11,9 @@
 
 package com.ning.compress.lzf;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 /**
  * Class that handles actual encoding of individual chunks.
  * Resulting chunks can be compressed or non-compressed; compression
@@ -31,18 +34,25 @@ public class ChunkEncoder
 
     private static final int MAX_OFF = 1 << 13; // 8k
     private static final int MAX_REF = (1 << 8) + (1 << 3); // 264
-        
-    // // Encoding tables
+    
+    // // Encoding tables etc
+
+    private final BufferRecycler _recycler;
+    
+    private int[] _hashTable;
+    
+    private final int _hashModulo;
 
     /**
      * Buffer in which encoded content is stored during processing
      */
-    private final byte[] _encodeBuffer;    
-    
-    private final int[] _hashTable;
-    
-    private final int _hashModulo;
+    private byte[] _encodeBuffer;
 
+    /**
+     * Small buffer passed to LZFChunk, needed for writing chunk header
+     */
+    private byte[] _headerBuffer;
+    
     /**
      * @param totalLength Total encoded length; used for calculating size
      *   of hash table to use
@@ -51,15 +61,40 @@ public class ChunkEncoder
     {
         int largestChunkLen = Math.max(totalLength, LZFChunk.MAX_CHUNK_LEN);
         
-        int hashLen = calcHashLen(largestChunkLen);
-        _hashTable = new int[hashLen];
-        _hashModulo = hashLen-1;
+        int suggestedHashLen = calcHashLen(largestChunkLen);
+        _recycler = BufferRecycler.instance();
+        _hashTable = _recycler.allocEncodingHash(suggestedHashLen);
+        _hashModulo = _hashTable.length - 1;
         // Ok, then, what's the worst case output buffer length?
         // length indicator for each 32 literals, so:
         int bufferLen = largestChunkLen + ((largestChunkLen + 31) >> 5);
-        _encodeBuffer = new byte[bufferLen];
+        _encodeBuffer = _recycler.allocEncodingBuffer(bufferLen);
     }
 
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Public API
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    /**
+     * Method to close once encoder is no longer in use. Note: after calling
+     * this method, further calls to {@link #_encodeChunk} will fail
+     */
+    public void close()
+    {
+        byte[] buf = _encodeBuffer;
+        if (buf != null) {
+            _encodeBuffer = null;
+            _recycler.releaseEncodeBuffer(buf);
+        }
+        int[] ibuf = _hashTable;
+        if (ibuf != null) {
+            _hashTable = null;
+            _recycler.releaseEncodingHash(ibuf);
+        }
+    }
+    
     /**
      * Method for compressing (or not) individual chunks
      */
@@ -77,6 +112,38 @@ public class ChunkEncoder
         // Otherwise leave uncompressed:
         return LZFChunk.createNonCompressed(data, offset, len);
     }
+
+    /**
+     * Method for encoding individual chunk, writing it to given output stream.
+     */
+    public void encodeAndWriteChunk(byte[] data, int offset, int len, OutputStream out)
+        throws IOException
+    {
+        byte[] headerBuf = _headerBuffer;
+        if (headerBuf == null) {
+            _headerBuffer = headerBuf = new byte[LZFChunk.MAX_HEADER_LEN];
+        }
+        if (len >= MIN_BLOCK_TO_COMPRESS) {
+            /* If we have non-trivial block, and can compress it by at least
+             * 2 bytes (since header is 2 bytes longer), let's compress:
+             */
+            int compLen = tryCompress(data, offset, offset+len, _encodeBuffer, 0);
+            if (compLen < (len-2)) { // nah; just return uncompressed
+                LZFChunk.writeCompressedHeader(len, compLen, out, headerBuf);
+                out.write(_encodeBuffer, 0, compLen);
+                return;
+            }
+        }
+        // Otherwise leave uncompressed:
+        LZFChunk.writeNonCompressedHeader(len, out, headerBuf);
+        out.write(data, offset, len);
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Internal methods
+    ///////////////////////////////////////////////////////////////////////
+     */
     
     private static int calcHashLen(int chunkSize)
     {
