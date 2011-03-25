@@ -160,30 +160,33 @@ public class LZFDecoder
                 do {
                     out[outPos++] = in[inPos];
                 } while (inPos++ < ctrl);
-            } else {
-                // back reference
-                int len = ctrl >> 5;
-                ctrl = -((ctrl & 0x1f) << 8) - 1;
-                if (len == 7) {
-                    len += in[inPos++] & 255;
-                }
-                ctrl -= in[inPos++] & 255;
-                len += outPos + 2;
+                continue;
+            }
+            // back reference
+            int len = ctrl >> 5;
+            ctrl = -((ctrl & 0x1f) << 8) - 1;
+            if (len == 7) {
+                len += in[inPos++] & 255;
+            }
+            ctrl -= in[inPos++] & 255;
+            len += outPos + 2;
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+
+            /* Odd: after extensive profiling, looks like magic number
+             * for unrolling is 4: with 8 performance is worse (even
+             * bit less than with no unrolling).
+             */
+            final int end = len - 4;
+            while (outPos < end) {
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
-                while (outPos < len - 8) {
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                    out[outPos] = out[outPos++ + ctrl];
-                }
-                while (outPos < len) {
-                    out[outPos] = out[outPos++ + ctrl];
-                }
+                out[outPos] = out[outPos++ + ctrl];
+                out[outPos] = out[outPos++ + ctrl];
+            }
+
+            while (outPos < len) {
+                out[outPos] = out[outPos++ + ctrl];
             }
         } while (outPos < outEnd);
 
