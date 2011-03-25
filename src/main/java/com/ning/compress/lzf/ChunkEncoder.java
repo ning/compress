@@ -165,12 +165,13 @@ public class ChunkEncoder
         return (in[inPos] << 8) + (in[inPos + 1] & 255);
     }
 
+    /*
     private static int next(int v, byte[] in, int inPos) {
         return (v << 8) + (in[inPos + 2] & 255);
     }
+*/
 
-
-    private int hash(int h) {
+    private final int hash(int h) {
         // or 184117; but this seems to give better hashing?
         return ((h * 57321) >> 9) & _hashModulo;
         // original lzf-c.c used this:
@@ -224,9 +225,9 @@ public class ChunkEncoder
                 outPos++;
                 inPos += len;
                 hash = first(in, inPos);
-                hash = next(hash, in, inPos);
+                hash = (hash << 8) + (in[inPos + 2] & 255);
                 _hashTable[hash(hash)] = inPos++;
-                hash = next(hash, in, inPos);
+                hash = (hash << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
                 _hashTable[hash(hash)] = inPos++;
             } else {
                 out[outPos++] = in[inPos++];
@@ -239,6 +240,13 @@ public class ChunkEncoder
             }
         }
         inEnd += 4;
+        // try offlining the tail
+        return tryCompressTail(in, inPos, inEnd, out, outPos, literals);
+    }
+    
+    private int tryCompressTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+            int literals)
+    {
         while (inPos < inEnd) {
             out[outPos++] = in[inPos++];
             literals++;
