@@ -125,7 +125,7 @@ public class LZFDecoder
     	int bytesInOutput;
     	int headerLength = is.read(inputBuffer, 0, HEADER_BYTES);
     	if(headerLength != HEADER_BYTES) {
-    		return -1;
+    	    return -1;
     	}
     	int inPtr =0;
     	if (inputBuffer[inPtr] != LZFChunk.BYTE_Z || inputBuffer[inPtr+1] != LZFChunk.BYTE_V) {
@@ -133,16 +133,15 @@ public class LZFDecoder
         }
     	inPtr += 2;
         int type = inputBuffer[inPtr++];
-        int len = uint16(inputBuffer, inPtr);
+        int compLen = uint16(inputBuffer, inPtr);
         inPtr += 2;
         if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
-            is.read(outputBuffer, 0, len);
-            bytesInOutput = len;
+            readFully(is, false, outputBuffer, 0, compLen);
+            bytesInOutput = compLen;
         } else { // compressed
-            is.read(inputBuffer, inPtr, 2);
-            int uncompLen = uint16(inputBuffer, inPtr);
-            is.read(inputBuffer, 0, len);
-            decompressChunk(inputBuffer, 0, outputBuffer, 0, uncompLen);
+            readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
+            int uncompLen = uint16(inputBuffer, 0);
+            decompressChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
             bytesInOutput = uncompLen;
         }
         return bytesInOutput;
@@ -192,8 +191,24 @@ public class LZFDecoder
         if (outPos != outEnd) throw new IOException("Corrupt data: overrun in decompress, input offset "+inPos+", output offset "+outPos);
     }
     
-    private static int uint16(byte[] data, int ptr)
+    private final static int uint16(byte[] data, int ptr)
     {
         return ((data[ptr] & 0xFF) << 8) + (data[ptr+1] & 0xFF);
     }    
+
+    private final static void readFully(InputStream is, boolean compressed,
+            byte[] outputBuffer, int offset, int len) throws IOException
+    {
+        int left = len;
+        while (left > 0) {
+            int count = is.read(outputBuffer, offset, left);
+            if (count < 0) { // EOF not allowed here
+                throw new IOException("EOF in "+len+" byte ("
+                        +(compressed ? "" : "un")+"compressed) block: could only read "
+                        +(len-left)+" bytes");
+            }
+            offset += count;
+            left -= count;
+        }
+    }
 }
