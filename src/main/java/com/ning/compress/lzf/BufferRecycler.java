@@ -23,11 +23,16 @@ public class BufferRecycler
      final protected static ThreadLocal<SoftReference<BufferRecycler>> _recyclerRef
          = new ThreadLocal<SoftReference<BufferRecycler>>();
    
-    private byte[] _encodingBuffer;
 
+    private byte[] _inputBuffer;
     private byte[] _outputBuffer;
 
+    private byte[] _decodingBuffer;
+    private byte[] _encodingBuffer;
+
     private int[] _encodingHash;
+
+
     
     /**
      * Accessor to get thread-local recycler instance
@@ -103,4 +108,46 @@ public class BufferRecycler
         }
     }
 
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Buffers for decoding (input)
+    ///////////////////////////////////////////////////////////////////////
+     */
+
+    public byte[] allocInputBuffer(int minSize)
+    {
+        byte[] buf = _inputBuffer;
+        if (buf == null || buf.length < minSize) {
+            buf = new byte[Math.max(minSize, MIN_OUTPUT_BUFFER)];
+        } else {
+            _inputBuffer = null;
+        }
+        return buf;
+    }
+
+    public void releaseInputBuffer(byte[] buffer)
+    {
+        if (_inputBuffer == null || buffer.length > _inputBuffer.length) {
+            _inputBuffer = buffer;
+        }
+    }
+    
+    public byte[] allocDecodeBuffer(int size)
+    {
+        byte[] buf = _decodingBuffer;
+        if (buf == null || buf.length < size) {
+            buf = new byte[size];
+        } else {
+            _decodingBuffer = null;
+        }
+        return buf;
+    }
+
+    public void releaseDecodeBuffer(byte[] buffer)
+    {
+        if (_decodingBuffer == null || buffer.length > _decodingBuffer.length) {
+            _decodingBuffer = buffer;
+        }
+    }
+    
 }

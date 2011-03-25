@@ -136,10 +136,10 @@ public class LZFDecoder
         int len = uint16(inputBuffer, inPtr);
         inPtr += 2;
         if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
-        	is.read(outputBuffer, 0, len);
+            is.read(outputBuffer, 0, len);
             bytesInOutput = len;
         } else { // compressed
-        	is.read(inputBuffer, inPtr, 2);
+            is.read(inputBuffer, inPtr, 2);
             int uncompLen = uint16(inputBuffer, inPtr);
             is.read(inputBuffer, 0, len);
             decompressChunk(inputBuffer, 0, outputBuffer, 0, uncompLen);

@@ -11,9 +11,13 @@ import com.ning.compress.lzf.*;
 public class ManualPerfComparison
 {
     private int size = 0;
+ 
+    private byte[] _lzfEncoded;
     
     private void test(byte[] input) throws Exception
     {
+        _lzfEncoded = LZFEncoder.encode(input);
+
         int i = 0;
         // Let's try to guestimate suitable size... to get to 7 megs to process
         final int REPS = (int) ((double) (7 * 1000 * 1000) / (double) input.length);
@@ -23,7 +27,7 @@ public class ManualPerfComparison
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
 //            int round = (i++ % 4);
-            int round = 1;
+            int round = 3;
 
             String msg;
             boolean lf = (round == 0);
@@ -41,14 +45,18 @@ public class ManualPerfComparison
                 msecs = testLZFCompressStream(REPS, input);
                 break;
             case 2:
-                msg = "LZF decompress"; // byte
-                msecs = testLZFDecompress(REPS, input);
+                msg = "LZF decompress/block";
+                msecs = testLZFDecompress(REPS, _lzfEncoded);
                 break;
             case 3:
+                msg = "LZF decompress/stream";
+                msecs = testLZFDecompressStream(REPS, _lzfEncoded);
+                break;
+            case 4:
                 msg = "QuickLZ compress";
                 msecs = testQuickLZCompress(REPS, input);
                 break;
-            case 4:
+            case 5:
                 msg = "QuickLZ decompress"; // byte
                 msecs = testQuickLZDecompress(REPS, input);
                 break;
@@ -87,9 +95,8 @@ public class ManualPerfComparison
         return System.currentTimeMillis() - start;
     }
     
-    private final long testLZFDecompress(int REPS, byte[] input) throws Exception
+    private final long testLZFDecompress(int REPS, byte[] encoded) throws Exception
     {
-        final byte[] encoded = LZFEncoder.encode(input);
         size = encoded.length;
         long start = System.currentTimeMillis();
         byte[] uncomp = null;
@@ -100,6 +107,24 @@ public class ManualPerfComparison
         return System.currentTimeMillis() - start;
     }
 
+    private final long testLZFDecompressStream(int REPS, byte[] encoded) throws Exception
+    {
+        final byte[] buffer = new byte[8000];
+        size = 0;
+        long start = System.currentTimeMillis();
+        while (--REPS >= 0) {
+            int total = 0;
+            LZFInputStream in = new LZFInputStream(new ByteArrayInputStream(encoded));
+            int count;
+            while ((count = in.read(buffer)) > 0) {
+                total += count;
+            }
+            size = total;
+            in.close();
+        }
+        return System.currentTimeMillis() - start;
+    }
+    
     private final long testQuickLZCompress(int REPS, byte[] input) throws Exception
     {
         long start = System.currentTimeMillis();

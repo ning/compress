@@ -11,7 +11,7 @@ public class LZFOutputStream extends OutputStream
 {
     private static int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
-    private ChunkEncoder _encoder;
+    private final ChunkEncoder _encoder;
     private final BufferRecycler _recycler;
 	
     protected final OutputStream _outputStream;
