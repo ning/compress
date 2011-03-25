@@ -177,16 +177,22 @@ public class LZFDecoder
              * for unrolling is 4: with 8 performance is worse (even
              * bit less than with no unrolling).
              */
-            final int end = len - 4;
+            final int end = len - 3;
             while (outPos < end) {
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
             }
-
-            while (outPos < len) {
+            // and, interestingly, unlooping works here too:
+            if (outPos < len) { // max 3 bytes to copy
                 out[outPos] = out[outPos++ + ctrl];
+                if (outPos < len) {
+                    out[outPos] = out[outPos++ + ctrl];
+                    if (outPos < len) {
+                        out[outPos] = out[outPos++ + ctrl];
+                    }
+                }
             }
         } while (outPos < outEnd);
 
