@@ -27,7 +27,7 @@ public class ManualPerfComparison
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
 //            int round = (i++ % 4);
-            int round = 3;
+            int round = 1;
 
             String msg;
             boolean lf = (round == 0);

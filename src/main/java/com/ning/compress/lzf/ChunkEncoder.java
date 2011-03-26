@@ -181,63 +181,67 @@ public class ChunkEncoder
     
     private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
-        int literals = 0;
-        outPos++;
+        final int[] hashTable = _hashTable;
+        ++outPos;
         int hash = first(in, 0);
+        int literals = 0;
         inEnd -= 4;
         final int firstPos = inPos; // so that we won't have back references across block boundary
+        
         while (inPos < inEnd) {
             byte p2 = in[inPos + 2];
             // next
             hash = (hash << 8) + (p2 & 255);
             int off = hash(hash);
-            int ref = _hashTable[off];
-            _hashTable[off] = inPos;
-            if (ref < inPos
-                        && ref >= firstPos
-                        && (off = inPos - ref - 1) < MAX_OFF
-                        && in[ref + 2] == p2
-                        && in[ref + 1] == (byte) (hash >> 8)
-                        && in[ref] == (byte) (hash >> 16)) {
-                // match
-                int maxLen = inEnd - inPos + 2;
-                if (maxLen > MAX_REF) {
-                    maxLen = MAX_REF;
-                }
-                if (literals == 0) {
-                    outPos--;
-                } else {
-                    out[outPos - literals - 1] = (byte) (literals - 1);
-                    literals = 0;
-                }
-                int len = 3;
-                while (len < maxLen && in[ref + len] == in[inPos + len]) {
-                    len++;
-                }
-                len -= 2;
-                if (len < 7) {
-                    out[outPos++] = (byte) ((off >> 8) + (len << 5));
-                } else {
-                    out[outPos++] = (byte) ((off >> 8) + (7 << 5));
-                    out[outPos++] = (byte) (len - 7);
-                }
-                out[outPos++] = (byte) off;
-                outPos++;
-                inPos += len;
-                hash = first(in, inPos);
-                hash = (hash << 8) + (in[inPos + 2] & 255);
-                _hashTable[hash(hash)] = inPos++;
-                hash = (hash << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
-                _hashTable[hash(hash)] = inPos++;
-            } else {
+            int ref = hashTable[off];
+            hashTable[off] = inPos;
+  
+            // First expected common case: no back-ref (for whatever reason)
+            if (ref >= inPos // can't refer forward (i.e. leftovers)
+                    || ref < firstPos // or to previous block
+                    || (off = inPos - ref - 1) >= MAX_OFF
+                    || in[ref+2] != p2 // must match hash
+                    || in[ref+1] != (byte) (hash >> 8)
+                    || in[ref] != (byte) (hash >> 16)) {
                 out[outPos++] = in[inPos++];
                 literals++;
                 if (literals == LZFChunk.MAX_LITERAL) {
-                    out[outPos - literals - 1] = (byte) (literals - 1);
+                    out[outPos - 33] = (byte) 31; // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
                     literals = 0;
                     outPos++;
                 }
+                continue;
             }
+            // match
+            int maxLen = inEnd - inPos + 2;
+            if (maxLen > MAX_REF) {
+                maxLen = MAX_REF;
+            }
+            if (literals == 0) {
+                outPos--;
+            } else {
+                out[outPos - literals - 1] = (byte) (literals - 1);
+                literals = 0;
+            }
+            int len = 3;
+            while (len < maxLen && in[ref + len] == in[inPos + len]) {
+                len++;
+            }
+            len -= 2;
+            if (len < 7) {
+                out[outPos++] = (byte) ((off >> 8) + (len << 5));
+            } else {
+                out[outPos++] = (byte) ((off >> 8) + (7 << 5));
+                out[outPos++] = (byte) (len - 7);
+            }
+            out[outPos++] = (byte) off;
+            outPos++;
+            inPos += len;
+            hash = first(in, inPos);
+            hash = (hash << 8) + (in[inPos + 2] & 255);
+            hashTable[hash(hash)] = inPos++;
+            hash = (hash << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
+            hashTable[hash(hash)] = inPos++;
         }
         inEnd += 4;
         // try offlining the tail
