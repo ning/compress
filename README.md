@@ -1,5 +1,6 @@
 # Ning-Compress
 
+
 ## Overview
 
 Ning-compress is a Java library for encoding and decoding data in LZF format, written by Tatu Saloranta (tatu.saloranta@iki.fi)
@@ -9,7 +10,7 @@ Data format and algorithm based on original [LZF library](http://freshmeat.net/p
 Format differs slightly from some other adaptations, such as one used by [H2 database project](http://www.h2database.com) (by Thomas Mueller); although internal block compression structure is the same, block identifiers differ.
 This package uses the original LZF identifiers to be 100% compatible with existing command-line lzf tool(s).
 
-LZF alfgorithm itself is optimized for speed, with somewhat more modest compression: comparess to Deflate (algorithm gzip uses) LZF can be up to three times as fast to compress, and 50% faster to decompress.
+LZF alfgorithm itself is optimized for speed, with somewhat more modest compression: compared to Deflate (algorithm gzip uses) LZF can be 5-6 times as fast to compress, and twice as fast to decompress.
 
 ## Usage
 
@@ -24,3 +25,8 @@ This means that you can use it like:
 ## Related
 
 Check out [jvm-compress-benchmark](https://github.com/ning/jvm-compressor-benchmark) for comparison of space- and time-efficiency of this LZF implementation, relative other available Java-accessible compression libraries.
+
+## More
+
+Check out [Project Wiki](https://github.com/ning/compress/wiki) for more information.
+
