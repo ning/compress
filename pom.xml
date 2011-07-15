@@ -157,7 +157,8 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
               <Import-Package />
               <DynamicImport-Package />
               <Private-Package />
-              <Export-Package>com.ning.compress.lzf</Export-Package>
+              <Export-Package>com.ning.compress.lzf, com.ning.compress.lzf.util
+              </Export-Package>
               <Main-Class>com.ning.compress.lzf.LZF</Main-Class>
             </instructions>
           </configuration>
