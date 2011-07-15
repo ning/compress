@@ -18,7 +18,7 @@ Note that resulting jar is both an OSGi bundle, and a command-line tool (has man
 
 This means that you can use it like:
 
-    java -jar compress-lzf-0.6.1.jar
+    java -jar compress-lzf-0.7.0.jar
   
 (which will display necessary usage arguments)
 

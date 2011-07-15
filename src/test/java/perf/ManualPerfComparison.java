@@ -18,7 +18,7 @@ public class ManualPerfComparison
     {
         _lzfEncoded = LZFEncoder.encode(input);
 
-        int i = 0;
+//        int i = 0;
         // Let's try to guestimate suitable size... to get to 7 megs to process
         final int REPS = (int) ((double) (7 * 1000 * 1000) / (double) input.length);
 

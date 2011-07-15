@@ -13,8 +13,9 @@ public class TestLZFInputStream
 	private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
 	private byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
 	private byte[] bytesToWrite = new byte[BUFFER_SIZE];
-	private ByteArrayOutputStream nonCompressed;
-	private ByteArrayOutputStream compressed;
+	private byte[] nonCompressableBytes;
+	private int compressableInputLength = BUFFER_SIZE;
+	private byte[] compressedBytes;
 	
 	@BeforeTest(alwaysRun = true)
 	public void setUp() throws Exception 
@@ -27,46 +28,49 @@ public class TestLZFInputStream
 			System.arraycopy(bytes, 0, bytesToWrite, cursor, (bytes.length+cursor < bytesToWrite.length)?bytes.length:bytesToWrite.length-cursor);
 			cursor += bytes.length;
 		}
-		nonCompressed = new ByteArrayOutputStream();
+	        ByteArrayOutputStream nonCompressed = new ByteArrayOutputStream();
 		OutputStream os = new LZFOutputStream(nonCompressed);
 		os.write(nonEncodableBytesToWrite);
 		os.close();
+		nonCompressableBytes = nonCompressed.toByteArray();
 		
-		compressed = new ByteArrayOutputStream();
+		ByteArrayOutputStream compressed = new ByteArrayOutputStream();
 		os = new LZFOutputStream(compressed);
 		os.write(bytesToWrite);
 		os.close();
+		compressedBytes = compressed.toByteArray();
 	}
 	
 	@Test
 	public void testDecompressNonEncodableReadByte() throws IOException
 	{
-		doDecompressReadByte(nonCompressed.toByteArray(), nonEncodableBytesToWrite);
+		doDecompressReadByte(nonCompressableBytes, nonEncodableBytesToWrite);
 	}
 	
 	@Test
 	public void testDecompressNonEncodableReadBlock() throws IOException
 	{
-		doDecompressReadBlock(nonCompressed.toByteArray(), nonEncodableBytesToWrite);
+		doDecompressReadBlock(nonCompressableBytes, nonEncodableBytesToWrite);
 	}
 	
 	@Test
 	public void testDecompressEncodableReadByte() throws IOException
 	{
-		doDecompressReadByte(compressed.toByteArray(), bytesToWrite);
+		doDecompressReadByte(compressedBytes, bytesToWrite);
 	}
 	
 	@Test
 	public void testDecompressEncodableReadBlock() throws IOException
 	{
-		doDecompressReadBlock(compressed.toByteArray(), bytesToWrite);
+		doDecompressReadBlock(compressedBytes, bytesToWrite);
 	}
 	
 	@Test
 	public void testRead0() throws IOException
 	{
-		ByteArrayInputStream bis = new ByteArrayInputStream(compressed.toByteArray());
+		ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
 		InputStream is = new LZFInputStream(bis);
+		Assert.assertEquals(0, is.available());
 		byte[] buffer = new byte[65536+23];
 		int val = is.read(buffer, 0, 0);
 		// read of 0 or less should return a 0-byte read.
@@ -77,6 +81,31 @@ public class TestLZFInputStream
 		is.close();
 	}
 
+        @Test
+        public void testAvailable() throws IOException
+        {
+            ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
+            LZFInputStream is = new LZFInputStream(bis);
+            Assert.assertSame(is.getUnderlyingInputStream(), bis);
+            Assert.assertEquals(0, is.available());
+            // read one byte; should decode bunch more, make available
+            is.read();
+            int total = 1; // since we read one byte already
+            Assert.assertEquals(is.available(), 65534);
+            // and after we skip through all of it, end with -1 for EOF
+            long count;
+            while ((count = is.skip(16384L)) > 0L) {
+                total += (int) count;
+            }
+            // nothing more available; but we haven't yet closed so:
+            Assert.assertEquals(is.available(), 0);
+            // and then we close it:
+            is.close();
+            Assert.assertEquals(is.available(), -1);
+            Assert.assertEquals(total, compressableInputLength);
+        }
+	
+	
 	@Test void testIncrementalWithFullReads() throws IOException
 	{
 		doTestIncremental(true);
