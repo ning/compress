@@ -79,7 +79,7 @@ public class ChunkEncoder
     
     /**
      * Method to close once encoder is no longer in use. Note: after calling
-     * this method, further calls to {@link #_encodeChunk} will fail
+     * this method, further calls to {@link #encodeChunk} will fail
      */
     public void close()
     {

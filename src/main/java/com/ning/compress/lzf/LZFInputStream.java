@@ -53,7 +53,7 @@ public class LZFInputStream extends InputStream
     }
 
     /**
-     * @param inputStream Underlying input stream to use
+     * @param in Underlying input stream to use
      * @param fullReads Whether {@link #read(byte[])} should try to read exactly
      *   as many bytes as requested (true); or just however many happen to be
      *   available (false)
