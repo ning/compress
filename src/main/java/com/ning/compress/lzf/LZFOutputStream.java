@@ -3,13 +3,15 @@ package com.ning.compress.lzf;
 import java.io.*;
 
 /**
+ * Decorator {@link OutputStream} implementation that will compress
+ * output using LZF compression algorithm.
  * 
  * @author jon hartlaub
  * @author tatu
  */
 public class LZFOutputStream extends OutputStream 
 {
-    private static int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
+    private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
     private final ChunkEncoder _encoder;
     private final BufferRecycler _recycler;
@@ -19,6 +21,16 @@ public class LZFOutputStream extends OutputStream
     protected int _position = 0;
 
     /**
+     * Configuration setting that governs whether basic 'flush()' should
+     * first complete a block or not.
+     *<p>
+     * Default value is 'true'
+     * 
+     * @since 0.8
+     */
+    protected boolean _cfgFinishBlockOnFlush = true;
+    
+    /**
      * Flag that indicates if we have already called '_outputStream.close()'
      * (to avoid calling it multiple times)
      */
@@ -26,7 +38,7 @@ public class LZFOutputStream extends OutputStream
     
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Construction
+    // Construction, configuration
     ///////////////////////////////////////////////////////////////////////
      */
 
@@ -39,6 +51,17 @@ public class LZFOutputStream extends OutputStream
         _outputStreamClosed = false;
     }
 
+    /**
+     * Method for defining whether call to {@link #flush} will also complete
+     * current block (similar to calling {@link #finishBlock()}) or not.
+     * 
+     * @since 0.8
+     */
+    public LZFOutputStream setFinishBlockOnFlush(boolean b) {
+        _cfgFinishBlockOnFlush = b;
+        return this;
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // OutputStream impl
@@ -90,7 +113,7 @@ public class LZFOutputStream extends OutputStream
     @Override
     public void flush() throws IOException
     {
-        if (_position > 0) {
+        if (_cfgFinishBlockOnFlush && _position > 0) {
             writeCompressedBlock();
         }
         _outputStream.flush();
@@ -99,14 +122,17 @@ public class LZFOutputStream extends OutputStream
     @Override
     public void close() throws IOException  
     {
-        flush();
-        _encoder.close();
-        byte[] buf = _outputBuffer;
-        if (buf != null) {
-            _outputBuffer = null;
-            _recycler.releaseOutputBuffer(buf);
-        }
         if (!_outputStreamClosed) {
+            if (_position > 0) {
+                writeCompressedBlock();
+            }
+            _outputStream.flush();
+            _encoder.close();
+            byte[] buf = _outputBuffer;
+            if (buf != null) {
+                _outputBuffer = null;
+                _recycler.releaseOutputBuffer(buf);
+            }
             _outputStreamClosed = true;
             _outputStream.close();
         }
@@ -114,7 +140,7 @@ public class LZFOutputStream extends OutputStream
 
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Additional public accessors
+    // Additional public methods
     ///////////////////////////////////////////////////////////////////////
      */
 
@@ -128,6 +154,33 @@ public class LZFOutputStream extends OutputStream
      */
     public OutputStream getUnderlyingOutputStream() {
         return _outputStream;
+    }
+
+    /**
+     * Accessor for checking whether call to "flush()" will first finish the
+     * current block or not
+     * 
+     * @since 0.8
+     */
+    public boolean getFinishBlockOnFlush() {
+        return _cfgFinishBlockOnFlush;
+    }
+
+    /**
+     * Method that can be used to force completion of the current block,
+     * which means that all buffered data will be compressed into an
+     * LZF block. This typically results in lower compression ratio
+     * as larger blocks compress better; but may be necessary for
+     * network connections to ensure timely sending of data.
+     * 
+     * @since 0.8
+     */
+    public LZFOutputStream finishBlock() throws IOException
+    {
+        if (_position > 0) {
+            writeCompressedBlock();
+        }
+        return this;
     }
     
     /*

@@ -5,6 +5,9 @@ import java.io.InputStream;
 
 public class LZFInputStream extends InputStream
 {
+    /**
+     * Object that handles details of buffer recycling
+     */
     private final BufferRecycler _recycler;
 
     /**
@@ -24,7 +27,7 @@ public class LZFInputStream extends InputStream
      * but at least one). Default is false, meaning that 'optimal' read
      * is used.
      */
-    protected boolean cfgFullReads = false;
+    protected boolean _cfgFullReads = false;
 	
     /* the current buffer of compressed bytes (from which to decode) */
     private byte[] _inputBuffer;
@@ -61,10 +64,20 @@ public class LZFInputStream extends InputStream
         _recycler = BufferRecycler.instance();
         inputStream = in;
         inputStreamClosed = false;
-        cfgFullReads = fullReads;
+        _cfgFullReads = fullReads;
 
         _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
         _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+    }
+
+    /**
+     * Method that can be used define whether reads should be "full" or
+     * "optimal": former means that full compressed blocks are read right
+     * away as needed, optimal that only smaller chunks are read at a time,
+     * more being read as needed.
+     */
+    public void setUseFullReads(boolean b) {
+        _cfgFullReads = b;
     }
     
     /*
@@ -121,7 +134,7 @@ public class LZFInputStream extends InputStream
     	System.arraycopy(_decodedBytes, bufferPosition, buffer, offset, chunkLength);
     	bufferPosition += chunkLength;
 
-    	if (chunkLength == length || !cfgFullReads) {
+    	if (chunkLength == length || !_cfgFullReads) {
     	    return chunkLength;
     	}
     	// Need more data, then
@@ -160,6 +173,35 @@ public class LZFInputStream extends InputStream
         }
     }
 
+    /**
+     * Overridden to just skip at most a single chunk at a time
+     */
+    @Override
+    public long skip(long n) throws IOException
+    {
+        if (inputStreamClosed) {
+            return -1;
+        }
+        int left = (bufferLength - bufferPosition);
+        // if none left, must read more:
+        if (left <= 0) {
+            // otherwise must read more to skip...
+            int b = read();
+            if (b < 0) { // EOF
+                return -1;
+            }
+            // push it back to get accurate skip count
+            --bufferPosition;
+            left = (bufferLength - bufferPosition);
+        }
+        // either way, just skip whatever we have decoded
+        if (left > n) {
+            left = (int) n;
+        }
+        bufferPosition += left;
+        return left;
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Additional public accessors

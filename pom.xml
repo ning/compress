@@ -16,7 +16,6 @@ Compression code for LZF encoding for faster encoding/decoding with reasonable c
 See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF package.
     </description>    
     <prerequisites>
-        <!-- note: 2.0, 2.1 allegedly produce incorrect gpg signatures, so: -->
         <maven>2.2.1</maven>
     </prerequisites>
     <url>http://github.com/ning/compress</url>

@@ -9,8 +9,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-public class TestLZFOutputStream {
-
+public class TestLZFOutputStream
+{
 	private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
 	private byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
 	private byte[] bytesToWrite = new byte[BUFFER_SIZE];
