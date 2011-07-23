@@ -28,6 +28,13 @@ public class LZFDecoder
     // static methods, no need to instantiate
     private LZFDecoder() { }
     
+    /**
+     * Method for decompressing a block of input data encoded in LZF
+     * block structure (compatible with lzf command line utility),
+     * and can consist of any number of blocks.
+     * Note that input MUST consists of a sequence of one or more complete
+     * chunks; partial chunks can not be handled.
+     */
     public static byte[] decode(final byte[] sourceBuffer) throws IOException
     {
     	byte[] result = new byte[calculateUncompressedSize(sourceBuffer)];
@@ -36,9 +43,11 @@ public class LZFDecoder
     }
     
     /**
-     * Method for decompressing whole input data, which encoded in LZF
+     * Method for decompressing a block of input data encoded in LZF
      * block structure (compatible with lzf command line utility),
-     * and can consist of any number of blocks
+     * and can consist of any number of blocks.
+     * Note that input MUST consists of a sequence of one or more complete
+     * chunks; partial chunks can not be handled.
      */
     public static int decode(final byte[] sourceBuffer, final byte[] targetBuffer) throws IOException
     {
