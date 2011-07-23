@@ -204,7 +204,7 @@ public class LZFInputStream extends InputStream
     
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Additional public accessors
+    // Extended public API
     ///////////////////////////////////////////////////////////////////////
      */
 
@@ -218,6 +218,19 @@ public class LZFInputStream extends InputStream
      */
     public InputStream getUnderlyingInputStream() {
         return inputStream;
+    }
+
+    /**
+     * Method that can be called to discard any already buffered input, read
+     * from input source.
+     * Specialized method that only makes sense if the underlying {@link InputStream}
+     * can be repositioned reliably.
+     * 
+     * @since 0.9
+     */
+    public void discardBuffered()
+    {
+        bufferPosition = bufferLength = 0;
     }
     
     /*
