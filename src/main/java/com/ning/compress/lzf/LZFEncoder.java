@@ -45,7 +45,7 @@ public class LZFEncoder
      * block structure (compatible with lzf command line utility).
      * Result consists of a sequence of chunks.
      * 
-     * @since 0.9.0
+     * @since 0.8.1
      */
     public static byte[] encode(byte[] data, int offset, int length) throws IOException
     {
@@ -63,7 +63,7 @@ public class LZFEncoder
     }
 
     /**
-     * @since 0.9.0
+     * @since 0.8.1
      */
     public static byte[] encode(ChunkEncoder enc, byte[] data, int offset, int length)
         throws IOException

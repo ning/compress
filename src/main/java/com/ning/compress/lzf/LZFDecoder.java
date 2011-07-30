@@ -35,11 +35,27 @@ public class LZFDecoder
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public static byte[] decode(final byte[] sourceBuffer) throws IOException
+    public static byte[] decode(final byte[] inputBuffer) throws IOException
     {
-    	byte[] result = new byte[calculateUncompressedSize(sourceBuffer)];
-    	decode(sourceBuffer, result);
+    	byte[] result = new byte[calculateUncompressedSize(inputBuffer, 0, inputBuffer.length)];
+    	decode(inputBuffer, 0, inputBuffer.length, result);
     	return result;
+    }
+
+    /**
+     * Method for decompressing a block of input data encoded in LZF
+     * block structure (compatible with lzf command line utility),
+     * and can consist of any number of blocks.
+     * Note that input MUST consists of a sequence of one or more complete
+     * chunks; partial chunks can not be handled.
+     * 
+     * @since 0.8.2
+     */
+    public static byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws IOException
+    {
+        byte[] result = new byte[calculateUncompressedSize(inputBuffer, inputPtr, inputLen)];
+        decode(inputBuffer, inputPtr, inputLen, result);
+        return result;
     }
     
     /**
@@ -49,19 +65,33 @@ public class LZFDecoder
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public static int decode(final byte[] sourceBuffer, final byte[] targetBuffer) throws IOException
+    public static int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException
     {
-        /* First: let's calculate actual size, so we can allocate
-         * exact result size. Also useful for basic sanity checking;
-         * so that after call we know header structure is not corrupt
-         * (to the degree that lengths etc seem valid)
-         */
-        byte[] result = targetBuffer;
-        int inPtr = 0;
-        int outPtr = 0;
+        return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
+    }
 
-        while (inPtr < (sourceBuffer.length - 1)) { // -1 to offset possible end marker
-            inPtr += 2; // skip 'ZV' marker
+    /**
+     * Method for decompressing a block of input data encoded in LZF
+     * block structure (compatible with lzf command line utility),
+     * and can consist of any number of blocks.
+     * Note that input MUST consists of a sequence of one or more complete
+     * chunks; partial chunks can not be handled.
+     */
+    public static int decode(final byte[] sourceBuffer, int inPtr, int inLength,
+            final byte[] targetBuffer) throws IOException
+    {
+        byte[] result = targetBuffer;
+        int outPtr = 0;
+        int blockNr = 0;
+
+        final int end = inPtr + inLength - 1; // -1 to offset possible end marker
+        
+        while (inPtr < end) {
+            // let's do basic sanity checks; no point in skimping with these checks
+            if (sourceBuffer[inPtr] != LZFChunk.BYTE_Z || sourceBuffer[inPtr] != LZFChunk.BYTE_V) {
+                throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+inPtr+"): did not start with 'ZV' signature bytes");
+            }
+            inPtr += 2;
             int type = sourceBuffer[inPtr++];
             int len = uint16(sourceBuffer, inPtr);
             inPtr += 2;
@@ -75,17 +105,24 @@ public class LZFDecoder
                 outPtr += uncompLen;
             }
             inPtr += len;
+            ++blockNr;
         }
         return outPtr;
     }
 
-    private static int calculateUncompressedSize(byte[] data) throws IOException
+    /**
+     * Helper method that will calculate total uncompressed size, for sequence of
+     * one or more LZF blocks stored in given byte array.
+     * Will do basic sanity checking, so that this method can be called to
+     * verify against some types of corruption.
+     */
+    public static int calculateUncompressedSize(byte[] data, int ptr, int length) throws IOException
     {
         int uncompressedSize = 0;
-        int ptr = 0;
         int blockNr = 0;
+        final int end = ptr + length;
 
-        while (ptr < data.length) {
+        while (ptr < end) {
             // can use optional end marker
             if (ptr == (data.length + 1) && data[ptr] == BYTE_NULL) {
                 ++ptr; // so that we'll be at end
@@ -123,8 +160,6 @@ public class LZFDecoder
     /**
      * Main decode from a stream.  Decompressed bytes are placed in the outputBuffer, inputBuffer
      * is a "scratch-area".
-     *<p>
-     * If no 
      * 
      * @param is An input stream of LZF compressed bytes
      * @param inputBuffer A byte array used as a scratch area.
