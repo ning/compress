@@ -88,7 +88,7 @@ public class LZFDecoder
         
         while (inPtr < end) {
             // let's do basic sanity checks; no point in skimping with these checks
-            if (sourceBuffer[inPtr] != LZFChunk.BYTE_Z || sourceBuffer[inPtr] != LZFChunk.BYTE_V) {
+            if (sourceBuffer[inPtr] != LZFChunk.BYTE_Z || sourceBuffer[inPtr+1] != LZFChunk.BYTE_V) {
                 throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+inPtr+"): did not start with 'ZV' signature bytes");
             }
             inPtr += 2;
