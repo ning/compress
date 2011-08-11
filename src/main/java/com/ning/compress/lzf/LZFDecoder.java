@@ -276,16 +276,55 @@ public class LZFDecoder
             // back reference
             int len = ctrl >> 5;
             ctrl = -((ctrl & 0x1f) << 8) - 1;
-            if (len == 7) {
-                len += in[inPos++] & 255;
+            if (len < 7) { // 2 bytes; length of 3 - 8 bytes
+                ctrl -= in[inPos++] & 255;
+                out[outPos] = out[outPos++ + ctrl];
+                out[outPos] = out[outPos++ + ctrl];
+                switch (len) {
+                case 6:
+                    out[outPos] = out[outPos++ + ctrl];
+                case 5:
+                    out[outPos] = out[outPos++ + ctrl];
+                case 4:
+                    out[outPos] = out[outPos++ + ctrl];
+                case 3:
+                    out[outPos] = out[outPos++ + ctrl];
+                case 2:
+                    out[outPos] = out[outPos++ + ctrl];
+                case 1:
+                    out[outPos] = out[outPos++ + ctrl];
+                }
+                continue;
             }
-            ctrl -= in[inPos++] & 255;
 
+            // long version (3 bytes, length of up to 264 bytes)
+            len = in[inPos++] & 255;
+            ctrl -= in[inPos++] & 255;
+            
+            // First: if there is no overlap, can just use arraycopy:
+            if ((ctrl + len) < -9) {
+                len += 9;
+                System.arraycopy(out, outPos+ctrl, out, outPos, len);
+                outPos += len;
+                continue;
+            }
+
+            // otherwise manual copy: so first just copy 9 bytes we know are needed
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+
+            // then loop
             // Odd: after extensive profiling, looks like magic number
             // for unrolling is 4: with 8 performance is worse (even
             // bit less than with no unrolling).
-            /*
-            len += outPos + 2;
+            len += outPos;
             final int end = len - 3;
             while (outPos < end) {
                 out[outPos] = out[outPos++ + ctrl];
@@ -293,28 +332,13 @@ public class LZFDecoder
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
             }
-            // and, interestingly, unlooping works here too:
-            if (outPos < len) { // max 3 bytes to copy
+            switch  (len - outPos) {
+            case 3:
                 out[outPos] = out[outPos++ + ctrl];
-                if (outPos < len) {
-                    out[outPos] = out[outPos++ + ctrl];
-                    if (outPos < len) {
-                        out[outPos] = out[outPos++ + ctrl];
-                    }
-                }
-            }
-            */
-
-            // this might be as fast as unrolled version tho
-            // ok: so shortest seq is 3; but smallest 'len' is 1... (0 is never used!)
-            out[outPos] = out[outPos++ + ctrl];
-            out[outPos] = out[outPos++ + ctrl];
-            out[outPos] = out[outPos++ + ctrl];
-            if (len > 1) {
-                final int end = outPos + len - 1;
-                do {
-                    out[outPos] = out[outPos+ctrl];
-                } while (++outPos < end);
+            case 2:
+                out[outPos] = out[outPos++ + ctrl];
+            case 1:
+                out[outPos] = out[outPos++ + ctrl];
             }
         } while (outPos < outEnd);
 
