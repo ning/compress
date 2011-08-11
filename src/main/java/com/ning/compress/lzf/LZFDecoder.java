@@ -204,10 +204,73 @@ public class LZFDecoder
         do {
             int ctrl = in[inPos++] & 255;
             if (ctrl < LZFChunk.MAX_LITERAL) { // literal run
-                ctrl += inPos;
-                do {
-                    out[outPos++] = in[inPos];
-                } while (inPos++ < ctrl);
+                // 11-Aug-2011, tatu: Looks silly, but is faster than simple loop or System.arraycopy
+                switch (ctrl) {
+                case 31:
+                    out[outPos++] = in[inPos++];
+                case 30:
+                    out[outPos++] = in[inPos++];
+                case 29:
+                    out[outPos++] = in[inPos++];
+                case 28:
+                    out[outPos++] = in[inPos++];
+                case 27:
+                    out[outPos++] = in[inPos++];
+                case 26:
+                    out[outPos++] = in[inPos++];
+                case 25:
+                    out[outPos++] = in[inPos++];
+                case 24:
+                    out[outPos++] = in[inPos++];
+                case 23:
+                    out[outPos++] = in[inPos++];
+                case 22:
+                    out[outPos++] = in[inPos++];
+                case 21:
+                    out[outPos++] = in[inPos++];
+                case 20:
+                    out[outPos++] = in[inPos++];
+                case 19:
+                    out[outPos++] = in[inPos++];
+                case 18:
+                    out[outPos++] = in[inPos++];
+                case 17:
+                    out[outPos++] = in[inPos++];
+                case 16:
+                    out[outPos++] = in[inPos++];
+                case 15:
+                    out[outPos++] = in[inPos++];
+                case 14:
+                    out[outPos++] = in[inPos++];
+                case 13:
+                    out[outPos++] = in[inPos++];
+                case 12:
+                    out[outPos++] = in[inPos++];
+                case 11:
+                    out[outPos++] = in[inPos++];
+                case 10:
+                    out[outPos++] = in[inPos++];
+                case 9:
+                    out[outPos++] = in[inPos++];
+                case 8:
+                    out[outPos++] = in[inPos++];
+                case 7:
+                    out[outPos++] = in[inPos++];
+                case 6:
+                    out[outPos++] = in[inPos++];
+                case 5:
+                    out[outPos++] = in[inPos++];
+                case 4:
+                    out[outPos++] = in[inPos++];
+                case 3:
+                    out[outPos++] = in[inPos++];
+                case 2:
+                    out[outPos++] = in[inPos++];
+                case 1:
+                    out[outPos++] = in[inPos++];
+                case 0:
+                    out[outPos++] = in[inPos++];
+                }
                 continue;
             }
             // back reference
@@ -217,14 +280,12 @@ public class LZFDecoder
                 len += in[inPos++] & 255;
             }
             ctrl -= in[inPos++] & 255;
-            len += outPos + 2;
-            out[outPos] = out[outPos++ + ctrl];
-            out[outPos] = out[outPos++ + ctrl];
 
-            /* Odd: after extensive profiling, looks like magic number
-             * for unrolling is 4: with 8 performance is worse (even
-             * bit less than with no unrolling).
-             */
+            // Odd: after extensive profiling, looks like magic number
+            // for unrolling is 4: with 8 performance is worse (even
+            // bit less than with no unrolling).
+            /*
+            len += outPos + 2;
             final int end = len - 3;
             while (outPos < end) {
                 out[outPos] = out[outPos++ + ctrl];
@@ -241,6 +302,19 @@ public class LZFDecoder
                         out[outPos] = out[outPos++ + ctrl];
                     }
                 }
+            }
+            */
+
+            // this might be as fast as unrolled version tho
+            // ok: so shortest seq is 3; but smallest 'len' is 1... (0 is never used!)
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            out[outPos] = out[outPos++ + ctrl];
+            if (len > 1) {
+                final int end = outPos + len - 1;
+                do {
+                    out[outPos] = out[outPos+ctrl];
+                } while (++outPos < end);
             }
         } while (outPos < outEnd);
 
