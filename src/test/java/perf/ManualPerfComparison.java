@@ -19,15 +19,15 @@ public class ManualPerfComparison
         _lzfEncoded = LZFEncoder.encode(input);
 
 //        int i = 0;
-        // Let's try to guestimate suitable size... to get to 7 megs to process
-        final int REPS = (int) ((double) (7 * 1000 * 1000) / (double) input.length);
+        // Let's try to guestimate suitable size... to get to 10 megs to process
+        final int REPS = (int) ((double) (10 * 1000 * 1000) / (double) input.length);
 
         System.out.println("Read "+input.length+" bytes to compress, uncompress; will do "+REPS+" repetitions");
 
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
 //            int round = (i++ % 4);
-            int round = 1;
+            int round = 3;
 
             String msg;
             boolean lf = (round == 0);
