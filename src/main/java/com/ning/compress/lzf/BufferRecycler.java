@@ -16,7 +16,7 @@ public class BufferRecycler
     private final static int MIN_OUTPUT_BUFFER = 8000;
     
     /**
-     * This <code>ThreadLocal</code> contains a {@link java.lang.ref.SoftRerefence}
+     * This <code>ThreadLocal</code> contains a {@link java.lang.ref.SoftReference}
      * to a {@link BufferRecycler} used to provide a low-cost
      * buffer recycling for buffers we need for encoding, decoding.
      */
