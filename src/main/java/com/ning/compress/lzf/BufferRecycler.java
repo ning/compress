@@ -16,7 +16,7 @@ public class BufferRecycler
     private final static int MIN_OUTPUT_BUFFER = 8000;
     
     /**
-     * This <code>ThreadLocal</code> contains a {@link java.lang.ref.SoftRerefence}
+     * This <code>ThreadLocal</code> contains a {@link java.lang.ref.SoftReference}
      * to a {@link BufferRecycler} used to provide a low-cost
      * buffer recycling for buffers we need for encoding, decoding.
      */
@@ -85,7 +85,7 @@ public class BufferRecycler
 
     public void releaseOutputBuffer(byte[] buffer)
     {
-        if (_outputBuffer == null || buffer.length > _outputBuffer.length) {
+        if (_outputBuffer == null || (buffer != null && buffer.length > _outputBuffer.length)) {
             _outputBuffer = buffer;
         }
     }
@@ -103,7 +103,7 @@ public class BufferRecycler
 
     public void releaseEncodingHash(int[] buffer)
     {
-        if (_encodingHash == null || buffer.length > _encodingHash.length) {
+        if (_encodingHash == null || (buffer != null && buffer.length > _encodingHash.length)) {
             _encodingHash = buffer;
         }
     }
@@ -127,7 +127,7 @@ public class BufferRecycler
 
     public void releaseInputBuffer(byte[] buffer)
     {
-        if (_inputBuffer == null || buffer.length > _inputBuffer.length) {
+        if (_inputBuffer == null || (buffer != null && buffer.length > _inputBuffer.length)) {
             _inputBuffer = buffer;
         }
     }
@@ -145,7 +145,7 @@ public class BufferRecycler
 
     public void releaseDecodeBuffer(byte[] buffer)
     {
-        if (_decodingBuffer == null || buffer.length > _decodingBuffer.length) {
+        if (_decodingBuffer == null || (buffer != null && buffer.length > _decodingBuffer.length)) {
             _decodingBuffer = buffer;
         }
     }
