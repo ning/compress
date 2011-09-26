@@ -1,0 +1,4 @@
+0.8.5:
+
+* Fix an NPE in BufferRecycler
+  (reported by Matt Abrams, abramsm@gmail.com)
