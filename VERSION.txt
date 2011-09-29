@@ -1,3 +1,9 @@
+0.8.6:
+
+* #11: Input/OutputStreams not throwing IOException if reading/writing
+   after close() called, should be.
+  (reported by Dain S)
+
 0.8.5:
 
 * Fix an NPE in BufferRecycler
