@@ -71,6 +71,7 @@ public class LZFOutputStream extends OutputStream
     @Override
     public void write(final int singleByte) throws IOException 
     {
+        checkNotClosed();
         if (_position >= _outputBuffer.length) {
             writeCompressedBlock();
         }
@@ -80,6 +81,8 @@ public class LZFOutputStream extends OutputStream
     @Override
     public void write(final byte[] buffer, int offset, int length) throws IOException
     {
+        checkNotClosed();
+
         final int BUFFER_LEN = _outputBuffer.length;
 
         // simple case first: buffering only (for trivially short writes)
@@ -113,6 +116,7 @@ public class LZFOutputStream extends OutputStream
     @Override
     public void flush() throws IOException
     {
+        checkNotClosed();
         if (_cfgFinishBlockOnFlush && _position > 0) {
             writeCompressedBlock();
         }
@@ -177,6 +181,7 @@ public class LZFOutputStream extends OutputStream
      */
     public LZFOutputStream finishBlock() throws IOException
     {
+        checkNotClosed();
         if (_position > 0) {
             writeCompressedBlock();
         }
@@ -204,5 +209,12 @@ public class LZFOutputStream extends OutputStream
             offset += chunkLen;
             left -= chunkLen;
         } while (left > 0);
+    }
+
+    protected void checkNotClosed() throws IOException
+    {
+        if (_outputStreamClosed) {
+            throw new IOException(getClass().getName()+" already closed");
+        }
     }
 }
