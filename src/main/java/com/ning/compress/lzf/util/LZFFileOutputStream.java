@@ -243,7 +243,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
         do {
             int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
-            _encoder.encodeAndWriteChunk(_outputBuffer, 0, chunkLen, _wrapper);
+            _encoder.encodeAndWriteChunk(_outputBuffer, offset, chunkLen, _wrapper);
             offset += chunkLen;
             left -= chunkLen;
         } while (left > 0);
