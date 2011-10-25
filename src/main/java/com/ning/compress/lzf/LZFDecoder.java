@@ -17,8 +17,11 @@ import java.io.InputStream;
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
  * combining them into a single contiguous result byte array
+ *<p> 
+ * Note that as of version 0.9, this class needs to be instantiated;
+ * earlier versions worked mostly via static methods
  * 
- * @author tatu@ning.com
+ * @author Tatu Saloranta (tatu@ning.com)
  */
 public class LZFDecoder
 {
