@@ -35,8 +35,6 @@ public class UnsafeChunkDecoder extends ChunkDecoder
 //    private static final long SHORT_ARRAY_OFFSET = unsafe.arrayBaseOffset(short[].class);
 //    private static final long SHORT_ARRAY_STRIDE = unsafe.arrayIndexScale(short[].class);
     
-    protected int outEnd;
-    
     public UnsafeChunkDecoder() { }
 
     @Override
