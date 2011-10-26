@@ -183,7 +183,7 @@ public class ChunkEncoder
     {
         final int[] hashTable = _hashTable;
         ++outPos;
-        int hash = first(in, 0);
+        int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
         inEnd -= 4;
         final int firstPos = inPos; // so that we won't have back references across block boundary
@@ -191,8 +191,8 @@ public class ChunkEncoder
         while (inPos < inEnd) {
             byte p2 = in[inPos + 2];
             // next
-            hash = (hash << 8) + (p2 & 255);
-            int off = hash(hash);
+            seen = (seen << 8) + (p2 & 255);
+            int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
   
@@ -201,8 +201,8 @@ public class ChunkEncoder
                     || ref < firstPos // or to previous block
                     || (off = inPos - ref - 1) >= MAX_OFF
                     || in[ref+2] != p2 // must match hash
-                    || in[ref+1] != (byte) (hash >> 8)
-                    || in[ref] != (byte) (hash >> 16)) {
+                    || in[ref+1] != (byte) (seen >> 8)
+                    || in[ref] != (byte) (seen >> 16)) {
                 out[outPos++] = in[inPos++];
                 literals++;
                 if (literals == LZFChunk.MAX_LITERAL) {
@@ -237,11 +237,11 @@ public class ChunkEncoder
             out[outPos++] = (byte) off;
             outPos++;
             inPos += len;
-            hash = first(in, inPos);
-            hash = (hash << 8) + (in[inPos + 2] & 255);
-            hashTable[hash(hash)] = inPos++;
-            hash = (hash << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
-            hashTable[hash(hash)] = inPos++;
+            seen = first(in, inPos);
+            seen = (seen << 8) + (in[inPos + 2] & 255);
+            hashTable[hash(seen)] = inPos++;
+            seen = (seen << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
+            hashTable[hash(seen)] = inPos++;
         }
         inEnd += 4;
         // try offlining the tail
