@@ -9,7 +9,7 @@ import sun.misc.Unsafe;
 import com.ning.compress.lzf.*;
 
 /**
- * Highly optimized {@link LZFDecompressor} implementation that uses
+ * Highly optimized {@link ChunkDecoder} implementation that uses
  * Sun JDK's Unsafe class (which may be included by other JDK's as well;
  * IBM's apparently does).
  *<p>
@@ -17,7 +17,7 @@ import com.ning.compress.lzf.*;
  * and is all-around great source for optimization tips and tricks.
  */
 @SuppressWarnings("restriction")
-public class LZFDecompressorWithUnsafe extends LZFDecompressor
+public class UnsafeChunkDecoder extends ChunkDecoder
 {
     private static final Unsafe unsafe;
     static {
@@ -37,10 +37,10 @@ public class LZFDecompressorWithUnsafe extends LZFDecompressor
     
     protected int outEnd;
     
-    public LZFDecompressorWithUnsafe() { }
+    public UnsafeChunkDecoder() { }
 
     @Override
-    public final int decompressChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
+    public final int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
             throws IOException
     {
         int bytesInOutput;
@@ -63,14 +63,14 @@ public class LZFDecompressorWithUnsafe extends LZFDecompressor
         } else { // compressed
             readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
             int uncompLen = uint16(inputBuffer, 0);
-            decompressChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+            decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
             bytesInOutput = uncompLen;
         }
         return bytesInOutput;
     }
     
     @Override
-    public final void decompressChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
+    public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
             throws IOException
     {
         main_loop:

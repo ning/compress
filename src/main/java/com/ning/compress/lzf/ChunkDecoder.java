@@ -8,20 +8,22 @@ import java.io.InputStream;
  * combining them into a single contiguous result byte array.
  * 
  * @author Tatu Saloranta (tatu@ning.com)
+ * 
+ * @since 0.9
  */
-public abstract class LZFDecompressor
+public abstract class ChunkDecoder
 {
     protected final static byte BYTE_NULL = 0;
     protected final static int HEADER_BYTES = 5;
 
-    public LZFDecompressor() { }
+    public ChunkDecoder() { }
 
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public API
     ///////////////////////////////////////////////////////////////////////
      */
-    
+
     /**
      * Method for decompressing a block of input data encoded in LZF
      * block structure (compatible with lzf command line utility),
@@ -29,10 +31,10 @@ public abstract class LZFDecompressor
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public final byte[] decompress(final byte[] inputBuffer) throws IOException
+    public final byte[] decode(final byte[] inputBuffer) throws IOException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, 0, inputBuffer.length)];
-        decompress(inputBuffer, 0, inputBuffer.length, result);
+        decode(inputBuffer, 0, inputBuffer.length, result);
         return result;
     }
 
@@ -42,13 +44,11 @@ public abstract class LZFDecompressor
      * and can consist of any number of blocks.
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
-     * 
-     * @since 0.8.2
      */
-    public final byte[] decompress(final byte[] inputBuffer, int inputPtr, int inputLen) throws IOException
+    public final byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws IOException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, inputPtr, inputLen)];
-        decompress(inputBuffer, inputPtr, inputLen, result);
+        decode(inputBuffer, inputPtr, inputLen, result);
         return result;
     }
     
@@ -59,9 +59,9 @@ public abstract class LZFDecompressor
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public final int decompress(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException
+    public final int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException
     {
-        return decompress(inputBuffer, 0, inputBuffer.length, targetBuffer);
+        return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
 
     /**
@@ -71,7 +71,7 @@ public abstract class LZFDecompressor
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public int decompress(final byte[] sourceBuffer, int inPtr, int inLength,
+    public int decode(final byte[] sourceBuffer, int inPtr, int inLength,
             final byte[] targetBuffer) throws IOException
     {
         byte[] result = targetBuffer;
@@ -95,7 +95,7 @@ public abstract class LZFDecompressor
             } else { // compressed
                 int uncompLen = uint16(sourceBuffer, inPtr);
                 inPtr += 2;
-                decompressChunk(sourceBuffer, inPtr, result, outPtr, outPtr+uncompLen);
+                decodeChunk(sourceBuffer, inPtr, result, outPtr, outPtr+uncompLen);
                 outPtr += uncompLen;
             }
             inPtr += len;
@@ -113,13 +113,13 @@ public abstract class LZFDecompressor
      * @param outputBuffer A byte array in which the result is returned
      * @return The number of bytes placed in the outputBuffer.
      */
-    public abstract int decompressChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
+    public abstract int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
         throws IOException;
     
     /**
      * Main decode method for individual chunks.
      */
-    public abstract void decompressChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
+    public abstract void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws IOException;
 
     /*

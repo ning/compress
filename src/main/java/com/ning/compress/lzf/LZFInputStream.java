@@ -3,14 +3,14 @@ package com.ning.compress.lzf;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.ning.compress.lzf.util.DecompressorLoader;
+import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 public class LZFInputStream extends InputStream
 {
     /**
      * Underlying decoder in use.
      */
-    private final LZFDecompressor _decoder;
+    private final ChunkDecoder _decoder;
     
     /**
      * Object that handles details of buffer recycling
@@ -67,10 +67,10 @@ public class LZFInputStream extends InputStream
      */
     public LZFInputStream(final InputStream in, boolean fullReads) throws IOException
     {
-        this(in, fullReads, DecompressorLoader.optimalInstance());
+        this(in, fullReads, ChunkDecoderFactory.optimalInstance());
     }
 
-    public LZFInputStream(final InputStream in, boolean fullReads, LZFDecompressor decoder)
+    public LZFInputStream(final InputStream in, boolean fullReads, ChunkDecoder decoder)
         throws IOException
     {
         super();
@@ -265,7 +265,7 @@ public class LZFInputStream extends InputStream
         if (inputStreamClosed) {
             return false;
         }
-        bufferLength = _decoder.decompressChunk(inputStream, _inputBuffer, _decodedBytes);
+        bufferLength = _decoder.decodeChunk(inputStream, _inputBuffer, _decodedBytes);
         if (bufferLength < 0) {
             return false;
         }

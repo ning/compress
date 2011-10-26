@@ -13,7 +13,7 @@ package com.ning.compress.lzf;
 
 import java.io.*;
 
-import com.ning.compress.lzf.util.DecompressorLoader;
+import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
  * Simple command-line utility that can be used for testing LZF
@@ -48,7 +48,7 @@ public class LZF
                 if (compress) {
                     result = LZFEncoder.encode(data);
                 } else {
-                    result = DecompressorLoader.optimalInstance().decompress(data);
+                    result = ChunkDecoderFactory.optimalInstance().decode(data);
                 }
                 System.out.println("Processed into "+result.length+" bytes.");
                 File resultFile =  compress ? new File(filename+SUFFIX) : new File(filename.substring(0, filename.length() - SUFFIX.length()));

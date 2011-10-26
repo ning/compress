@@ -3,7 +3,7 @@ package perf;
 import java.io.*;
 
 import com.ning.compress.lzf.*;
-import com.ning.compress.lzf.util.DecompressorLoader;
+import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and
@@ -102,10 +102,10 @@ public class ManualPerfComparison
         long start = System.currentTimeMillis();
         byte[] uncomp = null;
 
-        final LZFDecompressor decoder = DecompressorLoader.optimalInstance();
+        final ChunkDecoder decoder = ChunkDecoderFactory.optimalInstance();
 
         while (--REPS >= 0) {
-            uncomp = decoder.decompress(encoded);
+            uncomp = decoder.decode(encoded);
         }
         size = uncomp.length;
         return System.currentTimeMillis() - start;

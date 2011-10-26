@@ -24,7 +24,7 @@ public class LZFFileInputStream
     /**
      * Underlying decoder in use.
      */
-    private final LZFDecompressor _decompressor;
+    private final ChunkDecoder _decompressor;
     
     /**
      * Object that handles details of buffer recycling
@@ -78,18 +78,18 @@ public class LZFFileInputStream
      */
 
     public LZFFileInputStream(File file) throws FileNotFoundException {
-        this(file, DecompressorLoader.optimalInstance());
+        this(file, ChunkDecoderFactory.optimalInstance());
     }
 
     public LZFFileInputStream(FileDescriptor fdObj) {
-        this(fdObj, DecompressorLoader.optimalInstance());
+        this(fdObj, ChunkDecoderFactory.optimalInstance());
     }
 
     public LZFFileInputStream(String name) throws FileNotFoundException {
-        this(name, DecompressorLoader.optimalInstance());
+        this(name, ChunkDecoderFactory.optimalInstance());
     }
     
-    public LZFFileInputStream(File file, LZFDecompressor decompressor) throws FileNotFoundException
+    public LZFFileInputStream(File file, ChunkDecoder decompressor) throws FileNotFoundException
     {
         super(file);
         _decompressor = decompressor;
@@ -100,7 +100,7 @@ public class LZFFileInputStream
         _wrapper = new Wrapper();
     }
 
-    public LZFFileInputStream(FileDescriptor fdObj, LZFDecompressor decompressor)
+    public LZFFileInputStream(FileDescriptor fdObj, ChunkDecoder decompressor)
     {
         super(fdObj);
         _decompressor = decompressor;
@@ -111,7 +111,7 @@ public class LZFFileInputStream
         _wrapper = new Wrapper();
     }
 
-    public LZFFileInputStream(String name, LZFDecompressor decompressor) throws FileNotFoundException
+    public LZFFileInputStream(String name, ChunkDecoder decompressor) throws FileNotFoundException
     {
         super(name);
         _decompressor = decompressor;
@@ -259,7 +259,7 @@ public class LZFFileInputStream
         if (bufferPosition < bufferLength) {
             return true;
         }
-        bufferLength = _decompressor.decompressChunk(_wrapper, _inputBuffer, _decodedBytes);
+        bufferLength = _decompressor.decodeChunk(_wrapper, _inputBuffer, _decodedBytes);
         if (bufferLength < 0) {
             return false;
         }

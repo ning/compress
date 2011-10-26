@@ -13,22 +13,19 @@ package com.ning.compress.lzf;
 
 import java.io.IOException;
 
-import com.ning.compress.lzf.util.DecompressorLoader;
+import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
  * combining them into a single contiguous result byte array.
  * As of version 0.9, this class has been mostly replaced by
- * {@link LZFDecompressor}, although static methods are left here
+ * {@link ChunkDecoder}, although static methods are left here
  * and may still be used.
- * All static methods use {@link DecompressorLoader#optimalInstance}
- * to find actual {@link LZFDecompressor} instance to use.
+ * All static methods use {@link ChunkDecoderFactory#optimalInstance}
+ * to find actual {@link ChunkDecoder} instance to use.
  * 
  * @author Tatu Saloranta (tatu@ning.com)
- * 
- * @deprecated As of 0.9, use {@link LZFDecompressor} instead
  */
-@Deprecated
 public class LZFDecoder
 {
     /*
@@ -42,7 +39,7 @@ public class LZFDecoder
     }
     
     public static byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws IOException {
-        return DecompressorLoader.optimalInstance().decompress(inputBuffer);
+        return ChunkDecoderFactory.optimalInstance().decode(inputBuffer);
     }
     
     public static int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException {
@@ -50,10 +47,10 @@ public class LZFDecoder
     }
 
     public static int decode(final byte[] sourceBuffer, int inPtr, int inLength, final byte[] targetBuffer) throws IOException {
-        return DecompressorLoader.optimalInstance().decompress(sourceBuffer, inPtr, inLength, targetBuffer);        
+        return ChunkDecoderFactory.optimalInstance().decode(sourceBuffer, inPtr, inLength, targetBuffer);        
     }
 
     public static int calculateUncompressedSize(byte[] data, int ptr, int length) throws IOException {
-        return LZFDecompressor.calculateUncompressedSize(data, ptr, length);
+        return ChunkDecoder.calculateUncompressedSize(data, ptr, length);
     }
 }

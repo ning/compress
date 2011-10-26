@@ -20,7 +20,7 @@ import java.io.OutputStream;
  * is only used if it actually reduces chunk size (including overhead
  * of additional header bytes)
  * 
- * @author tatu@ning.com
+ * @author Tatu Saloranta (tatu@ning.com)
  */
 public class ChunkEncoder
 {
