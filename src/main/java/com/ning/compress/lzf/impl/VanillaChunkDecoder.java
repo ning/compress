@@ -5,6 +5,10 @@ import java.io.InputStream;
 
 import com.ning.compress.lzf.*;
 
+/**
+ * Safe {@link ChunkDecoder} implementation that can be used on any
+ * platform.
+ */
 public class VanillaChunkDecoder extends ChunkDecoder
 {
     public VanillaChunkDecoder() { }
@@ -46,12 +50,6 @@ public class VanillaChunkDecoder extends ChunkDecoder
         do {
             int ctrl = in[inPos++] & 255;
             if (ctrl < LZFChunk.MAX_LITERAL) { // literal run
-                /*
-                copyUpTo32WithSwitch(in, inPos, out, outPos, ctrl);
-                ++ctrl;
-                inPos += ctrl;
-                outPos += ctrl;
-                */
                 switch (ctrl) {
                 case 31:
                     out[outPos++] = in[inPos++];
@@ -202,18 +200,6 @@ public class VanillaChunkDecoder extends ChunkDecoder
     // Internal methods
     ///////////////////////////////////////////////////////////////////////
      */
-    
-//    private final static void copyUpTo32(byte[] input, int inputIndex, byte[] output, int outputIndex, int length) {
-//        copyUpTo32WithSwitch(input, inputIndex, output, outputIndex, length-1);
-
-        // or:
-        
-//        if (length > 15) {
-//            System.arraycopy(input, inputIndex, output, outputIndex, length);
-//        } else {
-//            copyUpTo16WithSwitch(input, inputIndex, output, outputIndex, length-1);
-//        }
-//    }
  
     protected static final void copyUpTo32WithSwitch(byte[] in, int inPos, byte[] out, int outPos,
             int lengthMinusOne)
