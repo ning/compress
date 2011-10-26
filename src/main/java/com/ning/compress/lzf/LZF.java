@@ -13,18 +13,20 @@ package com.ning.compress.lzf;
 
 import java.io.*;
 
+import com.ning.compress.lzf.util.DecompressorLoader;
+
 /**
  * Simple command-line utility that can be used for testing LZF
  * compression, or as rudimentary command-line tool.
  * Arguments are the same as used by the "standard" lzf command line tool
  * 
- * @author tatu@ning.com
+ * @author Tatu Saloranta (tatu@ning.com)
  */
 public class LZF
 {
     public final static String SUFFIX = ".lzf";
 
-    void process(String[] args) throws IOException
+    protected void process(String[] args) throws IOException
     {
         if (args.length == 2) {
             String oper = args[0];
@@ -42,7 +44,12 @@ public class LZF
                 }
                 byte[] data = readData(src);
                 System.out.println("Read "+data.length+" bytes.");
-                byte[] result = compress ? LZFEncoder.encode(data) : LZFDecoder.decode(data);
+                byte[] result;
+                if (compress) {
+                    result = LZFEncoder.encode(data);
+                } else {
+                    result = DecompressorLoader.optimalInstance().decompress(data);
+                }
                 System.out.println("Processed into "+result.length+" bytes.");
                 File resultFile =  compress ? new File(filename+SUFFIX) : new File(filename.substring(0, filename.length() - SUFFIX.length()));
                 FileOutputStream out = new FileOutputStream(resultFile);

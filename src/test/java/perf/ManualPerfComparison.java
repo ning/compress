@@ -3,6 +3,7 @@ package perf;
 import java.io.*;
 
 import com.ning.compress.lzf.*;
+import com.ning.compress.lzf.util.DecompressorLoader;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and
@@ -17,7 +18,7 @@ public class ManualPerfComparison
     private void test(byte[] input) throws Exception
     {
         _lzfEncoded = LZFEncoder.encode(input);
-
+        
 //        int i = 0;
         // Let's try to guestimate suitable size... to get to 10 megs to process
         final int REPS = (int) ((double) (10 * 1000 * 1000) / (double) input.length);
@@ -100,8 +101,11 @@ public class ManualPerfComparison
         size = encoded.length;
         long start = System.currentTimeMillis();
         byte[] uncomp = null;
+
+        final LZFDecompressor decoder = DecompressorLoader.optimalInstance();
+
         while (--REPS >= 0) {
-            uncomp = LZFDecoder.decode(encoded);
+            uncomp = decoder.decompress(encoded);
         }
         size = uncomp.length;
         return System.currentTimeMillis() - start;

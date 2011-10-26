@@ -2,7 +2,6 @@ package com.ning.compress.lzf;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.security.SecureRandom;
 
@@ -85,22 +84,6 @@ public class TestLZFOutputStream
 		byte[] compareBytes = new byte[bytesToCopy];
 		System.arraycopy(bytesToWrite, offset, compareBytes, 0, bytesToCopy);
 		verifyOutputStream(bos, compareBytes);
-	}
-
-	@Test
-	public void testWriteAfterClose() throws Exception
-	{
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            OutputStream os = new LZFOutputStream(bos);
-            os.write((byte) 3);
-            os.close();
-            
-            try {
-                os.write((byte) 5);
-                Assert.fail("Expected IOException when write()ing after close()");
-            } catch (IOException e) {
-                ; // good
-            }
 	}
 	
 	private void verifyOutputStream(ByteArrayOutputStream bos, byte[] reference) throws Exception

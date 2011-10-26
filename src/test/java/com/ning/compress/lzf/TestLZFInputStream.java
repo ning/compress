@@ -116,20 +116,6 @@ public class TestLZFInputStream
 		doTestIncremental(false);
 	}
 
-	@Test void testClose() throws IOException
-	{
-            LZFInputStream is = new LZFInputStream(new ByteArrayInputStream(compressedBytes));
-            is.read();
-            is.close();
-            
-            try {
-                is.read();
-                Assert.fail("Should have gotten IOException for read after close()");
-            } catch (IOException e) {
-                // good
-            }
-	}
-	
 	/*
         ///////////////////////////////////////////////////////////////////
         // Helper methods

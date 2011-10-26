@@ -5,6 +5,8 @@ import java.io.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.ning.compress.lzf.util.DecompressorLoader;
+
 public class TestLZFDecoder
 {
     @Test
@@ -12,7 +14,7 @@ public class TestLZFDecoder
     {
         byte[] orig = "Another trivial test".getBytes("UTF-8");
         byte[] compressed = LZFEncoder.encode(orig);
-        byte[] result = LZFDecoder.decode(compressed);
+        byte[] result = DecompressorLoader.optimalInstance().decompress(compressed);
         Assert.assertEquals(result, orig);
    }
 
@@ -33,7 +35,7 @@ public class TestLZFDecoder
         out.write(compressed2);
         byte[] compressed = out.toByteArray();
         
-        byte[] result = LZFDecoder.decode(compressed);
+        byte[] result = DecompressorLoader.optimalInstance().decompress(compressed);
         Assert.assertEquals(result, orig);
    }
 }

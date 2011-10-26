@@ -22,12 +22,17 @@ public class LZFFileInputStream
     extends FileInputStream
 {
     /**
+     * Underlying decoder in use.
+     */
+    private final LZFDecompressor _decompressor;
+    
+    /**
      * Object that handles details of buffer recycling
      */
     private final BufferRecycler _recycler;
 
     /**
-     * Flag that indicates if we have already called '_inputStream.close()'
+     * Flag that indicates if we have already called 'inputStream.close()'
      * (to avoid calling it multiple times)
      */
     protected boolean _inputStreamClosed;
@@ -53,12 +58,12 @@ public class LZFFileInputStream
     /**
      * The current position (next char to output) in the uncompressed bytes buffer.
      * */
-    private int _bufferPosition = 0;
+    private int bufferPosition = 0;
     
     /**
      * Length of the current uncompressed bytes buffer
      * */
-    private int _bufferLength = 0;
+    private int bufferLength = 0;
 
     /**
      * Wrapper object we use to allow decoder to read directly from the
@@ -71,19 +76,23 @@ public class LZFFileInputStream
     // Construction, configuration
     ///////////////////////////////////////////////////////////////////////
      */
-    
-    public LZFFileInputStream(File file) throws FileNotFoundException
-    {
-        super(file);
-        _recycler = BufferRecycler.instance();
-        _inputStreamClosed = false;
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _wrapper = new Wrapper();
+
+    public LZFFileInputStream(File file) throws FileNotFoundException {
+        this(file, DecompressorLoader.optimalInstance());
     }
 
     public LZFFileInputStream(FileDescriptor fdObj) {
-        super(fdObj);
+        this(fdObj, DecompressorLoader.optimalInstance());
+    }
+
+    public LZFFileInputStream(String name) throws FileNotFoundException {
+        this(name, DecompressorLoader.optimalInstance());
+    }
+    
+    public LZFFileInputStream(File file, LZFDecompressor decompressor) throws FileNotFoundException
+    {
+        super(file);
+        _decompressor = decompressor;
         _recycler = BufferRecycler.instance();
         _inputStreamClosed = false;
         _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
@@ -91,8 +100,21 @@ public class LZFFileInputStream
         _wrapper = new Wrapper();
     }
 
-    public LZFFileInputStream(String name) throws FileNotFoundException {
+    public LZFFileInputStream(FileDescriptor fdObj, LZFDecompressor decompressor)
+    {
+        super(fdObj);
+        _decompressor = decompressor;
+        _recycler = BufferRecycler.instance();
+        _inputStreamClosed = false;
+        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileInputStream(String name, LZFDecompressor decompressor) throws FileNotFoundException
+    {
         super(name);
+        _decompressor = decompressor;
         _recycler = BufferRecycler.instance();
         _inputStreamClosed = false;
         _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
@@ -123,14 +145,14 @@ public class LZFFileInputStream
         if (_inputStreamClosed) {
             return -1;
         }
-        int left = (_bufferLength - _bufferPosition);
+        int left = (bufferLength - bufferPosition);
         return (left <= 0) ? 0 : left;
     }
 
     @Override
     public void close() throws IOException
     {
-        _bufferPosition = _bufferLength = 0;
+        bufferPosition = bufferLength = 0;
         byte[] buf = _inputBuffer;
         if (buf != null) {
             _inputBuffer = null;
@@ -159,7 +181,7 @@ public class LZFFileInputStream
         if (!readyBuffer()) {
             return -1;
         }
-        return _decodedBytes[_bufferPosition++] & 255;
+        return _decodedBytes[bufferPosition++] & 255;
     }
 
     @Override
@@ -171,17 +193,16 @@ public class LZFFileInputStream
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException
     {
-        if (length < 1) {
-            checkNotClosed();
-            return 0;
-        }
         if (!readyBuffer()) {
             return -1;
         }
+        if (length < 1) {
+            return 0;
+        }
         // First let's read however much data we happen to have...
-        int chunkLength = Math.min(_bufferLength - _bufferPosition, length);
-        System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
-        _bufferPosition += chunkLength;
+        int chunkLength = Math.min(bufferLength - bufferPosition, length);
+        System.arraycopy(_decodedBytes, bufferPosition, buffer, offset, chunkLength);
+        bufferPosition += chunkLength;
 
         if (chunkLength == length || !_cfgFullReads) {
             return chunkLength;
@@ -193,9 +214,9 @@ public class LZFFileInputStream
             if (!readyBuffer()) {
                 break;
             }
-            chunkLength = Math.min(_bufferLength - _bufferPosition, (length - totalRead));
-            System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
-            _bufferPosition += chunkLength;
+            chunkLength = Math.min(bufferLength - bufferPosition, (length - totalRead));
+            System.arraycopy(_decodedBytes, bufferPosition, buffer, offset, chunkLength);
+            bufferPosition += chunkLength;
             totalRead += chunkLength;
         } while (totalRead < length);
 
@@ -211,12 +232,12 @@ public class LZFFileInputStream
         if (!readyBuffer()) {
             return -1L;
         }
-        long left = (_bufferLength - _bufferPosition);
+        int left = (bufferLength - bufferPosition);
         // either way, just skip whatever we have decoded
         if (left > n) {
             left = (int) n;
         }
-        _bufferPosition += left;
+        bufferPosition += left;
         return left;
     }
     
@@ -227,33 +248,28 @@ public class LZFFileInputStream
      */
 
     /**
-     * Fill the uncompressed bytes buffer by reading the underlying _inputStream.
+     * Fill the uncompressed bytes buffer by reading the underlying inputStream.
      * @throws IOException
      */
     protected boolean readyBuffer() throws IOException
     {
-        checkNotClosed();
-        if (_bufferPosition < _bufferLength) {
+        if (_inputStreamClosed) {
+            throw new IOException("Input stream closed");
+        }
+        if (bufferPosition < bufferLength) {
             return true;
         }
-        _bufferLength = LZFDecoder.decompressChunk(_wrapper, _inputBuffer, _decodedBytes);
-        if (_bufferLength < 0) {
+        bufferLength = _decompressor.decompressChunk(_wrapper, _inputBuffer, _decodedBytes);
+        if (bufferLength < 0) {
             return false;
         }
-        _bufferPosition = 0;
-        return (_bufferPosition < _bufferLength);
+        bufferPosition = 0;
+        return (bufferPosition < bufferLength);
     }
 
     protected final int readRaw(byte[] buffer, int offset, int length) throws IOException
     {
         return super.read(buffer, offset, length);
-    }
-
-    protected void checkNotClosed() throws IOException
-    {
-        if (_inputStreamClosed) {
-            throw new IOException(getClass().getName()+" already closed");
-        }
     }
     
     /*
