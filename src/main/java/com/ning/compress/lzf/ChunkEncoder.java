@@ -203,7 +203,7 @@ public class ChunkEncoder
             // First expected common case: no back-ref (for whatever reason)
             if (ref >= inPos // can't refer forward (i.e. leftovers)
                     || ref < firstPos // or to previous block
-                    || (off = inPos - ref - 1) >= MAX_OFF
+                    || (off = inPos - ref) > MAX_OFF
                     || in[ref+2] != p2 // must match hash
                     || in[ref+1] != (byte) (seen >> 8)
                     || in[ref] != (byte) (seen >> 16)) {
@@ -232,6 +232,7 @@ public class ChunkEncoder
                 len++;
             }
             len -= 2;
+            --off; // was off by one earlier
             if (len < 7) {
                 out[outPos++] = (byte) ((off >> 8) + (len << 5));
             } else {
