@@ -250,12 +250,11 @@ public class ChunkEncoder
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
-        inEnd += 4;
         // try offlining the tail
-        return tryCompressTail(in, inPos, inEnd, out, outPos, literals);
+        return handleTail(in, inPos, inEnd+4, out, outPos, literals);
     }
     
-    private int tryCompressTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+    private int handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
             int literals)
     {
         while (inPos < inEnd) {
