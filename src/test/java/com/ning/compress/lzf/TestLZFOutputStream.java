@@ -46,8 +46,11 @@ public class TestLZFOutputStream
 		OutputStream os = new LZFOutputStream(bos);
 		os.write(bytesToWrite);
 		os.close();
-		Assert.assertTrue(bos.toByteArray().length > 10);
-		Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+                int len = bos.toByteArray().length;
+                int max = bytesToWrite.length/2;
+                if (len <= 10 || len >= max) {
+                    Assert.fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
+                }
 		verifyOutputStream(bos, bytesToWrite);
 	}
 	
@@ -65,9 +68,10 @@ public class TestLZFOutputStream
 		}
 		os.close();
 		int len = bos.toByteArray().length;
-		Assert.assertTrue(len > 10);
-		int max = bytesToWrite.length/2;
-		Assert.assertTrue(len < max, "Actual length "+len+"; should not exceed "+max);
+                int max = bytesToWrite.length/2;
+		if (len <= 10 || len >= max) {
+		    Assert.fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
+		}
 		verifyOutputStream(bos, bytesToWrite);
 	}
 	
