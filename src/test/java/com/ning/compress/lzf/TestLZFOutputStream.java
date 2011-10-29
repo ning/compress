@@ -64,8 +64,10 @@ public class TestLZFOutputStream
 			}
 		}
 		os.close();
-		Assert.assertTrue(bos.toByteArray().length > 10);
-		Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+		int len = bos.toByteArray().length;
+		Assert.assertTrue(len > 10);
+		int max = bytesToWrite.length/2;
+		Assert.assertTrue(len < max, "Actual length "+len+"; should not exceed "+max);
 		verifyOutputStream(bos, bytesToWrite);
 	}
 	
