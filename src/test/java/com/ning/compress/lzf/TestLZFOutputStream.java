@@ -92,10 +92,9 @@ public class TestLZFOutputStream
 		LZFInputStream lzfi = new LZFInputStream(bis);
 		int val =0;
 		int idx = 0;
-		while((val = lzfi.read()) != -1)
-		{
-			int refVal = ((int)reference[idx++]) & 255;
-			Assert.assertEquals(refVal, val);
+		while((val = lzfi.read()) != -1) {
+		    int refVal = ((int)reference[idx++]) & 255;
+		    Assert.assertEquals(refVal, val);
 		}
 	}
 }
