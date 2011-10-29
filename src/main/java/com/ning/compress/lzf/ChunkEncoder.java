@@ -38,7 +38,11 @@ public class ChunkEncoder
     // // Encoding tables etc
 
     private final BufferRecycler _recycler;
-    
+
+    /**
+     * Hash table contains lookup based on 3-byte sequence; key is hash
+     * of such triplet, value is offset in buffer.
+     */
     private int[] _hashTable;
     
     private final int _hashModulo;
@@ -239,9 +243,11 @@ public class ChunkEncoder
             inPos += len;
             seen = first(in, inPos);
             seen = (seen << 8) + (in[inPos + 2] & 255);
-            hashTable[hash(seen)] = inPos++;
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
             seen = (seen << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
-            hashTable[hash(seen)] = inPos++;
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
         }
         inEnd += 4;
         // try offlining the tail
