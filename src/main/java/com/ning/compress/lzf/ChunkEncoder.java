@@ -13,6 +13,9 @@ package com.ning.compress.lzf;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
+
+import sun.misc.Unsafe;
 
 /**
  * Class that handles actual encoding of individual chunks.
@@ -22,6 +25,7 @@ import java.io.OutputStream;
  * 
  * @author Tatu Saloranta (tatu@ning.com)
  */
+@SuppressWarnings("restriction")
 public class ChunkEncoder
 {
     // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off
@@ -182,20 +186,38 @@ public class ChunkEncoder
         //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
         // but that didn't seem to provide better matches
     }
+
+    private static final Unsafe unsafe;
+    static {
+        try {
+            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            unsafe = (Unsafe) theUnsafe.get(null);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
+
+    private final int MASK = 0xFFFFFF;
+    
+    private final int get3Bytes(byte[] src, int srcIndex)
+    {
+        return unsafe.getInt(src, BYTE_ARRAY_OFFSET + srcIndex) & MASK;
+    }
     
     private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
         ++outPos;
-        int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
         inEnd -= 4;
         final int firstPos = inPos; // so that we won't have back references across block boundary
         
         while (inPos < inEnd) {
-            byte p2 = in[inPos + 2];
-            // next
-            seen = (seen << 8) + (p2 & 255);
+            int seen = get3Bytes(in, inPos);
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
@@ -204,9 +226,8 @@ public class ChunkEncoder
             if (ref >= inPos // can't refer forward (i.e. leftovers)
                     || ref < firstPos // or to previous block
                     || (off = inPos - ref) > MAX_OFF
-                    || in[ref+2] != p2 // must match hash
-                    || in[ref+1] != (byte) (seen >> 8)
-                    || in[ref] != (byte) (seen >> 16)) {
+                    || get3Bytes(in, ref) != seen
+                    ) {
                 out[outPos++] = in[inPos++];
                 literals++;
                 if (literals == LZFChunk.MAX_LITERAL) {
@@ -239,15 +260,12 @@ public class ChunkEncoder
                 out[outPos++] = (byte) ((off >> 8) + (7 << 5));
                 out[outPos++] = (byte) (len - 7);
             }
-            out[outPos++] = (byte) off;
-            outPos++;
+            out[outPos] = (byte) off;
+            outPos += 2;
             inPos += len;
-            seen = first(in, inPos);
-            seen = (seen << 8) + (in[inPos + 2] & 255);
-            hashTable[hash(seen)] = inPos;
+            hashTable[hash(get3Bytes(in, inPos))] = inPos;
             ++inPos;
-            seen = (seen << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
-            hashTable[hash(seen)] = inPos;
+            hashTable[hash(get3Bytes(in, inPos))] = inPos;
             ++inPos;
         }
         // try offlining the tail
