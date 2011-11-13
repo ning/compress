@@ -3,7 +3,6 @@ package com.ning.compress.lzf;
 import java.io.*;
 
 import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
@@ -11,6 +10,14 @@ import com.ning.compress.lzf.impl.VanillaChunkDecoder;
 
 public class TestLZFRoundTrip
 {
+    private final static String[] FILES = {
+        "/shakespeare.tar",
+        "/shakespeare/hamlet.xml",
+        "/shakespeare/macbeth.xml",
+        "/shakespeare/play.dtd",
+        "/shakespeare/r_and_j.xml"
+    };
+    
     @Test 
     public void testVanillaCodec() throws Exception
     {
@@ -34,23 +41,27 @@ public class TestLZFRoundTrip
 
     protected void _testUsingBlock(ChunkDecoder decoder) throws IOException
     {
-        byte[] data = readAll(new FileInputStream("src/test/java/shakespeare.tar"));
-        byte[] lzf = LZFEncoder.encode(data);
-        byte[] decoded = decoder.decode(lzf);
-        
-        Assert.assertEquals(decoded.length,  data.length);
-        Assert.assertEquals(decoded,  data);
+        for (String name : FILES) {
+            byte[] data = readResource(name);
+            byte[] lzf = LZFEncoder.encode(data);
+            byte[] decoded = decoder.decode(lzf);
+
+            Assert.assertEquals(decoded.length,  data.length);
+            Assert.assertEquals(decoded,  data);
+        }
     }
 
     protected void _testUsingReader(ChunkDecoder decoder) throws IOException
     {
-        byte[] data = readAll(new FileInputStream("src/test/java/shakespeare.tar"));
-        byte[] lzf = LZFEncoder.encode(data);
-        LZFInputStream comp = new LZFInputStream(new ByteArrayInputStream(lzf), false, decoder);
-        byte[] decoded = readAll(comp);
-
-        Assert.assertEquals(decoded.length,  data.length);
-        Assert.assertEquals(decoded,  data);
+        for (String name : FILES) {
+            byte[] data = readResource(name);
+            byte[] lzf = LZFEncoder.encode(data);
+            LZFInputStream comp = new LZFInputStream(new ByteArrayInputStream(lzf), false, decoder);
+            byte[] decoded = readAll(comp);
+    
+            Assert.assertEquals(decoded.length,  data.length);
+            Assert.assertEquals(decoded,  data);
+        }
     }
     
     protected byte[] readResource(String name) throws IOException
