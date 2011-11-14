@@ -1,3 +1,12 @@
+0.9.1:
+
+* Fix for Issue #13: problems with Unsafe decoder on some platforms
+
+0.9.0:
+
+* Rewrote decoder to allow ChunkDecoder variants, to allow optional use of
+  sun.misc.Unsafe (which can boost uncompression speed by up to +50%)
+
 0.8.6:
 
 * #11: Input/OutputStreams not throwing IOException if reading/writing
