@@ -1,3 +1,8 @@
+0.9.2:
+
+* Fix for Issue #15: LZFDecoder not passing 'offset', 'length' params
+  (reported by T.Effland)
+
 0.9.1:
 
 * Fix for Issue #13: problems with Unsafe decoder on some platforms

@@ -16,7 +16,18 @@ public class TestLZFDecoder
         byte[] compressed = LZFEncoder.encode(orig);
         byte[] result = ChunkDecoderFactory.optimalInstance().decode(compressed);
         Assert.assertEquals(result, orig);
-   }
+
+        // also, ensure that offset, length are passed
+        byte[] compressed2 = new byte[compressed.length + 4];
+        System.arraycopy(compressed, 0, compressed2, 2, compressed.length);
+
+        result = ChunkDecoderFactory.optimalInstance().decode(compressed2, 2, compressed.length);
+        Assert.assertEquals(result, orig);
+
+        // two ways to do that as well:
+        result = LZFDecoder.decode(compressed2, 2, compressed.length);
+        Assert.assertEquals(result, orig);
+    }
 
     @Test
     public void testChunks() throws IOException
