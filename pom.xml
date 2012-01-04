@@ -9,7 +9,7 @@
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
     <name>Ning-compress-LZF</name>
-    <version>0.9.2-SNAPSHOT</version>
+    <version>0.9.2</version>
     <packaging>bundle</packaging>
     <description>
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
