@@ -15,6 +15,7 @@ LZF alfgorithm itself is optimized for speed, with somewhat more modest compress
 ## API usage
 
 Both compression and decompression can be done either block-by-block or using Java stream.
+For full details, check out Javadocs from [Wiki](compress/wiki).
 
 When reading compressed data from a file you can do it simply creating a `LZFInputStream` and use it for reading content
 
