@@ -32,6 +32,59 @@ public class TestLZFRoundTrip
         _testUsingReader(new UnsafeChunkDecoder());
     }
 
+    @Test 
+    public void testLZFCompressionOnTestFiles() throws IOException {
+        for (int i = 0; i < 100; i++) {
+            testLZFCompressionOnDir(new File("src/test/resources/shakespeare"));
+        }
+    }
+
+    private void testLZFCompressionOnDir(File dir) throws IOException
+    {
+        File[] files = dir.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            if (!file.isDirectory()) {
+                testLZFCompressionOnFile(file);
+            } else {
+                testLZFCompressionOnDir(file);
+            }
+        }
+    }
+
+    private void testLZFCompressionOnFile(File file) throws IOException
+    {
+        final ChunkDecoder decoder = new UnsafeChunkDecoder();
+        
+        // File compressedFile = createEmptyFile("test.lzf");
+        File compressedFile = new File("/tmp/test.lzf");
+        InputStream in = new BufferedInputStream(new FileInputStream(file));
+        OutputStream out = new LZFOutputStream(new BufferedOutputStream(
+                new FileOutputStream(compressedFile)));
+        byte[] buf = new byte[64 * 1024];
+        int len;
+        while ((len = in.read(buf, 0, buf.length)) >= 0) {
+            out.write(buf, 0, len);
+        }
+        in.close();
+        out.close();
+
+        // decompress and verify bytes haven't changed
+        in = new BufferedInputStream(new FileInputStream(file));
+        DataInputStream compressedIn = new DataInputStream(new LZFInputStream(
+                new FileInputStream(compressedFile), false, decoder));
+        while ((len = in.read(buf, 0, buf.length)) >= 0) {
+            byte[] buf2 = new byte[len];
+            compressedIn.readFully(buf2, 0, len);
+            byte[] trimmedBuf = new byte[len];
+            System.arraycopy(buf, 0, trimmedBuf, 0, len);
+            Assert.assertEquals(trimmedBuf, buf2);
+        }
+        Assert.assertEquals(-1, compressedIn.read());
+        in.close();
+        compressedIn.close();
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Helper method

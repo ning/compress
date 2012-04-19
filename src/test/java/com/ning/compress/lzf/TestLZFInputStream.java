@@ -8,18 +8,18 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-public class TestLZFInputStream 
+public class TestLZFInputStream extends BaseForTests
 {
-	private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
-	private byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
-	private byte[] bytesToWrite = new byte[BUFFER_SIZE];
-	private byte[] nonCompressableBytes;
-	private int compressableInputLength = BUFFER_SIZE;
-	private byte[] compressedBytes;
+    private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
+    private byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
+    private byte[] bytesToWrite = new byte[BUFFER_SIZE];
+    private byte[] nonCompressableBytes;
+    private int compressableInputLength = BUFFER_SIZE;
+    private byte[] compressedBytes;
 	
-	@BeforeTest(alwaysRun = true)
-	public void setUp() throws Exception 
-	{
+    @BeforeTest(alwaysRun = true)
+    public void setUp() throws Exception 
+    {
 		SecureRandom.getInstance("SHA1PRNG").nextBytes(nonEncodableBytesToWrite);
 		String phrase = "all work and no play make Jack a dull boy";
 		byte[] bytes = phrase.getBytes();
@@ -39,7 +39,7 @@ public class TestLZFInputStream
 		os.write(bytesToWrite);
 		os.close();
 		compressedBytes = compressed.toByteArray();
-	}
+    }
 	
 	@Test
 	public void testDecompressNonEncodableReadByte() throws IOException
@@ -106,21 +106,33 @@ public class TestLZFInputStream
         }
 	
 	
-	@Test void testIncrementalWithFullReads() throws IOException
-	{
-		doTestIncremental(true);
-	}
+   @Test void testIncrementalWithFullReads() throws IOException {
+       doTestIncremental(true);
+   }
 
-	@Test void testIncrementalWithMinimalReads() throws IOException
-	{
-		doTestIncremental(false);
-	}
+   @Test void testIncrementalWithMinimalReads() throws IOException {
+       doTestIncremental(false);
+   }
 
-	/*
-        ///////////////////////////////////////////////////////////////////
-        // Helper methods
-        ///////////////////////////////////////////////////////////////////
-	 */
+    @Test 
+    public void testReadAndWrite() throws Exception
+    {
+        byte[] fluff = constructFluff(132000);
+        byte[] comp = LZFEncoder.encode(fluff);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(fluff.length);
+        LZFInputStream in = new LZFInputStream(new ByteArrayInputStream(comp));
+        in.readAndWrite(bytes);
+        in.close();
+        byte[] actual = bytes.toByteArray();
+        Assert.assertEquals(actual.length, fluff.length);
+        Assert.assertEquals(actual, fluff);
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////
+    // Helper methods
+    ///////////////////////////////////////////////////////////////////
+    */
 
 	/**
 	 * Test that creates a longer piece of content, compresses it, and reads

@@ -1,11 +1,13 @@
 package com.ning.compress.lzf.util;
 
-import java.io.File;
+import java.io.*;
 
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-public class TestFileStreams
+import com.ning.compress.lzf.BaseForTests;
+
+public class TestFileStreams extends BaseForTests
 {
     @Test 
     public void testStreams() throws Exception
@@ -30,5 +32,25 @@ public class TestFileStreams
         }
         Assert.assertEquals(in.read(), -1);
         in.close();
+    }
+
+    @Test 
+    public void testReadAndWrite() throws Exception
+    {
+        File f = File.createTempFile("lzf-test", ".lzf");
+        f.deleteOnExit();
+
+        byte[] fluff = constructFluff(132000);
+        LZFFileOutputStream fout = new LZFFileOutputStream(f);
+        fout.write(fluff);
+        fout.close();
+        
+        LZFFileInputStream in = new LZFFileInputStream(f);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(fluff.length);
+        in.readAndWrite(bytes);
+        in.close();
+        byte[] actual = bytes.toByteArray();
+        Assert.assertEquals(actual.length, fluff.length);
+        Assert.assertEquals(actual, fluff);
     }
 }

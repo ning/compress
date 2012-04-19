@@ -2,6 +2,7 @@ package com.ning.compress.lzf;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
@@ -10,23 +11,23 @@ public class LZFInputStream extends InputStream
     /**
      * Underlying decoder in use.
      */
-    private final ChunkDecoder _decoder;
+    protected final ChunkDecoder _decoder;
     
     /**
      * Object that handles details of buffer recycling
      */
-    private final BufferRecycler _recycler;
+    protected final BufferRecycler _recycler;
 
     /**
      * stream to be decompressed
      */
-    protected final InputStream inputStream;
+    protected final InputStream _inputStream;
 
     /**
      * Flag that indicates if we have already called 'inputStream.close()'
      * (to avoid calling it multiple times)
      */
-    protected boolean inputStreamClosed;
+    protected boolean _inputStreamClosed;
     
     /**
      * Flag that indicates whether we force full reads (reading of as many
@@ -36,18 +37,31 @@ public class LZFInputStream extends InputStream
      */
     protected boolean _cfgFullReads = false;
 	
-    /* the current buffer of compressed bytes (from which to decode) */
-    private byte[] _inputBuffer;
+    /**
+     * the current buffer of compressed bytes (from which to decode)
+     * */
+    protected byte[] _inputBuffer;
 	
-    /* the buffer of uncompressed bytes from which content is read */
-    private byte[] _decodedBytes;
+    /**
+     * the buffer of uncompressed bytes from which content is read
+     * */
+    protected byte[] _decodedBytes;
 	
-    /* The current position (next char to output) in the uncompressed bytes buffer. */
-    private int bufferPosition = 0;
+    /**
+     * The current position (next char to output) in the uncompressed bytes buffer.
+     */
+    protected int _bufferPosition = 0;
     
-    /* Length of the current uncompressed bytes buffer */
-    private int bufferLength = 0;
+    /**
+     * Length of the current uncompressed bytes buffer
+     */
+    protected int _bufferLength = 0;
 
+    /**
+     * Number of bytes read from the underlying {@link #_inputStream} 
+     */
+    protected int _readCount = 0;
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Construction
@@ -76,8 +90,8 @@ public class LZFInputStream extends InputStream
         super();
         _decoder = decoder;
         _recycler = BufferRecycler.instance();
-        inputStream = in;
-        inputStreamClosed = false;
+        _inputStream = in;
+        _inputStreamClosed = false;
         _cfgFullReads = fullReads;
 
         _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
@@ -112,10 +126,10 @@ public class LZFInputStream extends InputStream
     public int available()
     {
         // if closed, return -1;
-        if (inputStreamClosed) {
+        if (_inputStreamClosed) {
             return -1;
         }
-        int left = (bufferLength - bufferPosition);
+        int left = (_bufferLength - _bufferPosition);
         return (left <= 0) ? 0 : left;
     }
     
@@ -125,7 +139,7 @@ public class LZFInputStream extends InputStream
         if (!readyBuffer()) {
             return -1;
         }
-        return _decodedBytes[bufferPosition++] & 255;
+        return _decodedBytes[_bufferPosition++] & 255;
     }
 	
     @Override
@@ -144,9 +158,9 @@ public class LZFInputStream extends InputStream
     	    return -1;
     	}
     	// First let's read however much data we happen to have...
-    	int chunkLength = Math.min(bufferLength - bufferPosition, length);
-    	System.arraycopy(_decodedBytes, bufferPosition, buffer, offset, chunkLength);
-    	bufferPosition += chunkLength;
+    	int chunkLength = Math.min(_bufferLength - _bufferPosition, length);
+    	System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
+    	_bufferPosition += chunkLength;
 
     	if (chunkLength == length || !_cfgFullReads) {
     	    return chunkLength;
@@ -158,9 +172,9 @@ public class LZFInputStream extends InputStream
             if (!readyBuffer()) {
                 break;
             }
-            chunkLength = Math.min(bufferLength - bufferPosition, (length - totalRead));
-            System.arraycopy(_decodedBytes, bufferPosition, buffer, offset, chunkLength);
-            bufferPosition += chunkLength;
+            chunkLength = Math.min(_bufferLength - _bufferPosition, (length - totalRead));
+            System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
+            _bufferPosition += chunkLength;
             totalRead += chunkLength;
     	} while (totalRead < length);
 
@@ -170,7 +184,7 @@ public class LZFInputStream extends InputStream
     @Override
     public void close() throws IOException
     {
-        bufferPosition = bufferLength = 0;
+        _bufferPosition = _bufferLength = 0;
         byte[] buf = _inputBuffer;
         if (buf != null) {
             _inputBuffer = null;
@@ -181,9 +195,9 @@ public class LZFInputStream extends InputStream
             _decodedBytes = null;
             _recycler.releaseDecodeBuffer(buf);
         }
-        if (!inputStreamClosed) {
-            inputStreamClosed = true;
-            inputStream.close();
+        if (!_inputStreamClosed) {
+            _inputStreamClosed = true;
+            _inputStream.close();
         }
     }
 
@@ -193,10 +207,10 @@ public class LZFInputStream extends InputStream
     @Override
     public long skip(long n) throws IOException
     {
-        if (inputStreamClosed) {
+        if (_inputStreamClosed) {
             return -1;
         }
-        int left = (bufferLength - bufferPosition);
+        int left = (_bufferLength - _bufferPosition);
         // if none left, must read more:
         if (left <= 0) {
             // otherwise must read more to skip...
@@ -205,14 +219,14 @@ public class LZFInputStream extends InputStream
                 return -1;
             }
             // push it back to get accurate skip count
-            --bufferPosition;
-            left = (bufferLength - bufferPosition);
+            --_bufferPosition;
+            left = (_bufferLength - _bufferPosition);
         }
         // either way, just skip whatever we have decoded
         if (left > n) {
             left = (int) n;
         }
-        bufferPosition += left;
+        _bufferPosition += left;
         return left;
     }
     
@@ -231,7 +245,7 @@ public class LZFInputStream extends InputStream
      * @since 0.8
      */
     public InputStream getUnderlyingInputStream() {
-        return inputStream;
+        return _inputStream;
     }
 
     /**
@@ -244,7 +258,32 @@ public class LZFInputStream extends InputStream
      */
     public void discardBuffered()
     {
-        bufferPosition = bufferLength = 0;
+        _bufferPosition = _bufferLength = 0;
+    }
+
+    /**
+     * Convenience method that will read and uncompress all data available,
+     * and write it using given {@link OutputStream}. This avoids having to
+     * make an intermediate copy of uncompressed data which would be needed
+     * when doing the same manually.
+     * 
+     * @param out OutputStream to use for writing content
+     * 
+     * @return Number of bytes written (uncompressed)
+     * 
+     * @since 0.9.3
+     */
+    public int readAndWrite(OutputStream out) throws IOException
+    {
+        int total = 0;
+
+        while (readyBuffer()) {
+            int avail = _bufferLength - _bufferPosition;
+            out.write(_decodedBytes, _bufferPosition, avail);
+            _bufferPosition += avail; // to ensure it looks like we consumed it all
+            total += avail;
+        }
+        return total;
     }
     
     /*
@@ -259,17 +298,17 @@ public class LZFInputStream extends InputStream
      */
     protected boolean readyBuffer() throws IOException
     {
-        if (bufferPosition < bufferLength) {
+        if (_bufferPosition < _bufferLength) {
             return true;
         }
-        if (inputStreamClosed) {
+        if (_inputStreamClosed) {
             return false;
         }
-        bufferLength = _decoder.decodeChunk(inputStream, _inputBuffer, _decodedBytes);
-        if (bufferLength < 0) {
+        _bufferLength = _decoder.decodeChunk(_inputStream, _inputBuffer, _decodedBytes);
+        if (_bufferLength < 0) {
             return false;
         }
-        bufferPosition = 0;
-        return (bufferPosition < bufferLength);
+        _bufferPosition = 0;
+        return (_bufferPosition < _bufferLength);
     }
 }

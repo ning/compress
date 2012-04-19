@@ -13,7 +13,8 @@ package com.ning.compress.lzf;
 
 import java.io.*;
 
-import com.ning.compress.lzf.util.ChunkDecoderFactory;
+import com.ning.compress.lzf.util.LZFFileInputStream;
+import com.ning.compress.lzf.util.LZFFileOutputStream;
 
 /**
  * Simple command-line utility that can be used for testing LZF
@@ -31,7 +32,8 @@ public class LZF
         if (args.length == 2) {
             String oper = args[0];
             boolean compress = "-c".equals(oper);
-            if (compress || "-d".equals(oper)) {
+            boolean toSystemOutput = !compress && "-o".equals(oper);
+            if (compress || toSystemOutput || "-d".equals(oper)) {
                 String filename = args[1];
                 File src = new File(filename);
                 if (!src.exists()) {
@@ -42,45 +44,52 @@ public class LZF
                     System.err.println("File '"+filename+"' does end with expected suffix ('"+SUFFIX+"', won't decompress.");
                     System.exit(1);
                 }
-                byte[] data = readData(src);
-                System.out.println("Read "+data.length+" bytes.");
-                byte[] result;
+
                 if (compress) {
-                    result = LZFEncoder.encode(data);
+                    int inputLength = 0;
+                    File resultFile = new File(filename+SUFFIX);
+                    InputStream in = new FileInputStream(src);
+                    OutputStream out = new LZFFileOutputStream(resultFile);
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer, 0, buffer.length)) != -1) { 
+                        inputLength += bytesRead;
+                        out.write(buffer, 0, bytesRead); 
+                    }
+                    in.close();
+                    out.flush();
+                    out.close();
+                    System.out.printf("Compressed '%s' into '%s' (%d->%d bytes)\n",
+                            src.getPath(), resultFile.getPath(),
+                            inputLength, resultFile.length());
                 } else {
-                    result = ChunkDecoderFactory.optimalInstance().decode(data);
+                    OutputStream out;
+                    LZFFileInputStream in = new LZFFileInputStream(src);
+                    File resultFile = null;
+                    if (toSystemOutput) {
+                        out = System.out;
+                    } else {
+                        resultFile = new File(filename.substring(0, filename.length() - SUFFIX.length()));
+                        out = new FileOutputStream(resultFile);
+                    }
+                    int uncompLen = in.readAndWrite(out);
+                    in.close();
+                    out.flush();
+                    out.close();
+                    if (resultFile != null) {
+                        System.out.printf("Uncompressed '%s' into '%s' (%d->%d bytes)\n",
+                                src.getPath(), resultFile.getPath(),
+                                src.length(), uncompLen);
+                    }
                 }
-                System.out.println("Processed into "+result.length+" bytes.");
-                File resultFile =  compress ? new File(filename+SUFFIX) : new File(filename.substring(0, filename.length() - SUFFIX.length()));
-                FileOutputStream out = new FileOutputStream(resultFile);
-                out.write(result);
-                out.close();
-                System.out.println("Wrote in file '"+resultFile.getAbsolutePath()+"'.");
                 return;
             }
         }
-        System.err.println("Usage: java "+getClass().getName()+" -c/-d file");
+        System.err.println("Usage: java "+getClass().getName()+" -c/-d/-o source-file");
+        System.err.println(" -d parameter: decompress to file");
+        System.err.println(" -c parameter: compress to file");
+        System.err.println(" -o parameter: decompress to stdout");
         System.exit(1);
-    }
-
-    private byte[] readData(File in) throws IOException
-    {
-        int len = (int) in.length();
-        byte[] result = new byte[len];
-        int offset = 0;
-        FileInputStream fis = new FileInputStream(in);
-
-        while (len > 0) {
-            int count = fis.read(result, offset, len);
-            if (count < 0) break;
-            len -= count;
-            offset += count;
-        }
-        fis.close();
-        if (len > 0) { // should never occur...
-            throw new IOException("Could not read the whole file -- received EOF when there was "+len+" bytes left to read");
-        }
-        return result;
     }
 
     public static void main(String[] args) throws IOException {
