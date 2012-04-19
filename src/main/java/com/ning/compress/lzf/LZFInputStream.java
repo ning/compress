@@ -6,6 +6,15 @@ import java.io.OutputStream;
 
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
+/**
+ * Decorator {@link InputStream} implementation used for reading compressed data
+ * and uncompressing it on the fly, such that reads return uncompressed
+ * data. Its counterpart is {@link LZFOutputStream}
+ * 
+ * @author Tatu Saloranta
+ * 
+ * @see {@link com.ning.compress.lzf.util.LZFFileInputStream}
+ */
 public class LZFInputStream extends InputStream
 {
     /**

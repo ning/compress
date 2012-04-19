@@ -4,10 +4,11 @@ import java.io.*;
 
 /**
  * Decorator {@link OutputStream} implementation that will compress
- * output using LZF compression algorithm.
+ * output using LZF compression algorithm, given uncompressed input
+ * to write.
  * 
  * @author jon hartlaub
- * @author Tatu Saloranta (tatu@ning.com)
+ * @author Tatu Saloranta
  */
 public class LZFOutputStream extends OutputStream 
 {
