@@ -2,6 +2,7 @@ package com.ning.compress.lzf.util;
 
 import java.io.*;
 
+import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.*;
 
 /**

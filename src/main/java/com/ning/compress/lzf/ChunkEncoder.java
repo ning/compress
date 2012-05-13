@@ -13,9 +13,8 @@ package com.ning.compress.lzf;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 
-import sun.misc.Unsafe;
+import com.ning.compress.BufferRecycler;
 
 /**
  * Class that handles actual encoding of individual chunks.
@@ -23,9 +22,8 @@ import sun.misc.Unsafe;
  * is only used if it actually reduces chunk size (including overhead
  * of additional header bytes)
  * 
- * @author Tatu Saloranta (tatu@ning.com)
+ * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
-@SuppressWarnings("restriction")
 public class ChunkEncoder
 {
     // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off

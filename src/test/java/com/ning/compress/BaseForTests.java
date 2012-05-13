@@ -1,4 +1,4 @@
-package com.ning.compress.lzf;
+package com.ning.compress;
 
 import java.io.*;
 import java.util.Random;

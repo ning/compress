@@ -5,7 +5,7 @@ import java.io.*;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import com.ning.compress.lzf.BaseForTests;
+import com.ning.compress.BaseForTests;
 
 public class TestFileStreams extends BaseForTests
 {

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
@@ -13,7 +14,7 @@ import com.ning.compress.lzf.util.ChunkDecoderFactory;
  * 
  * @author Tatu Saloranta
  * 
- * @see {@link com.ning.compress.lzf.util.LZFFileInputStream}
+ * @see com.ning.compress.lzf.util.LZFFileInputStream
  */
 public class LZFInputStream extends InputStream
 {

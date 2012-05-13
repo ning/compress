@@ -8,6 +8,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.ning.compress.BaseForTests;
+
 public class TestLZFInputStream extends BaseForTests
 {
     private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;

@@ -2,6 +2,8 @@ package com.ning.compress.lzf;
 
 import java.io.*;
 
+import com.ning.compress.BufferRecycler;
+
 /**
  * Decorator {@link OutputStream} implementation that will compress
  * output using LZF compression algorithm, given uncompressed input

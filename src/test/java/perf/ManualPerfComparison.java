@@ -175,8 +175,8 @@ public class ManualPerfComparison
     {
         protected int _bytes;
         
-        public void write(byte[] buf) { write(buf, 0, buf.length); }
-        public void write(byte[] buf, int offset, int len) {
+        @Override public void write(byte[] buf) { write(buf, 0, buf.length); }
+        @Override public void write(byte[] buf, int offset, int len) {
             _bytes += len;
         }
 

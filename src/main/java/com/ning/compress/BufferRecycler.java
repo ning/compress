@@ -1,4 +1,4 @@
-package com.ning.compress.lzf;
+package com.ning.compress;
 
 import java.lang.ref.SoftReference;
 
@@ -7,7 +7,7 @@ import java.lang.ref.SoftReference;
  * recycling scheme, which helps a lot (as per profiling) for
  * smaller encoding cases.
  * 
- * @author tatu
+ * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
 public class BufferRecycler
 {
@@ -31,8 +31,6 @@ public class BufferRecycler
     private byte[] _encodingBuffer;
 
     private int[] _encodingHash;
-
-
     
     /**
      * Accessor to get thread-local recycler instance
