@@ -20,11 +20,11 @@ import com.ning.compress.lzf.util.ChunkDecoderFactory;
  * combining them into a single contiguous result byte array.
  * As of version 0.9, this class has been mostly replaced by
  * {@link ChunkDecoder}, although static methods are left here
- * and may still be used.
+ * and may still be used for convenience.
  * All static methods use {@link ChunkDecoderFactory#optimalInstance}
  * to find actual {@link ChunkDecoder} instance to use.
  * 
- * @author Tatu Saloranta (tatu@ning.com)
+ * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
 public class LZFDecoder
 {
