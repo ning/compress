@@ -1,0 +1,93 @@
+package com.ning.compress.lzf;
+
+import java.io.*;
+import java.util.Random;
+
+import org.junit.Assert;
+import org.testng.annotations.Test;
+
+import com.ning.compress.BaseForTests;
+import com.ning.compress.DataHandler;
+
+public class TestLZFUncompressor extends BaseForTests
+{
+    @Test 
+    public void testSimpleSmall1by1() throws IOException
+    {
+        byte[] fluff = constructFluff(4000);
+        byte[] comp = LZFEncoder.encode(fluff);
+
+        Collector co = new Collector();
+        LZFUncompressor uncomp = new LZFUncompressor(co);
+        for (int i = 0, end = comp.length; i < end; ++i) {
+            uncomp.feedCompressedData(comp, i, 1);
+        }
+        uncomp.complete();
+        byte[] result = co.getBytes();
+        
+        Assert.assertArrayEquals(fluff, result);
+    }
+
+    @Test 
+    public void testSimpleSmallAsChunk() throws IOException
+    {
+        byte[] fluff = constructFluff(4000);
+        byte[] comp = LZFEncoder.encode(fluff);
+
+        // and then uncompress, first byte by bytes
+        Collector co = new Collector();
+        LZFUncompressor uncomp = new LZFUncompressor(co);
+        uncomp.feedCompressedData(comp, 0, comp.length);
+        uncomp.complete();
+        byte[] result = co.getBytes();
+        Assert.assertArrayEquals(fluff, result);
+    }
+    
+    @Test 
+    public void testSimpleBiggerVarLength() throws IOException
+    {
+        byte[] fluff = constructFluff(190000);
+        byte[] comp = LZFEncoder.encode(fluff);
+
+        // and then uncompress with arbitrary-sized blocks...
+        Random rnd = new Random(123);
+        Collector co = new Collector();
+        LZFUncompressor uncomp = new LZFUncompressor(co);
+        for (int i = 0, end = comp.length; i < end; ) {
+            int size = Math.min(end-i, 1+rnd.nextInt(7));
+            uncomp.feedCompressedData(comp, i, size);
+            i += size;
+        }
+        uncomp.complete();
+        byte[] result = co.getBytes();
+        
+        Assert.assertArrayEquals(fluff, result);
+    }
+
+    @Test 
+    public void testSimpleBiggerOneChunk() throws IOException
+    {
+        byte[] fluff = constructFluff(275000);
+        byte[] comp = LZFEncoder.encode(fluff);
+
+        // and then uncompress in one chunk
+        Collector co = new Collector();
+        LZFUncompressor uncomp = new LZFUncompressor(co);
+        uncomp.feedCompressedData(comp, 0, comp.length);
+        uncomp.complete();
+        byte[] result = co.getBytes();
+        
+        Assert.assertArrayEquals(fluff, result);
+    }
+    
+    private final static class Collector implements DataHandler
+    {
+        private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+
+        public void handleData(byte[] buffer, int offset, int len) throws IOException {
+            bytes.write(buffer, offset, len);
+        }
+
+        public byte[] getBytes() { return bytes.toByteArray(); }
+    }
+}

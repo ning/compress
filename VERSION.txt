@@ -1,3 +1,8 @@
+0.9.4:
+
+* Add "push-mode" ofr LZF, LZFUncompressor, useful with non-blocking data
+  sources (like async-http-client)
+
 0.9.3:
 
 * Fixed Issue #12: Command-line tool out of memory

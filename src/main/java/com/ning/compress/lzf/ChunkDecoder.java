@@ -74,7 +74,6 @@ public abstract class ChunkDecoder
     public int decode(final byte[] sourceBuffer, int inPtr, int inLength,
             final byte[] targetBuffer) throws IOException
     {
-        byte[] result = targetBuffer;
         int outPtr = 0;
         int blockNr = 0;
 
@@ -90,12 +89,18 @@ public abstract class ChunkDecoder
             int len = uint16(sourceBuffer, inPtr);
             inPtr += 2;
             if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
-                System.arraycopy(sourceBuffer, inPtr, result, outPtr, len);
+                if ((outPtr + len) > targetBuffer.length) {
+                    _reportArrayOverflow(targetBuffer, outPtr, len);
+                }
+                System.arraycopy(sourceBuffer, inPtr, targetBuffer, outPtr, len);
                 outPtr += len;
             } else { // compressed
                 int uncompLen = uint16(sourceBuffer, inPtr);
+                if ((outPtr + uncompLen) > targetBuffer.length) {
+                    _reportArrayOverflow(targetBuffer, outPtr, uncompLen);
+                }
                 inPtr += 2;
-                decodeChunk(sourceBuffer, inPtr, result, outPtr, outPtr+uncompLen);
+                decodeChunk(sourceBuffer, inPtr, targetBuffer, outPtr, outPtr+uncompLen);
                 outPtr += uncompLen;
             }
             inPtr += len;
@@ -232,5 +237,16 @@ public abstract class ChunkDecoder
             offset += count;
             left -= count;
         }
+    }
+
+    /**
+     * Helper method called when it is determined that the target buffer can not
+     * hold all data to copy or uncompress
+     */
+    protected void _reportArrayOverflow(byte[] targetBuffer, int outPtr, int dataLen)
+            throws IOException
+    {
+        throw new IOException("Target buffer too small ("+targetBuffer.length+"): can not copy/uncompress "
+                +dataLen+" bytes to offset "+outPtr);
     }
 }
