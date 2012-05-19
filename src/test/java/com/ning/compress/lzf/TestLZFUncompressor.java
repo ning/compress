@@ -8,6 +8,7 @@ import org.testng.annotations.Test;
 
 import com.ning.compress.BaseForTests;
 import com.ning.compress.DataHandler;
+import com.ning.compress.UncompressorOutputStream;
 
 public class TestLZFUncompressor extends BaseForTests
 {
@@ -64,7 +65,7 @@ public class TestLZFUncompressor extends BaseForTests
         Assert.assertArrayEquals(fluff, result);
     }
 
-    @Test 
+    @Test
     public void testSimpleBiggerOneChunk() throws IOException
     {
         byte[] fluff = constructFluff(275000);
@@ -79,7 +80,22 @@ public class TestLZFUncompressor extends BaseForTests
         
         Assert.assertArrayEquals(fluff, result);
     }
+
     
+    @Test
+    public void testSimpleBiggerAsStream() throws IOException
+    {
+        byte[] fluff = constructFluff(277000);
+        byte[] comp = LZFEncoder.encode(fluff);
+        Collector co = new Collector();
+        UncompressorOutputStream out = new UncompressorOutputStream(new LZFUncompressor(co));
+        out.write(comp, 0, comp.length);
+        out.close();
+        byte[] result = co.getBytes();
+        
+        Assert.assertArrayEquals(fluff, result);
+    }
+
     private final static class Collector implements DataHandler
     {
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();

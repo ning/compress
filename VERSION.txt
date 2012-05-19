@@ -2,6 +2,7 @@
 
 * Add "push-mode" ofr LZF, LZFUncompressor, useful with non-blocking data
   sources (like async-http-client)
+* Add UncompressorOutputStream convenience wrapper
 
 0.9.3:
 
