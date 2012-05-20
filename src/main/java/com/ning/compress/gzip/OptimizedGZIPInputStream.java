@@ -1,14 +1,15 @@
 package com.ning.compress.gzip;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.zip.*;
+
+import com.ning.compress.BufferRecycler;
 
 /**
  * Optimized variant of {@link java.util.zip.GZIPInputStream} that
  * reuses underlying {@link java.util.zip.Deflater} instance}.
  */
-public class ReusableGzipInputStream
+public class OptimizedGZIPInputStream
     extends InputStream
 {
     private final static int GZIP_MAGIC = 0x8b1f;
@@ -22,44 +23,98 @@ public class ReusableGzipInputStream
     private final static int FNAME	= 8;	// File name
     private final static int FCOMMENT	= 16;	// File comment
 
+    /**
+     * Enumeration used for keeping track of decoding state within
+     * stream
+     */
     enum State {
         GZIP_HEADER, GZIP_CONTENT, GZIP_TRAILER, GZIP_COMPLETE;
     };
-
+   
     /**
      * Size of input buffer for compressed input data.
      */
-    final static int BUFFER_SIZE = 1024;
+    final static int INPUT_BUFFER_SIZE = 8192;
 
-    protected final byte[] _buffer = new byte[BUFFER_SIZE];
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Helper objects
+    ///////////////////////////////////////////////////////////////////////
+     */
 
-    protected byte[] _tmpBuffer;
+    protected Inflater _inflater;
+
+    protected final CRC32 _crc;
+
+    /**
+     * Object that handles details of buffer recycling
+     */
+    protected final BufferRecycler _bufferRecycler;
+
+    protected final GZIPRecycler _gzipRecycler;
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // State
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    protected byte[] _buffer;
 
     protected int _bufferPtr;
 
     protected int _bufferEnd;
 
-    protected Inflater _inflater;
-
+    /**
+     * Temporary buffer used for single-byte reads, skipping.
+     */
+    protected byte[] _tmpBuffer;
+    
     /**
      * Underlying input stream from which compressed data is to be
      * read from.
      */
     protected InputStream _rawInput;
 
-    protected CRC32 _crc;
-
     /**
      * Flag set to true during handling of header processing
      */
-    protected ReusableGzipInputStream.State _state;
+    protected OptimizedGZIPInputStream.State _state;
 
-    public ReusableGzipInputStream()
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Construction
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    public OptimizedGZIPInputStream(InputStream in) throws IOException
     {
         super();
+        _bufferRecycler = BufferRecycler.instance();
+        _gzipRecycler = GZIPRecycler.instance();
+        _rawInput = in;
+        _buffer = _bufferRecycler.allocInputBuffer(INPUT_BUFFER_SIZE);
+
+        _bufferPtr = _bufferEnd = 0;
+        _inflater = _gzipRecycler.allocInflater();
+        _crc = new CRC32();
+
+        // And then need to process header...
+        _readHeader();
+        _state = State.GZIP_CONTENT;
+        _crc.reset();
+        // and if all is good, kick start inflater etc
+        if (_bufferPtr >= _bufferEnd) { // need more data
+            _loadMore();
+        }
+        _inflater.setInput(_buffer, _bufferPtr, _bufferEnd-_bufferPtr);
     }
 
-    /* InputStream impl */
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // InputStream implementation
+    ///////////////////////////////////////////////////////////////////////
+     */
 
     @Override
     public int available()
@@ -78,6 +133,21 @@ public class ReusableGzipInputStream
         if (_rawInput != null) {
             _rawInput.close();
             _rawInput = null;
+        }
+        byte[] b = _buffer;
+        if (b != null) {
+            _buffer = null;
+            _bufferRecycler.releaseInputBuffer(b);
+        }
+        b = _tmpBuffer;
+        if (b != null) {
+            _tmpBuffer = null;
+            _bufferRecycler.releaseDecodeBuffer(b);
+        }
+        Inflater i = _inflater;
+        if (i != null) {
+            _inflater = null;
+            _gzipRecycler.releaseInflater(i);
         }
     }
 
@@ -132,7 +202,8 @@ public class ReusableGzipInputStream
                 }
                 if (_inflater.needsInput()) {
                     _loadMore();
-                    _inflater.setInput(_buffer, 0, _bufferEnd);
+                    _inflater.setInput(_buffer, _bufferPtr, _bufferEnd-_bufferPtr);
+                    _bufferPtr = _bufferEnd;
                 }
             }
             _crc.update(buf, offset, count);
@@ -156,48 +227,28 @@ public class ReusableGzipInputStream
         }
         byte[] tmp = _getTmpBuffer();
         long total = 0;
-        int count;
 
-        while ((count = read(tmp)) > 0) {
+        while (true) {
+            int max = (int) (n - total);
+            if (max == 0) {
+                break;
+            }
+            int count = read(tmp, 0, Math.min(max, tmp.length));
             total += count;
         }
         return total;
     }
 
-    /* Extended API */
-
-    public void initialize(InputStream compIn) throws IOException
-    {
-        _rawInput = compIn;
-        _bufferPtr = _bufferEnd = 0;
-        if (_inflater == null) { // true -> no wrapping (gzip)
-            _inflater = new Inflater(true);
-        } else {
-            _inflater.reset();
-        }
-        // and construct/clear out CRC
-        if (_crc == null) {
-            _crc = new CRC32();
-        } else {
-            _crc.reset();
-        }
-        // And then need to process header...
-        _readHeader();
-        _state = State.GZIP_CONTENT;
-        _crc.reset();
-        // and if all is good, kick start inflater etc
-        if (_bufferPtr >= _bufferEnd) { // need more data
-            _loadMore();
-        }
-        _inflater.setInput(_buffer, _bufferPtr, _bufferEnd-_bufferPtr);
-    }
-
-    /* Internal */
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Internal methods
+    ///////////////////////////////////////////////////////////////////////
+     */
 
     protected byte[] _getTmpBuffer()
     {
         if (_tmpBuffer == null) {
-            _tmpBuffer = new byte[256];
+            _tmpBuffer = _bufferRecycler.allocDecodeBuffer(INPUT_BUFFER_SIZE);
         }
         return _tmpBuffer;
     }

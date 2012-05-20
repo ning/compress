@@ -1,7 +1,6 @@
 package com.ning.compress.gzip;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -10,11 +9,12 @@ import java.util.zip.DeflaterOutputStream;
  * Optimized variant of {@link java.util.zip.GZIPOutputStream} that
  * reuses underlying {@link java.util.zip.Deflater} instance}.
  */
-public class ReusableGzipOutputStream
+public class OptimizedGZIPOutputStream
     extends OutputStream
 {
     /**
-     * GZIP header magic number.
+     * GZIP header magic number; written out LSB like most everything
+     * else (i.e. as 0x1f 0x8b)
      */
     private final static int GZIP_MAGIC = 0x8b1f;
     
@@ -34,10 +34,24 @@ public class ReusableGzipOutputStream
         0,                                // Extra flags (XFLG)
         (byte) 0xff                       // Operating system (OS), UNKNOWN
     };
-    
-    protected final byte[] _eightByteBuffer = new byte[8];
-    
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Helper objects
+    ///////////////////////////////////////////////////////////////////////
+     */
+
     protected Deflater _deflater;
+
+    protected final GZIPRecycler _gzipRecycler;
+
+    protected final byte[] _eightByteBuffer = new byte[8];
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // State
+    ///////////////////////////////////////////////////////////////////////
+     */
     
     /**
      * Underlying output stream that header, compressed content and
@@ -45,19 +59,33 @@ public class ReusableGzipOutputStream
      */
     protected OutputStream _rawOut;
     
+    // TODO: write this out, not strictly needed...
     protected DeflaterOutputStream _deflaterOut;
     
     protected CRC32 _crc;
     
-    public ReusableGzipOutputStream()
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Construction
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    public OptimizedGZIPOutputStream(OutputStream out) throws IOException
     {
         super();
+        _gzipRecycler = GZIPRecycler.instance();
+        _rawOut = out;
+        // write header:
+        _rawOut.write(DEFAULT_HEADER);
+        _deflater = _gzipRecycler.allocDeflater();
+        _deflaterOut = new DeflaterOutputStream(_rawOut, _deflater, 512);
+        _crc = new CRC32();
     }
     
     /*
-    //////////////////////////////////////////////////
-    // OutputStream API
-    //////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    // OutputStream implementation
+    ///////////////////////////////////////////////////////////////////////
      */
 
     @Override
@@ -66,6 +94,11 @@ public class ReusableGzipOutputStream
         _deflaterOut.finish();
         _writeTrailer(_rawOut);
         _rawOut.close();
+        Deflater d = _deflater;
+        if (d != null) {
+            _deflater = null;
+            _gzipRecycler.releaseDeflater(d);
+        }
     }
     
     @Override
@@ -89,39 +122,11 @@ public class ReusableGzipOutputStream
         _deflaterOut.write(buf, off, len);
         _crc.update(buf, off, len);
     }
-    
+
     /*
-    //////////////////////////////////////////////////
-    // Extended API
-    //////////////////////////////////////////////////
-     */
-    
-    public void initialize(OutputStream compOut) throws IOException
-    {
-        _rawOut = compOut;
-        // write header:
-        _rawOut.write(DEFAULT_HEADER);
-        // construct deflater stream we need:
-        if (_deflater == null) {
-            // lowest compression level (1)
-            //_deflater = new Deflater(1, true);
-            _deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
-        } else {
-            _deflater.reset();
-        }
-        _deflaterOut = new DeflaterOutputStream(_rawOut, _deflater, 512);
-        // and construct/clear out CRC
-        if (_crc == null) {
-            _crc = new CRC32();
-        } else {
-            _crc.reset();
-        }
-    }
-    
-    /*
-    //////////////////////////////////////////////////
-    // Internal
-    //////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    // Internal methods
+    ///////////////////////////////////////////////////////////////////////
      */
     
     private void _writeTrailer(OutputStream out) throws IOException
@@ -134,7 +139,7 @@ public class ReusableGzipOutputStream
     /**
      * Stupid GZIP, writes stuff in wrong order (not network, but x86)
      */
-    private void _putInt(byte[] buf, int offset, int value)
+    private final static void _putInt(byte[] buf, int offset, int value)
     {
         buf[offset++] = (byte) (value);
         buf[offset++] = (byte) (value >> 8);

@@ -9,7 +9,7 @@ import java.lang.ref.SoftReference;
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
-public class BufferRecycler
+public final class BufferRecycler
 {
     private final static int MIN_ENCODING_BUFFER = 4000;
 

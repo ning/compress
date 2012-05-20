@@ -31,8 +31,7 @@ public class TestGzipStreams extends BaseForTests
         
         // then decode with 'our' thing, twice:
         byte[] raw = bytes.toByteArray();
-        ReusableGzipInputStream re = new ReusableGzipInputStream();
-        re.initialize(new ByteArrayInputStream(raw));
+        OptimizedGZIPInputStream re = new OptimizedGZIPInputStream(new ByteArrayInputStream(raw));
         byte[] b = _readAll(re);
         Assert.assertArrayEquals(INPUT_BYTES, b);
     }
@@ -41,9 +40,8 @@ public class TestGzipStreams extends BaseForTests
     public void testReusableOutputStreams() throws IOException
     {
         // first use custom stream
-        ReusableGzipOutputStream re = new ReusableGzipOutputStream();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        re.initialize(bytes);
+        OptimizedGZIPOutputStream re = new OptimizedGZIPOutputStream(bytes);
         re.write(INPUT_BYTES);
         re.close();
         
