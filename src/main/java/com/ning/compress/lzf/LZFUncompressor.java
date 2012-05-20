@@ -7,6 +7,12 @@ import com.ning.compress.DataHandler;
 import com.ning.compress.Uncompressor;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
+/**
+ * {@link com.ning.compress.Uncompressor} implementation for uncompressing
+ * LZF encoded data in "push" mode, in which input is not
+ * read using {@link java.io.InputStream} but rather pushed to
+ * uncompressor in variable length chunks.
+ */
 public class LZFUncompressor extends Uncompressor
 {
     /*
@@ -74,7 +80,8 @@ public class LZFUncompressor extends Uncompressor
     protected int _uncompressedLength;
 
     /**
-     * Buffer in which compressed input is read if necessary
+     * Buffer in which compressed input is buffered if necessary, to get
+     * full chunks for decoding.
      */
     protected byte[] _inputBuffer;
 
@@ -108,7 +115,7 @@ public class LZFUncompressor extends Uncompressor
 
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Uncompressor impl
+    // Uncompressor API implementation
     ///////////////////////////////////////////////////////////////////////
      */
     
@@ -125,7 +132,6 @@ public class LZFUncompressor extends Uncompressor
                 if (b != LZFChunk.BYTE_Z) {
                     _reportBadHeader(comp, offset, len, 0);
                 }
-                _state = STATE_HEADER_Z_GOTTEN;
                 if (offset >= end) {
                     _state = STATE_HEADER_Z_GOTTEN;
                     break;
@@ -278,7 +284,7 @@ public class LZFUncompressor extends Uncompressor
         }
         // otherwise need to buffer
         if (_inputBuffer == null) {
-            _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN+1);
+            _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
         }
         int amount = Math.min(available, _compressedLength - _bytesReadFromBlock);
         System.arraycopy(comp, offset, _inputBuffer, _bytesReadFromBlock, amount);
@@ -300,7 +306,7 @@ public class LZFUncompressor extends Uncompressor
         _decoder.decodeChunk(src, srcOffset, _decodeBuffer, 0, _uncompressedLength);
         _handler.handleData(_decodeBuffer, 0, _uncompressedLength);
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Helper methods, error reporting

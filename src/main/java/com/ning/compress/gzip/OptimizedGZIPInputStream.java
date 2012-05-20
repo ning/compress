@@ -12,17 +12,6 @@ import com.ning.compress.BufferRecycler;
 public class OptimizedGZIPInputStream
     extends InputStream
 {
-    private final static int GZIP_MAGIC = 0x8b1f;
-
-    /*
-     * File header flags.
-     */
-    //private final static int FTEXT	= 1;	// Extra text
-    private final static int FHCRC	= 2;	// Header CRC
-    private final static int FEXTRA	= 4;	// Extra field
-    private final static int FNAME	= 8;	// File name
-    private final static int FCOMMENT	= 16;	// File comment
-
     /**
      * Enumeration used for keeping track of decoding state within
      * stream
@@ -30,11 +19,6 @@ public class OptimizedGZIPInputStream
     enum State {
         GZIP_HEADER, GZIP_CONTENT, GZIP_TRAILER, GZIP_COMPLETE;
     };
-   
-    /**
-     * Size of input buffer for compressed input data.
-     */
-    final static int INPUT_BUFFER_SIZE = 8192;
 
     /*
     ///////////////////////////////////////////////////////////////////////
@@ -93,7 +77,7 @@ public class OptimizedGZIPInputStream
         _bufferRecycler = BufferRecycler.instance();
         _gzipRecycler = GZIPRecycler.instance();
         _rawInput = in;
-        _buffer = _bufferRecycler.allocInputBuffer(INPUT_BUFFER_SIZE);
+        _buffer = _bufferRecycler.allocInputBuffer(GZIPUncompressor.INPUT_BUFFER_SIZE);
 
         _bufferPtr = _bufferEnd = 0;
         _inflater = _gzipRecycler.allocInflater();
@@ -248,7 +232,7 @@ public class OptimizedGZIPInputStream
     protected byte[] _getTmpBuffer()
     {
         if (_tmpBuffer == null) {
-            _tmpBuffer = _bufferRecycler.allocDecodeBuffer(INPUT_BUFFER_SIZE);
+            _tmpBuffer = _bufferRecycler.allocDecodeBuffer(GZIPUncompressor.INPUT_BUFFER_SIZE);
         }
         return _tmpBuffer;
     }
@@ -259,8 +243,9 @@ public class OptimizedGZIPInputStream
 
         // Check header magic
         int sig = _readShort();
-        if (sig != GZIP_MAGIC) {
-            throw new ZipException("Not in GZIP format (got 0x"+Integer.toHexString(sig)+", should be 0x"+Integer.toHexString(GZIP_MAGIC)+")");
+        if (sig != GZIPUncompressor.GZIP_MAGIC) {
+            throw new ZipException("Not in GZIP format (got 0x"+Integer.toHexString(sig)
+                    +", should be 0x"+Integer.toHexString(GZIPUncompressor.GZIP_MAGIC)+")");
         }
         // Check compression method
         if (_readByte() != Deflater.DEFLATED) {
@@ -271,19 +256,19 @@ public class OptimizedGZIPInputStream
         // Skip MTIME, XFL, and OS fields
         _skipBytes(6);
         // Skip optional extra field
-        if ((flg & FEXTRA) == FEXTRA) {
+        if ((flg & GZIPUncompressor.FEXTRA) != 0) {
             _skipBytes(_readShort());
         }
         // Skip optional file name
-        if ((flg & FNAME) == FNAME) {
+        if ((flg & GZIPUncompressor.FNAME) != 0) {
             while (_readByte() != 0) ;
         }
         // Skip optional file comment
-        if ((flg & FCOMMENT) == FCOMMENT) {
+        if ((flg & GZIPUncompressor.FCOMMENT) != 0) {
             while (_readByte() != 0) ;
         }
         // Check optional header CRC
-        if ((flg & FHCRC) == FHCRC) {
+        if ((flg & GZIPUncompressor.FHCRC) != 0) {
             int act = (int)_crc.getValue() & 0xffff;
             int exp = _readShort();
             if (act != exp) {
@@ -351,7 +336,8 @@ public class OptimizedGZIPInputStream
 
     private final void _loadMore() throws IOException
     {
-        _loadMore(_buffer.length);
+        // let's read at most 8k; deflater has to buffer some of data
+        _loadMore(Math.min(_buffer.length, GZIPUncompressor.INPUT_BUFFER_SIZE));
     }
 
     private final void _loadMore(int max) throws IOException
