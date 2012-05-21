@@ -13,6 +13,11 @@ public class OptimizedGZIPInputStream
     extends InputStream
 {
     /**
+     * What kinds of chunks do we feed underlying {@link Inflater}?
+     */
+    private final static int INPUT_BUFFER_SIZE = 4096;
+
+    /**
      * Enumeration used for keeping track of decoding state within
      * stream
      */
@@ -77,7 +82,7 @@ public class OptimizedGZIPInputStream
         _bufferRecycler = BufferRecycler.instance();
         _gzipRecycler = GZIPRecycler.instance();
         _rawInput = in;
-        _buffer = _bufferRecycler.allocInputBuffer(GZIPUncompressor.INPUT_BUFFER_SIZE);
+        _buffer = _bufferRecycler.allocInputBuffer(INPUT_BUFFER_SIZE);
 
         _bufferPtr = _bufferEnd = 0;
         _inflater = _gzipRecycler.allocInflater();
@@ -232,7 +237,7 @@ public class OptimizedGZIPInputStream
     protected byte[] _getTmpBuffer()
     {
         if (_tmpBuffer == null) {
-            _tmpBuffer = _bufferRecycler.allocDecodeBuffer(GZIPUncompressor.INPUT_BUFFER_SIZE);
+            _tmpBuffer = _bufferRecycler.allocDecodeBuffer(INPUT_BUFFER_SIZE);
         }
         return _tmpBuffer;
     }
@@ -337,7 +342,7 @@ public class OptimizedGZIPInputStream
     private final void _loadMore() throws IOException
     {
         // let's read at most 8k; deflater has to buffer some of data
-        _loadMore(Math.min(_buffer.length, GZIPUncompressor.INPUT_BUFFER_SIZE));
+        _loadMore(Math.min(_buffer.length, INPUT_BUFFER_SIZE));
     }
 
     private final void _loadMore(int max) throws IOException

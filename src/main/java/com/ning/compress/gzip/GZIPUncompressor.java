@@ -2,6 +2,7 @@ package com.ning.compress.gzip;
 
 import java.io.IOException;
 import java.util.zip.CRC32;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 import java.util.zip.ZipException;
@@ -37,9 +38,10 @@ public class GZIPUncompressor extends Uncompressor
     protected final static int FCOMMENT   = 16;   // File comment
 
     /**
-     * Size of input buffer for compressed input data.
+     * Size of input chunks fed to underlying decoder. Since it is not 100%
+     * clear what its effects are on 
      */
-    protected final static int INPUT_BUFFER_SIZE = 8192;
+    protected final static int DEFAULT_CHUNK_SIZE = 4096;
 
     /**
      * For decoding we should use buffer that is big enough
@@ -75,8 +77,7 @@ public class GZIPUncompressor extends Uncompressor
     protected final static int STATE_HEADER_CRC0 = 9;
     protected final static int STATE_HEADER_CRC1 = 10;
 
-    
-    protected final static int STATE_TRAILER_CRC0 = 11;
+    protected final static int STATE_TRAILER_INITIAL = 11;
     protected final static int STATE_TRAILER_CRC1 = 12;
     protected final static int STATE_TRAILER_CRC2 = 13;
     protected final static int STATE_TRAILER_CRC3 = 14;
@@ -112,11 +113,7 @@ public class GZIPUncompressor extends Uncompressor
     
     protected final CRC32 _crc;
    
-    /**
-     * Buffer in which compressed input is buffered if necessary, to get
-     * full chunks for decoding.
-     */
-    protected byte[] _inputBuffer;
+    protected final int _inputChunkLength;
     
     /**
      * Buffer used for data uncompressed from <code>_inputBuffer</code>.
@@ -170,9 +167,14 @@ public class GZIPUncompressor extends Uncompressor
     
     public GZIPUncompressor(DataHandler h)
     {
+        this(h, DEFAULT_CHUNK_SIZE);
+    }
+    
+    public GZIPUncompressor(DataHandler h, int inputChunkLength)
+    {
+        _inputChunkLength = inputChunkLength;
         _handler = h;
         _recycler = BufferRecycler.instance();
-        _inputBuffer = _recycler.allocInputBuffer(INPUT_BUFFER_SIZE);
         _decodeBuffer = _recycler.allocDecodeBuffer(DECODE_BUFFER_SIZE);
         _gzipRecycler = GZIPRecycler.instance();
         _inflater = _gzipRecycler.allocInflater();
@@ -189,34 +191,114 @@ public class GZIPUncompressor extends Uncompressor
     {
         final int end = offset + len;
         if (_state != STATE_BODY) {
-            if (_state < STATE_BODY) { // header
-                offset = _handleHeader(comp, offset, len);
+            if (_state < STATE_TRAILER_INITIAL) { // header
+                offset = _handleHeader(comp, offset, end);
                 if (offset >= end) { // not fully handled yet
                     return;
                 }
-                _crc.reset();
+                // fall through to body
             } else { // trailer
-                offset = _handleTrailer(comp, offset, len);
+                offset = _handleTrailer(comp, offset, end);
                 if (offset < end) { // sanity check
                     throw new IllegalStateException();
                 }
+                // either way, we are done
                 return;
             }
         }
+
+        // Ok, decode...
+        while (true) {
+            // first: if input is needed, give some
+            if (_inflater.needsInput()) {
+                final int left = end-offset;
+                if (left < 1) { // need input but nothing to give, leve
+                    return;
+                }
+                final int amount = Math.min(left, _inputChunkLength);
+                _inflater.setInput(comp, offset, amount);
+                offset += amount;
+            }
+            // and then see what we can get out if anything
+            while (true) {
+                int decoded;
+                try {
+                    decoded = _inflater.inflate(_decodeBuffer);
+                } catch (DataFormatException e) {
+                    ZipException z = new ZipException("Problems inflating gzip data: "+e.getMessage());
+                    z.initCause(e);
+                    throw z;
+                }
+                if (decoded == 0) {
+                    break;
+                }
+                _crc.update(_decodeBuffer, 0, decoded);
+                _handler.handleData(_decodeBuffer, 0, decoded);
+            }
+            if (_inflater.finished() || _inflater.needsDictionary()) {
+                _state = STATE_TRAILER_INITIAL;
+                // also: push back some of data that is buffered
+                int remains = _inflater.getRemaining();
+System.err.println("About to end; remains = "+remains);                
+                if (remains > 0) {
+                    offset -= remains;
+                }
+                break;
+            }
+        }
+        
+        // finally; handle trailer if we got this far
+        offset = _handleTrailer(comp, offset, end);
+        if (offset < end) { // sanity check
+            throw new IllegalStateException();
+        }
     }
-    
-    private final int _handleHeader(byte[] comp, int offset, int len) throws IOException
+
+    @Override
+    public void complete() throws IOException
+    {
+        byte[] b = _decodeBuffer;
+        if (b != null) {
+            _decodeBuffer = null;
+            _recycler.releaseDecodeBuffer(b);
+        }
+        Inflater i = _inflater;
+        if (i != null) {
+            _inflater = null;
+            _gzipRecycler.releaseInflater(i);
+        }
+        if (_state != STATE_INITIAL) {
+            if (_state >= STATE_TRAILER_INITIAL) {
+                if (_state == STATE_BODY) {
+                    throw new ZipException("Invalid GZIP stream: end-of-input in the middle of compressed data");
+                }
+                throw new ZipException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
+            }
+            throw new ZipException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
+        }
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Helper methods, header/trailer
+    ///////////////////////////////////////////////////////////////////////
+     */
+
+    protected final boolean _hasFlag(int flag) {
+        return (_flags & flag) == flag;
+    }
+
+    private final int _handleHeader(byte[] comp, int offset, final int end) throws IOException
     {        
-        final int end = offset + len;
         main_loop:
-        while (offset < end && _state < STATE_BODY) {
+        while (offset < end) {
             byte b = comp[offset++];
             _crc.update(b);
             
             switch (_state) {
             case STATE_INITIAL:
                 if (b != GZIP_MAGIC_0) {
-                    _reportBadHeader(comp, offset, len, 0);
+                    _reportBadHeader(comp, offset, end, 0);
                 }
                 if (offset >= end) {
                     _state = STATE_HEADER_SIG1;
@@ -225,9 +307,9 @@ public class GZIPUncompressor extends Uncompressor
                 b = comp[offset++];
                 _crc.update(b);
                 // fall through
-            case GZIP_MAGIC_0:
+            case STATE_HEADER_SIG1:
                 if (b != GZIP_MAGIC_1) {
-                    _reportBadHeader(comp, offset, len, 1);
+                    _reportBadHeader(comp, offset, end, 1);
                 }
                 if (offset >= end) {
                     _state = STATE_HEADER_COMP_TYPE;
@@ -238,7 +320,7 @@ public class GZIPUncompressor extends Uncompressor
                 // fall through
             case STATE_HEADER_COMP_TYPE:
                 if (b != Deflater.DEFLATED) {
-                    _reportBadHeader(comp, offset, len, 1);
+                    _reportBadHeader(comp, offset, end, 1);
                 }
                 if (offset >= end) {
                     _state = STATE_HEADER_FLAGS;
@@ -275,6 +357,7 @@ public class GZIPUncompressor extends Uncompressor
                     _state = STATE_HEADER_CRC0;
                 } else { // no extras... body, I guess?
                     _state = STATE_BODY;
+                    break main_loop;
                 }
                 // let's keep things simple, do explicit re-loop to sort it out:
                 continue;
@@ -290,6 +373,7 @@ public class GZIPUncompressor extends Uncompressor
                     _state = STATE_HEADER_CRC0;
                 } else {
                     _state = STATE_BODY;
+                    break main_loop;
                 }
                 break;
             case STATE_HEADER_FNAME: // skip until zero
@@ -306,6 +390,7 @@ public class GZIPUncompressor extends Uncompressor
                     _state = STATE_HEADER_CRC0;
                 } else {
                     _state = STATE_BODY;
+                    break main_loop;
                 }
                 break;
             case STATE_HEADER_COMMENT:
@@ -319,6 +404,7 @@ public class GZIPUncompressor extends Uncompressor
                     _state = STATE_HEADER_CRC0;
                 } else {
                     _state = STATE_BODY;
+                    break main_loop;
                 }
                 break;
             case STATE_HEADER_CRC0:
@@ -334,29 +420,31 @@ public class GZIPUncompressor extends Uncompressor
                 _headerCRC += ((b & 0xFF) << 8);
                 int act = (int)_crc.getValue() & 0xffff;
                 if (act != _headerCRC) {
-                    throw new ZipException("Corrupt GZIP header (header CRC 0x"
+                    throw new ZipException("Corrupt GZIP header: header CRC 0x"
                                           +Integer.toHexString(act)+", expected 0x "
                                           +Integer.toHexString(_headerCRC));
                 }
                 _state = STATE_BODY;
-                break;
+                break main_loop;
+            default:
+                throw new IllegalStateException("Unknown header state: "+_state);
             }
+        }
+        if (_state == STATE_BODY) {
+            _crc.reset();
         }
         return offset;
     }
     
-    private final int _handleTrailer(byte[] comp, int offset, int len) throws IOException
+    private final int _handleTrailer(byte[] comp, int offset, final int end) throws IOException
     {
-        final int end = offset + len;
-
         while (offset < end) {
             byte b = comp[offset++];
-            _crc.update(b);
 
-            switch (b) {
-            case STATE_TRAILER_CRC0:
+            switch (_state) {
+            case STATE_TRAILER_INITIAL:
                 _trailerCRC = b & 0xFF;
-                _state = STATE_HEADER_CRC1;
+                _state = STATE_TRAILER_CRC1;
                 break;
             case STATE_TRAILER_CRC1:
                 _trailerCRC += (b & 0xFF) << 8;
@@ -368,10 +456,11 @@ public class GZIPUncompressor extends Uncompressor
                 break;
             case STATE_TRAILER_CRC3:
                 _trailerCRC += (b & 0xFF) << 24;
+                final int actCRC = (int) _crc.getValue();
                 // verify CRC:
-                int actCrc = (int) _crc.getValue();
-                if (_trailerCRC != actCrc) {
-                    throw new ZipException("Corrupt block or trailer: expected CRC "+Integer.toHexString(_trailerCRC)+", computed "+Integer.toHexString(actCrc));
+                if (_trailerCRC != actCRC) {
+                    throw new ZipException("Corrupt block or trailer: expected CRC "
+                            +Integer.toHexString(_trailerCRC)+", computed "+Integer.toHexString(actCRC));
                 }
                 _state = STATE_TRAILER_LEN0;
                 break;
@@ -397,51 +486,22 @@ public class GZIPUncompressor extends Uncompressor
                     throw new ZipException("Corrupt block or trailed: expected byte count "+_trailerCount+", read "+actCount32);
                 }
                 break;
+            default:
+                throw new IllegalStateException("Unknown trailer state: "+_state);
             }
         }
+System.err.println("handleTrailer done, state now:  "+_state);
+        
         return offset;
-    }
-
-    @Override
-    public void complete() throws IOException
-    {
-        byte[] b = _inputBuffer;
-        if (b != null) {
-            _inputBuffer = null;
-            _recycler.releaseInputBuffer(b);
-        }
-        b = _decodeBuffer;
-        if (b != null) {
-            _decodeBuffer = null;
-            _recycler.releaseDecodeBuffer(b);
-        }
-        Inflater i = _inflater;
-        if (i != null) {
-            _inflater = null;
-            _gzipRecycler.releaseInflater(i);
-        }
-        if (_state != STATE_INITIAL) {
-            if (_state >= STATE_BODY) {
-                if (_state == STATE_BODY) {
-                    throw new ZipException("Invalid GZIP stream: end-of-input in the middle of compressed data");
-                }
-                throw new ZipException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
-            }
-            throw new ZipException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
-        }
     }
 
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Helper methods
+    // Helper methods, other
     ///////////////////////////////////////////////////////////////////////
      */
-
-    protected final boolean _hasFlag(int flag) {
-        return (_flags & flag) == flag;
-    }
     
-    protected void _reportBadHeader(byte[] comp, int nextOffset, int len, int relative)
+    protected void _reportBadHeader(byte[] comp, int nextOffset, int end, int relative)
             throws IOException
     {
         String byteStr = "0x"+Integer.toHexString(comp[nextOffset] & 0xFF);
