@@ -1,10 +1,15 @@
 0.9.4:
 
-* Add "push-mode" ofr LZF, LZFUncompressor, useful with non-blocking data
-  sources (like async-http-client)
-* Add UncompressorOutputStream convenience wrapper
-* Add package 'com.ning.compress.gzip' with optimized input (uncompressing)
-  and output (compressing) streams.
+* Add GZIP support functionality:
+ * 'OptimizedGZIPInputStream', 'OptimizedGZIPOutputStream' which add buffer
+   (and Inflater/Deflater) recycling for improved performance compared to
+  default JDK implementations (uses same native ZLIB library for actual
+  decompression)
+* Add "push-mode" handler, 'Uncompressor' to be used for un-/decompression
+  with non-blocking push-style data sources (like async-http-client)
+ * Implementations for LZF (LZFUncompressor) and GZIP (GZIPUncompressor)
+ * 'UncompressorOutputStream' convenience wrapper to expose 'Uncompressor'
+   as 'OutputStream'
 
 0.9.3:
 

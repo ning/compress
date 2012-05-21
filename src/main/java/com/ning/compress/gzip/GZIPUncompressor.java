@@ -289,11 +289,14 @@ System.err.println("About to end; remains = "+remains);
     }
 
     private final int _handleHeader(byte[] comp, int offset, final int end) throws IOException
-    {        
+    {
+        
         main_loop:
         while (offset < end) {
             byte b = comp[offset++];
             _crc.update(b);
+
+System.err.println("HEader, offset="+offset+", end="+end+", state="+_state+", b="+Integer.toHexString(b& 0xFF));
             
             switch (_state) {
             case STATE_INITIAL:
@@ -332,8 +335,8 @@ System.err.println("About to end; remains = "+remains);
             case STATE_HEADER_FLAGS:
                 _flags = b; // should we validate these?
                 _skippedBytes = 0;
+                _state = STATE_HEADER_SKIP;
                 if (offset >= end) {
-                    _state = STATE_HEADER_SKIP;
                     break;
                 }
                 b = comp[offset++];

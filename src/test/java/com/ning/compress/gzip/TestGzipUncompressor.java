@@ -12,7 +12,6 @@ import com.ning.compress.UncompressorOutputStream;
 
 public class TestGzipUncompressor extends BaseForTests
 {
-    /*
     @Test 
     public void testSimpleSmall1by1() throws IOException
     {
@@ -44,7 +43,6 @@ public class TestGzipUncompressor extends BaseForTests
         byte[] result = co.getBytes();
         Assert.assertArrayEquals(fluff, result);
     }
-    */
     
     @Test 
     public void testSimpleBiggerVarLength() throws IOException
@@ -67,7 +65,6 @@ public class TestGzipUncompressor extends BaseForTests
         Assert.assertArrayEquals(fluff, result);
     }
 
-    /*
     @Test
     public void testSimpleBiggerOneChunk() throws IOException
     {
@@ -97,7 +94,6 @@ public class TestGzipUncompressor extends BaseForTests
         
         Assert.assertArrayEquals(fluff, result);
     }
-    */
 
     /*
     ///////////////////////////////////////////////////////////////////////
