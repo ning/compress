@@ -91,7 +91,7 @@ public class LZFUncompressor extends Uncompressor
     protected byte[] _decodeBuffer;
     
     /**
-     * Number of bytes that have been buffered in {@link _inputBuffer} to be
+     * Number of bytes that have been buffered in {@link #_inputBuffer} to be
      * uncompressed; or copied directly from uncompressed block.
      */
     protected int _bytesReadFromBlock;
