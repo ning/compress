@@ -1,4 +1,4 @@
-0.9.4:
+0.9.4 (21-May-2012)
 
 * Add GZIP support functionality:
  * 'OptimizedGZIPInputStream', 'OptimizedGZIPOutputStream' which add buffer
@@ -11,7 +11,7 @@
  * 'UncompressorOutputStream' convenience wrapper to expose 'Uncompressor'
    as 'OutputStream'
 
-0.9.3:
+0.9.3
 
 * Fixed Issue #12: Command-line tool out of memory
  (reported by nodarret@github)
