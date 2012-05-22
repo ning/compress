@@ -239,7 +239,6 @@ public class GZIPUncompressor extends Uncompressor
                 _state = STATE_TRAILER_INITIAL;
                 // also: push back some of data that is buffered
                 int remains = _inflater.getRemaining();
-System.err.println("About to end; remains = "+remains);                
                 if (remains > 0) {
                     offset -= remains;
                 }
@@ -295,8 +294,6 @@ System.err.println("About to end; remains = "+remains);
         while (offset < end) {
             byte b = comp[offset++];
             _crc.update(b);
-
-System.err.println("HEader, offset="+offset+", end="+end+", state="+_state+", b="+Integer.toHexString(b& 0xFF));
             
             switch (_state) {
             case STATE_INITIAL:
@@ -493,8 +490,6 @@ System.err.println("HEader, offset="+offset+", end="+end+", state="+_state+", b=
                 throw new IllegalStateException("Unknown trailer state: "+_state);
             }
         }
-System.err.println("handleTrailer done, state now:  "+_state);
-        
         return offset;
     }
 
