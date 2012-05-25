@@ -266,6 +266,8 @@ public class GZIPUncompressor extends Uncompressor
             _inflater = null;
             _gzipRecycler.releaseInflater(i);
         }
+        // 24-May-2012, tatu: Should we call this here; or fail with exception?
+        _handler.allDataHandled();
         if (_state != STATE_INITIAL) {
             if (_state >= STATE_TRAILER_INITIAL) {
                 if (_state == STATE_BODY) {

@@ -7,10 +7,15 @@ import com.ning.compress.BufferRecycler;
 /**
  * Decorator {@link OutputStream} implementation that will compress
  * output using LZF compression algorithm, given uncompressed input
- * to write.
+ * to write. Its counterpart is {@link LZFInputStream}; although
+ * in some ways {@link LZFCompressingInputStream} can be seen
+ * as the opposite.
  * 
  * @author jon hartlaub
  * @author Tatu Saloranta
+ * 
+ * @see LZFInputStream
+ * @see LZFCompressingInputStream
  */
 public class LZFOutputStream extends OutputStream 
 {
@@ -28,8 +33,6 @@ public class LZFOutputStream extends OutputStream
      * first complete a block or not.
      *<p>
      * Default value is 'true'
-     * 
-     * @since 0.8
      */
     protected boolean _cfgFinishBlockOnFlush = true;
     
@@ -57,8 +60,6 @@ public class LZFOutputStream extends OutputStream
     /**
      * Method for defining whether call to {@link #flush} will also complete
      * current block (similar to calling {@link #finishBlock()}) or not.
-     * 
-     * @since 0.8
      */
     public LZFOutputStream setFinishBlockOnFlush(boolean b) {
         _cfgFinishBlockOnFlush = b;

@@ -64,6 +64,19 @@ public class LZFChunk
         return new LZFChunk(result);
     }
 
+    public static int appendCompressedHeader(int origLen, int encLen, byte[] headerBuffer, int offset)
+        throws IOException
+    {
+        headerBuffer[offset++] = BYTE_Z;
+        headerBuffer[offset++] = BYTE_V;
+        headerBuffer[offset++] = BLOCK_TYPE_COMPRESSED;
+        headerBuffer[offset++] = (byte) (encLen >> 8);
+        headerBuffer[offset++] = (byte) encLen;
+        headerBuffer[offset++] = (byte) (origLen >> 8);
+        headerBuffer[offset++] = (byte) origLen;
+        return offset;
+    }
+    
     public static void writeCompressedHeader(int origLen, int encLen, OutputStream out, byte[] headerBuffer)
         throws IOException
     {
@@ -90,6 +103,17 @@ public class LZFChunk
         result[4] = (byte) len;
         System.arraycopy(plainData, ptr, result, 5, len);
         return new LZFChunk(result);
+    }
+
+    public static int appendNonCompressedHeader(int len, byte[] headerBuffer, int offset)
+        throws IOException
+    {
+        headerBuffer[offset++] = BYTE_Z;
+        headerBuffer[offset++] = BYTE_V;
+        headerBuffer[offset++] = BLOCK_TYPE_NON_COMPRESSED;
+        headerBuffer[offset++] = (byte) (len >> 8);
+        headerBuffer[offset++] = (byte) len;
+        return offset;
     }
     
     public static void writeNonCompressedHeader(int len, OutputStream out, byte[] headerBuffer)

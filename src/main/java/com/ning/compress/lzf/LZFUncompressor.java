@@ -243,6 +243,8 @@ public class LZFUncompressor extends Uncompressor
             _decodeBuffer = null;
             _recycler.releaseDecodeBuffer(b);
         }
+        // 24-May-2012, tatu: Should we call this here; or fail with exception?
+        _handler.allDataHandled();
         if (_state != STATE_INITIAL) {
             if (_state == STATE_HEADER_COMPRESSED_BUFFERING) {
                 throw new IOException("Incomplete compressed LZF block; only got "+_bytesReadFromBlock

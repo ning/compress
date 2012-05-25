@@ -117,7 +117,7 @@ public class TestGzipUncompressor extends BaseForTests
         public void handleData(byte[] buffer, int offset, int len) throws IOException {
             bytes.write(buffer, offset, len);
         }
-
+        public void allDataHandled() throws IOException { }
         public byte[] getBytes() { return bytes.toByteArray(); }
     }
 }

@@ -24,7 +24,7 @@ import com.ning.compress.BufferRecycler;
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
-public class ChunkEncoder
+public final class ChunkEncoder
 {
     // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off
     private static final int MIN_BLOCK_TO_COMPRESS = 16;
@@ -77,6 +77,24 @@ public class ChunkEncoder
         _encodeBuffer = _recycler.allocEncodingBuffer(bufferLen);
     }
 
+    /**
+     * Alternate constructor used when we want to avoid allocation encoding
+     * buffer, in cases where caller wants full control over allocations.
+     */
+    private ChunkEncoder(int totalLength, boolean bogus)
+    {
+        int largestChunkLen = Math.max(totalLength, LZFChunk.MAX_CHUNK_LEN);
+        int suggestedHashLen = calcHashLen(largestChunkLen);
+        _recycler = BufferRecycler.instance();
+        _hashTable = _recycler.allocEncodingHash(suggestedHashLen);
+        _hashModulo = _hashTable.length - 1;
+        _encodeBuffer = null;
+    }
+
+    public static ChunkEncoder nonAllocatingEncoder(int totalLength) {
+        return new ChunkEncoder(totalLength, true);
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public API
@@ -145,47 +163,11 @@ public class ChunkEncoder
         out.write(data, offset, len);
     }
 
-    /*
-    ///////////////////////////////////////////////////////////////////////
-    // Internal methods
-    ///////////////////////////////////////////////////////////////////////
+    /**
+     * Main workhorse method that will try to compress given chunk, and return
+     * end position (offset to byte after last included byte)
      */
-    
-    private static int calcHashLen(int chunkSize)
-    {
-        // in general try get hash table size of 2x input size
-        chunkSize += chunkSize;
-        // but no larger than max size:
-        if (chunkSize >= MAX_HASH_SIZE) {
-            return MAX_HASH_SIZE;
-        }
-        // otherwise just need to round up to nearest 2x
-        int hashLen = MIN_HASH_SIZE;
-        while (hashLen < chunkSize) {
-            hashLen += hashLen;
-        }
-        return hashLen;
-    }
-
-    private final int first(byte[] in, int inPos) {
-        return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
-    }
-
-    /*
-    private static int next(int v, byte[] in, int inPos) {
-        return (v << 8) + (in[inPos + 2] & 255);
-    }
-*/
-
-    private final int hash(int h) {
-        // or 184117; but this seems to give better hashing?
-        return ((h * 57321) >> 9) & _hashModulo;
-        // original lzf-c.c used this:
-        //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
-        // but that didn't seem to provide better matches
-    }
-
-    private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
+    protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
         ++outPos;
@@ -275,6 +257,46 @@ public class ChunkEncoder
         return outPos;
     }
 
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Internal methods
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    private static int calcHashLen(int chunkSize)
+    {
+        // in general try get hash table size of 2x input size
+        chunkSize += chunkSize;
+        // but no larger than max size:
+        if (chunkSize >= MAX_HASH_SIZE) {
+            return MAX_HASH_SIZE;
+        }
+        // otherwise just need to round up to nearest 2x
+        int hashLen = MIN_HASH_SIZE;
+        while (hashLen < chunkSize) {
+            hashLen += hashLen;
+        }
+        return hashLen;
+    }
+
+    private final int first(byte[] in, int inPos) {
+        return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
+    }
+
+    /*
+    private static int next(int v, byte[] in, int inPos) {
+        return (v << 8) + (in[inPos + 2] & 255);
+    }
+*/
+
+    private final int hash(int h) {
+        // or 184117; but this seems to give better hashing?
+        return ((h * 57321) >> 9) & _hashModulo;
+        // original lzf-c.c used this:
+        //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
+        // but that didn't seem to provide better matches
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Alternative experimental version using Unsafe
