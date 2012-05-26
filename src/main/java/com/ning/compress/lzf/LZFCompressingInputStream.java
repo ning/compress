@@ -7,10 +7,10 @@ import com.ning.compress.BufferRecycler;
 
 /**
  * Decorator {@link InputStream} implementation used for
- * readin <b>uncompressed</b> data
+ * reading <b>uncompressed</b> data
  * and <b>compressing</b> it on the fly, such that reads return compressed
  * data.
- * It is reverse of {LZFInputStrema} (which instead uncompresses data).
+ * It is reverse of {@link LZFInputStream} (which instead uncompresses data).
  * 
  * @author Tatu Saloranta
  * 

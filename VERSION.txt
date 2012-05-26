@@ -1,4 +1,4 @@
-0.9.5:
+0.9.5 (25-May-2012)
 
 * Add 'LZFCompressingInputStream' to allow streaming compression
  "in reverse" (compared to LZFOutputStream)
