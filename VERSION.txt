@@ -1,3 +1,8 @@
+0.9.5:
+
+* Add 'LZFCompressingInputStream' to allow streaming compression
+ "in reverse" (compared to LZFOutputStream)
+
 0.9.4 (21-May-2012)
 
 * Add GZIP support functionality:

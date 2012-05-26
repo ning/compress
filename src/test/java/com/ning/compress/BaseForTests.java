@@ -27,4 +27,27 @@ public class BaseForTests
         }
         return bytes.toByteArray();
     }
+
+    protected byte[] constructUncompressable(int length)
+    {
+        byte[] result = new byte[length];
+        Random rnd = new Random(length);
+        // SecureRandom is "more random", but not reproduceable, so use default instead:
+//        SecureRandom.getInstance("SHA1PRNG").nextBytes(result);
+        rnd.nextBytes(result);
+        return result;
+    }
+
+    protected byte[] readAll(InputStream in) throws IOException
+    {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(1000);
+        byte[] buf = new byte[1000];
+        int count;
+        
+        while ((count = in.read(buf)) > 0) {
+            bytes.write(buf, 0, count);
+        }
+        in.close();
+        return bytes.toByteArray();
+    }
 }

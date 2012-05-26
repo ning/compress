@@ -256,6 +256,7 @@ public class LZFCompressingInputStream extends InputStream
         if (_encoder == null) {
             // need 7 byte header, plus regular max buffer size:
             int bufferLen = chunkLength + ((chunkLength + 31) >> 5) + 7;
+            _encoder = ChunkEncoder.nonAllocatingEncoder(bufferLen);
             _encodedBytes = _recycler.allocEncodingBuffer(bufferLen);
         }
         // offset of 7 so we can prepend header as necessary
