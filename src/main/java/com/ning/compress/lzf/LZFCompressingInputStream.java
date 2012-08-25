@@ -25,7 +25,7 @@ public class LZFCompressingInputStream extends InputStream
     private ChunkEncoder _encoder;
 
     /**
-     * stream to be decompressed
+     * Stream used for reading data to be compressed
      */
     protected final InputStream _inputStream;
 
