@@ -13,11 +13,11 @@ public class ManualSkipComparison
 {
     private int size = 0;
     
-    private void test(File file) throws Exception
+    private void test(File file, int origSize) throws Exception
     {
         // Let's try to guestimate suitable size... to get to 50 megs to process
         final int REPS = (int) ((double) (50 * 1000 * 1000) / (double) file.length());
-
+        
         System.out.printf("Skipping %d bytes of compressed data, %d reps.\n",
                 file.length(), REPS);
 
@@ -44,11 +44,13 @@ public class ManualSkipComparison
             default:
                 throw new Error();
             }
-            
             if (lf) {
                 System.out.println();
             }
             System.out.println("Test '"+msg+"' ["+size+" bytes] -> "+msecs+" msecs");
+            if (size != origSize) { // sanity check
+                throw new Error("Wrong skip count!!!");
+            }
         }
     }
 
@@ -65,7 +67,7 @@ public class ManualSkipComparison
             len = 0;
             long skipped;
 
-            while ((skipped = in.skip(Long.MAX_VALUE)) >= 0L) {
+            while ((skipped = in.skip(Integer.MAX_VALUE)) >= 0L) {
                 len += skipped;
             }
             in.close();
@@ -97,6 +99,6 @@ public class ManualSkipComparison
         outs.close();
         System.out.printf("Compressed as file '%s', %d bytes\n", out.getPath(), out.length());
 
-        new ManualSkipComparison().test(out);
+        new ManualSkipComparison().test(out, (int) in.length());
     }
 }

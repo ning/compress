@@ -103,9 +103,8 @@ public class LZFCompressingInputStream extends InputStream
     @Override
     public int available()
     {
-        // if closed, return -1;
-        if (_inputStreamClosed) {
-            return -1;
+        if (_inputStreamClosed) { // javadocs suggest 0 for closed as well (not -1)
+            return 0;
         }
         int left = (_bufferLength - _bufferPosition);
         return (left <= 0) ? 0 : left;

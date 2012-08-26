@@ -5,7 +5,6 @@ import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
-import java.util.zip.ZipException;
 
 import com.ning.compress.*;
 
@@ -186,6 +185,7 @@ public class GZIPUncompressor extends Uncompressor
     // Uncompressor API implementation
     ///////////////////////////////////////////////////////////////////////
      */
+
     @Override
     public void feedCompressedData(byte[] comp, int offset, int len) throws IOException
     {
@@ -200,7 +200,7 @@ public class GZIPUncompressor extends Uncompressor
             } else { // trailer
                 offset = _handleTrailer(comp, offset, end);
                 if (offset < end) { // sanity check
-                    throw new IllegalStateException();
+                    _throwInternal();
                 }
                 // either way, we are done
                 return;
@@ -225,9 +225,7 @@ public class GZIPUncompressor extends Uncompressor
                 try {
                     decoded = _inflater.inflate(_decodeBuffer);
                 } catch (DataFormatException e) {
-                    ZipException z = new ZipException("Problems inflating gzip data: "+e.getMessage());
-                    z.initCause(e);
-                    throw z;
+                    throw new GZIPException("Problems inflating gzip data: "+e.getMessage(), e);
                 }
                 if (decoded == 0) {
                     break;
@@ -249,7 +247,7 @@ public class GZIPUncompressor extends Uncompressor
         // finally; handle trailer if we got this far
         offset = _handleTrailer(comp, offset, end);
         if (offset < end) { // sanity check
-            throw new IllegalStateException();
+            _throwInternal();
         }
     }
 
@@ -271,11 +269,11 @@ public class GZIPUncompressor extends Uncompressor
         if (_state != STATE_INITIAL) {
             if (_state >= STATE_TRAILER_INITIAL) {
                 if (_state == STATE_BODY) {
-                    throw new ZipException("Invalid GZIP stream: end-of-input in the middle of compressed data");
+                    throw new GZIPException("Invalid GZIP stream: end-of-input in the middle of compressed data");
                 }
-                throw new ZipException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
+                throw new GZIPException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
             }
-            throw new ZipException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
+            throw new GZIPException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
         }
     }
 
@@ -422,14 +420,14 @@ public class GZIPUncompressor extends Uncompressor
                 _headerCRC += ((b & 0xFF) << 8);
                 int act = (int)_crc.getValue() & 0xffff;
                 if (act != _headerCRC) {
-                    throw new ZipException("Corrupt GZIP header: header CRC 0x"
+                    throw new GZIPException("Corrupt GZIP header: header CRC 0x"
                                           +Integer.toHexString(act)+", expected 0x "
                                           +Integer.toHexString(_headerCRC));
                 }
                 _state = STATE_BODY;
                 break main_loop;
             default:
-                throw new IllegalStateException("Unknown header state: "+_state);
+                _throwInternal("Unknown header state: "+_state);
             }
         }
         if (_state == STATE_BODY) {
@@ -461,7 +459,7 @@ public class GZIPUncompressor extends Uncompressor
                 final int actCRC = (int) _crc.getValue();
                 // verify CRC:
                 if (_trailerCRC != actCRC) {
-                    throw new ZipException("Corrupt block or trailer: expected CRC "
+                    throw new GZIPException("Corrupt block or trailer: expected CRC "
                             +Integer.toHexString(_trailerCRC)+", computed "+Integer.toHexString(actCRC));
                 }
                 _state = STATE_TRAILER_LEN0;
@@ -485,11 +483,11 @@ public class GZIPUncompressor extends Uncompressor
                 int actCount32 = (int) _inflater.getBytesWritten();
 
                 if (actCount32 != _trailerCount) {
-                    throw new ZipException("Corrupt block or trailed: expected byte count "+_trailerCount+", read "+actCount32);
+                    throw new GZIPException("Corrupt block or trailed: expected byte count "+_trailerCount+", read "+actCount32);
                 }
                 break;
             default:
-                throw new IllegalStateException("Unknown trailer state: "+_state);
+                _throwInternal("Unknown trailer state: "+_state);
             }
         }
         return offset;
@@ -500,22 +498,30 @@ public class GZIPUncompressor extends Uncompressor
     // Helper methods, other
     ///////////////////////////////////////////////////////////////////////
      */
+
+    protected void _throwInternal() throws GZIPException {
+        throw new GZIPException("Internal error");
+    }
+    
+    protected void _throwInternal(String msg) throws GZIPException {
+        throw new GZIPException("Internal error: "+msg);
+    }
     
     protected void _reportBadHeader(byte[] comp, int nextOffset, int end, int relative)
-            throws IOException
+        throws GZIPException
     {
         String byteStr = "0x"+Integer.toHexString(comp[nextOffset] & 0xFF);
         if (relative <= 1) {
             int exp = (relative == 0) ? (GZIP_MAGIC & 0xFF) : (GZIP_MAGIC >> 8);
             --nextOffset;
-            throw new ZipException("Bad GZIP stream: byte #"+relative+" of header not '"
+            throw new GZIPException("Bad GZIP stream: byte #"+relative+" of header not '"
                     +exp+"' (0x"+Integer.toHexString(exp)+") but "+byteStr);
         }
         if (relative == 2) { // odd that 
-            throw new ZipException("Bad GZIP stream: byte #2 of header invalid: type "+byteStr
+            throw new GZIPException("Bad GZIP stream: byte #2 of header invalid: type "+byteStr
                     +" not supported, 0x"+Integer.toHexString(Deflater.DEFLATED)
                     +" expected");
         }
-        throw new IOException("Bad GZIP stream: byte #"+relative+" of header invalid: "+byteStr);
+        throw new GZIPException("Bad GZIP stream: byte #"+relative+" of header invalid: "+byteStr);
     }
 }

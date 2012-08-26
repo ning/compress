@@ -142,9 +142,8 @@ public class LZFFileInputStream
     @Override
     public int available()
     {
-        // if closed, return -1;
-        if (_inputStreamClosed) {
-            return -1;
+        if (_inputStreamClosed) { // javadocs suggest 0 for closed as well (not -1)
+            return 0;
         }
         int left = (_bufferLength - _bufferPosition);
         return (left <= 0) ? 0 : left;
@@ -227,6 +226,7 @@ public class LZFFileInputStream
     /**
      * Overridden to just skip at most a single chunk at a time
      */
+    /*
     @Override
     public long skip(long n) throws IOException
     {
@@ -240,6 +240,58 @@ public class LZFFileInputStream
         }
         _bufferPosition += left;
         return left;
+    }
+    */
+
+    /**
+     * Overridden to implement efficient skipping by skipping full chunks whenever
+     * possible.
+     */
+    @Override
+    public long skip(long n) throws IOException
+    {
+        if (_inputStreamClosed) {
+            return -1;
+        }
+        if (n <= 0L) {
+            return n;
+        }
+        long skipped;
+
+        // if any left to skip, just return that for simplicity
+        if (_bufferPosition < _bufferLength) {
+            int left = (_bufferLength - _bufferPosition);
+            if (n <= left) { // small skip, fulfilled from what we already got
+                _bufferPosition += (int) n;
+                return n;
+            }
+            _bufferPosition = _bufferLength;
+            skipped = left;
+            n -= left;
+        } else {
+            skipped = 0L;
+        }
+        // and then full-chunk skipping, if possible
+        while (true) {
+            int amount = _decompressor.skipOrDecodeChunk(_wrapper, _inputBuffer, _decodedBytes, n);
+            if (amount >= 0) { // successful skipping of the chunk
+                skipped += amount;
+                n -= amount;
+                if (n <= 0L) {
+                    return skipped;
+                }
+                continue;
+            }
+            if (amount == -1) { // EOF
+                close();
+                return skipped;
+            }
+            // decoded buffer-full, more than max skip
+            _bufferLength = -(amount+1);
+            skipped += n;
+            _bufferPosition = (int) n;
+            return skipped;
+        }
     }
 
     /*
@@ -293,15 +345,19 @@ public class LZFFileInputStream
         }
         _bufferLength = _decompressor.decodeChunk(_wrapper, _inputBuffer, _decodedBytes);
         if (_bufferLength < 0) {
+            close();
             return false;
         }
         _bufferPosition = 0;
         return (_bufferPosition < _bufferLength);
     }
 
-    protected final int readRaw(byte[] buffer, int offset, int length) throws IOException
-    {
+    protected final int readRaw(byte[] buffer, int offset, int length) throws IOException {
         return super.read(buffer, offset, length);
+    }
+
+    protected final long skipRaw(long amount) throws IOException {
+        return super.skip(amount);
     }
     
     /*
@@ -318,15 +374,28 @@ public class LZFFileInputStream
     private final class Wrapper extends InputStream
     {
         @Override
+        public void close() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public int read() throws IOException {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public int read(byte[] buffer, int offset, int length) throws IOException
-        {
+        public int read(byte[] buffer, int offset, int length) throws IOException {
             return readRaw(buffer, offset, length);
         }
-        
+
+        @Override
+        public int read(byte[] buffer) throws IOException {
+            return readRaw(buffer, 0, buffer.length);
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            return skipRaw(n);
+        }
     }
 }

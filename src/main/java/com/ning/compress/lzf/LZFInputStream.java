@@ -137,9 +137,8 @@ public class LZFInputStream extends InputStream
     @Override
     public int available()
     {
-        // if closed, return -1;
-        if (_inputStreamClosed) {
-            return -1;
+        if (_inputStreamClosed) { // javadocs suggest 0 for closed as well (not -1)
+            return 0;
         }
         int left = (_bufferLength - _bufferPosition);
         return (left <= 0) ? 0 : left;
@@ -214,7 +213,8 @@ public class LZFInputStream extends InputStream
     }
 
     /**
-     * Overridden to just skip at most a single chunk at a time
+     * Overridden to implement efficient skipping by skipping full chunks whenever
+     * possible.
      */
     @Override
     public long skip(long n) throws IOException
@@ -222,24 +222,45 @@ public class LZFInputStream extends InputStream
         if (_inputStreamClosed) {
             return -1;
         }
-        int left = (_bufferLength - _bufferPosition);
-        // if none left, must read more:
-        if (left <= 0) {
-            // otherwise must read more to skip...
-            int b = read();
-            if (b < 0) { // EOF
-                return -1;
+        if (n <= 0L) {
+            return n;
+        }
+        long skipped;
+
+        // if any left to skip, just return that for simplicity
+        if (_bufferPosition < _bufferLength) {
+            int left = (_bufferLength - _bufferPosition);
+            if (n <= left) { // small skip, fulfilled from what we already got
+                _bufferPosition += (int) n;
+                return n;
             }
-            // push it back to get accurate skip count
-            --_bufferPosition;
-            left = (_bufferLength - _bufferPosition);
+            _bufferPosition = _bufferLength;
+            skipped = left;
+            n -= left;
+        } else {
+            skipped = 0L;
         }
-        // either way, just skip whatever we have decoded
-        if (left > n) {
-            left = (int) n;
+        // and then full-chunk skipping, if possible
+        while (true) {
+            int amount = _decoder.skipOrDecodeChunk(_inputStream, _inputBuffer, _decodedBytes, n);
+            if (amount >= 0) { // successful skipping of the chunk
+                skipped += amount;
+                n -= amount;
+                if (n <= 0L) {
+                    return skipped;
+                }
+                continue;
+            }
+            if (amount == -1) { // EOF
+                close();
+                return skipped;
+            }
+            // decoded buffer-full, more than max skip
+            _bufferLength = -(amount+1);
+            skipped += n;
+            _bufferPosition = (int) n;
+            return skipped;
         }
-        _bufferPosition += left;
-        return left;
     }
     
     /*
@@ -306,7 +327,11 @@ public class LZFInputStream extends InputStream
 
     /**
      * Fill the uncompressed bytes buffer by reading the underlying inputStream.
+     * 
      * @throws IOException
+     * 
+     * @return True if there is now at least one byte to read in the buffer; false
+     *   if there is no more content to read
      */
     protected boolean readyBuffer() throws IOException
     {
@@ -318,6 +343,7 @@ public class LZFInputStream extends InputStream
         }
         _bufferLength = _decoder.decodeChunk(_inputStream, _inputBuffer, _decodedBytes);
         if (_bufferLength < 0) {
+            close();
             return false;
         }
         _bufferPosition = 0;

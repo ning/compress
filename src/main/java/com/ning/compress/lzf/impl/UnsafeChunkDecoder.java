@@ -41,7 +41,6 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     public final int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
             throws IOException
     {
-        int bytesInOutput;
         /* note: we do NOT read more than 5 bytes because otherwise might need to shuffle bytes
          * for output buffer (could perhaps optimize in future?)
          */
@@ -51,20 +50,19 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             if (bytesRead == 0) { // probably fine, clean EOF
                 return -1;
             }
-            throw new IOException("Corrupt input data, block did not start with 2 byte signature ('ZV') followed by type byte, 2-byte length)");
+            _reportCorruptHeader();
         }
         int type = inputBuffer[2];
         int compLen = uint16(inputBuffer, 3);
         if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed
             readFully(is, false, outputBuffer, 0, compLen);
-            bytesInOutput = compLen;
-        } else { // compressed
-            readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
-            int uncompLen = uint16(inputBuffer, 0);
-            decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
-            bytesInOutput = uncompLen;
+            return compLen;
         }
-        return bytesInOutput;
+        // compressed
+        readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
+        int uncompLen = uint16(inputBuffer, 0);
+        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        return uncompLen;
     }
     
     @Override
@@ -118,7 +116,46 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         } while (outPos < outEnd);
 
         // sanity check to guard against corrupt data:
-        if (outPos != outEnd) throw new IOException("Corrupt data: overrun in decompress, input offset "+inPos+", output offset "+outPos);
+        if (outPos != outEnd) {
+            throw new LZFException("Corrupt data: overrun in decompress, input offset "+inPos+", output offset "+outPos);
+        }
+    }
+
+    @Override
+    public int skipOrDecodeChunk(final InputStream is, final byte[] inputBuffer,
+            final byte[] outputBuffer, final long maxToSkip)
+        throws IOException
+    {
+        int bytesRead = readHeader(is, inputBuffer);
+        if ((bytesRead < HEADER_BYTES)
+                || inputBuffer[0] != LZFChunk.BYTE_Z || inputBuffer[1] != LZFChunk.BYTE_V) {
+            if (bytesRead == 0) { // probably fine, clean EOF
+                return -1;
+            }
+            _reportCorruptHeader();
+        }
+        int type = inputBuffer[2];
+        int compLen = uint16(inputBuffer, 3);
+        if (type == LZFChunk.BLOCK_TYPE_NON_COMPRESSED) { // uncompressed, simple
+            if (compLen <= maxToSkip) {
+                skipFully(is, compLen);
+                return compLen;
+            }
+            readFully(is, false, outputBuffer, 0, compLen);
+            return -(compLen+1);
+        }
+        // compressed: need 2 more bytes to know uncompressed length...
+        readFully(is, true, inputBuffer, 0, 2);
+        int uncompLen = uint16(inputBuffer, 0);
+        // can we just skip it wholesale?
+        if (compLen <= maxToSkip) { // awesome: skip N physical compressed bytes, which mean M logical (uncomp) bytes
+            skipFully(is, compLen);
+            return uncompLen;
+        }
+        // otherwise, read and uncompress the chunk normally
+        readFully(is, true, inputBuffer, 2, compLen); // first 2 bytes are uncompressed length
+        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        return -(uncompLen+1);
     }
     
     /*

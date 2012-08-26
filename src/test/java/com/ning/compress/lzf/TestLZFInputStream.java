@@ -42,34 +42,30 @@ public class TestLZFInputStream extends BaseForTests
 		os.close();
 		compressedBytes = compressed.toByteArray();
     }
+
+    @Test
+    public void testDecompressNonEncodableReadByte() throws IOException {
+        doDecompressReadByte(nonCompressableBytes, nonEncodableBytesToWrite);
+    }
 	
-	@Test
-	public void testDecompressNonEncodableReadByte() throws IOException
-	{
-		doDecompressReadByte(nonCompressableBytes, nonEncodableBytesToWrite);
-	}
+    @Test
+    public void testDecompressNonEncodableReadBlock() throws IOException {
+        doDecompressReadBlock(nonCompressableBytes, nonEncodableBytesToWrite);
+    }
 	
-	@Test
-	public void testDecompressNonEncodableReadBlock() throws IOException
-	{
-		doDecompressReadBlock(nonCompressableBytes, nonEncodableBytesToWrite);
-	}
-	
-	@Test
-	public void testDecompressEncodableReadByte() throws IOException
-	{
-		doDecompressReadByte(compressedBytes, bytesToWrite);
-	}
-	
-	@Test
-	public void testDecompressEncodableReadBlock() throws IOException
-	{
-		doDecompressReadBlock(compressedBytes, bytesToWrite);
-	}
-	
-	@Test
-	public void testRead0() throws IOException
-	{
+    @Test
+    public void testDecompressEncodableReadByte() throws IOException {
+        doDecompressReadByte(compressedBytes, bytesToWrite);
+    }
+
+    @Test
+    public void testDecompressEncodableReadBlock() throws IOException {
+        doDecompressReadBlock(compressedBytes, bytesToWrite);
+    }
+
+    @Test
+    public void testRead0() throws IOException
+    {
 		ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
 		InputStream is = new LZFInputStream(bis);
 		Assert.assertEquals(0, is.available());
@@ -81,40 +77,39 @@ public class TestLZFInputStream extends BaseForTests
 		Assert.assertEquals(0, val);
 		// close should work.
 		is.close();
-	}
+    }
 
-        @Test
-        public void testAvailable() throws IOException
-        {
-            ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
-            LZFInputStream is = new LZFInputStream(bis);
-            Assert.assertSame(is.getUnderlyingInputStream(), bis);
-            Assert.assertEquals(0, is.available());
-            // read one byte; should decode bunch more, make available
-            is.read();
-            int total = 1; // since we read one byte already
-            Assert.assertEquals(is.available(), 65534);
-            // and after we skip through all of it, end with -1 for EOF
-            long count;
-            while ((count = is.skip(16384L)) > 0L) {
-                total += (int) count;
-            }
-            // nothing more available; but we haven't yet closed so:
-            Assert.assertEquals(is.available(), 0);
-            // and then we close it:
-            is.close();
-            Assert.assertEquals(is.available(), -1);
-            Assert.assertEquals(total, compressableInputLength);
+    @Test
+    public void testAvailable() throws IOException
+    {
+        ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
+        LZFInputStream is = new LZFInputStream(bis);
+        Assert.assertSame(is.getUnderlyingInputStream(), bis);
+        Assert.assertEquals(0, is.available());
+        // read one byte; should decode bunch more, make available
+        is.read();
+        int total = 1; // since we read one byte already
+        Assert.assertEquals(is.available(), 65534);
+        // and after we skip through all of it, end with -1 for EOF
+        long count;
+        while ((count = is.skip(16384L)) > 0L) {
+            total += (int) count;
         }
+        // nothing more available; but we haven't yet closed so:
+        Assert.assertEquals(is.available(), 0);
+        // and then we close it:
+        is.close();
+        Assert.assertEquals(is.available(), 0);
+        Assert.assertEquals(total, compressableInputLength);
+    }
 	
-	
-   @Test void testIncrementalWithFullReads() throws IOException {
-       doTestIncremental(true);
-   }
+    @Test void testIncrementalWithFullReads() throws IOException {
+        doTestIncremental(true);
+    }
 
-   @Test void testIncrementalWithMinimalReads() throws IOException {
-       doTestIncremental(false);
-   }
+    @Test void testIncrementalWithMinimalReads() throws IOException {
+        doTestIncremental(false);
+    }
 
     @Test 
     public void testReadAndWrite() throws Exception
@@ -136,12 +131,12 @@ public class TestLZFInputStream extends BaseForTests
     ///////////////////////////////////////////////////////////////////
     */
 
-	/**
-	 * Test that creates a longer piece of content, compresses it, and reads
-	 * back in arbitrary small reads.
-	 */
-	private void doTestIncremental(boolean fullReads) throws IOException
-	{
+    /**
+     * Test that creates a longer piece of content, compresses it, and reads
+     * back in arbitrary small reads.
+     */
+    private void doTestIncremental(boolean fullReads) throws IOException
+    {
 	    // first need to compress something...
 	    String[] words = new String[] { "what", "ever", "some", "other", "words", "too" };
 	    StringBuilder sb = new StringBuilder(258000);
@@ -193,37 +188,35 @@ public class TestLZFInputStream extends BaseForTests
             byte[] result = bytes.toByteArray();
             Assert.assertEquals(result.length, uncomp.length);
             Assert.assertEquals(result, uncomp);
-	}
-	
-	
-	private void doDecompressReadByte(byte[] bytes, byte[] reference) throws IOException
-	{
-		ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-		InputStream is = new LZFInputStream(bis);
-		int i = 0;
-		int testVal = 0;
-		while((testVal=is.read()) != -1) {
-			int rVal = ((int)reference[i]) & 255;
-			Assert.assertEquals(rVal, testVal);
-			i++;
-		}
-	}
+    }
 
-	
-	private void doDecompressReadBlock(byte[] bytes, byte[] reference) throws IOException
-	{
-		ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-		int outputBytes = 0;
-		InputStream is = new LZFInputStream(bis);
-		int val;
-		byte[] buffer = new byte[65536+23];
-		while((val=is.read(buffer)) != -1) {
-			for(int i = 0; i < val; i++) {
-				byte testVal = buffer[i];
-				Assert.assertTrue(testVal == reference[outputBytes]);
-				outputBytes++;
-			}
-		}
-		Assert.assertTrue(outputBytes == reference.length);
-	}
+    private void doDecompressReadByte(byte[] bytes, byte[] reference) throws IOException
+    {
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        InputStream is = new LZFInputStream(bis);
+        int i = 0;
+        int testVal = 0;
+        while((testVal=is.read()) != -1) {
+            int rVal = ((int)reference[i]) & 255;
+            Assert.assertEquals(rVal, testVal);
+            ++i;
+        }
+    }
+
+    private void doDecompressReadBlock(byte[] bytes, byte[] reference) throws IOException
+    {
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        int outputBytes = 0;
+        InputStream is = new LZFInputStream(bis);
+        int val;
+        byte[] buffer = new byte[65536+23];
+        while((val=is.read(buffer)) != -1) {
+            for(int i = 0; i < val; i++) {
+                byte testVal = buffer[i];
+                Assert.assertTrue(testVal == reference[outputBytes]);
+                ++outputBytes;
+            }
+        }
+        Assert.assertTrue(outputBytes == reference.length);
+    }
 }

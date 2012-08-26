@@ -247,14 +247,14 @@ public class LZFUncompressor extends Uncompressor
         _handler.allDataHandled();
         if (_state != STATE_INITIAL) {
             if (_state == STATE_HEADER_COMPRESSED_BUFFERING) {
-                throw new IOException("Incomplete compressed LZF block; only got "+_bytesReadFromBlock
+                throw new LZFException("Incomplete compressed LZF block; only got "+_bytesReadFromBlock
                         +" bytes, needed "+_compressedLength);
             }
             if (_state == STATE_HEADER_UNCOMPRESSED_STREAMING) {
-                throw new IOException("Incomplete uncompressed LZF block; only got "+_bytesReadFromBlock
+                throw new LZFException("Incomplete uncompressed LZF block; only got "+_bytesReadFromBlock
                         +" bytes, needed "+_uncompressedLength);
             }
-            throw new IOException("Incomplete LZF block; decoding state = "+_state);
+            throw new LZFException("Incomplete LZF block; decoding state = "+_state);
         }
     }
 
@@ -320,7 +320,7 @@ public class LZFUncompressor extends Uncompressor
     {
         char exp = (relative == 0) ? 'Z' : 'V';
         --nextOffset;
-        throw new IOException("Bad block: byte #"+relative+" of block header not '"
+        throw new LZFException("Bad block: byte #"+relative+" of block header not '"
                 +exp+"' (0x"+Integer.toHexString(exp)
                 +") but 0x"+Integer.toHexString(comp[nextOffset] & 0xFF)
                 +" (at "+(nextOffset-1)+"/"+(len)+")");
@@ -329,7 +329,7 @@ public class LZFUncompressor extends Uncompressor
     protected void _reportBadBlockType(byte[] comp, int nextOffset, int len, int type)
             throws IOException
     {
-        throw new IOException("Bad block: unrecognized type 0x"+Integer.toHexString(type & 0xFF)
+        throw new LZFException("Bad block: unrecognized type 0x"+Integer.toHexString(type & 0xFF)
                 +" (at "+(nextOffset-1)+"/"+len+")");
     }
 }

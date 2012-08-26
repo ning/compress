@@ -82,7 +82,7 @@ public abstract class ChunkDecoder
         while (inPtr < end) {
             // let's do basic sanity checks; no point in skimping with these checks
             if (sourceBuffer[inPtr] != LZFChunk.BYTE_Z || sourceBuffer[inPtr+1] != LZFChunk.BYTE_V) {
-                throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+inPtr+"): did not start with 'ZV' signature bytes");
+                throw new LZFException("Corrupt input data, block #"+blockNr+" (at offset "+inPtr+"): did not start with 'ZV' signature bytes");
             }
             inPtr += 2;
             int type = sourceBuffer[inPtr++];
@@ -116,6 +116,7 @@ public abstract class ChunkDecoder
      * @param is An input stream of LZF compressed bytes
      * @param inputBuffer A byte array used as a scratch area.
      * @param outputBuffer A byte array in which the result is returned
+     * 
      * @return The number of bytes placed in the outputBuffer.
      */
     public abstract int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
@@ -127,6 +128,17 @@ public abstract class ChunkDecoder
     public abstract void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws IOException;
 
+    /**
+     * @return If positive number, number of bytes skipped; if -1, end-of-stream was
+     *   reached; otherwise, amount of content
+     *   decoded (using formula of <code>returnValue = -(decodedAmount + 2)</code>)
+     * 
+     * @since 0.9.6
+     */
+    public abstract int skipOrDecodeChunk(final InputStream is, final byte[] inputBuffer,
+            final byte[] outputBuffer, final long maxToSkip)
+        throws IOException;
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public static methods
@@ -154,7 +166,7 @@ public abstract class ChunkDecoder
             // simpler to handle bounds checks by catching exception here...
             try {
                 if (data[ptr] != LZFChunk.BYTE_Z || data[ptr+1] != LZFChunk.BYTE_V) {
-                    throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): did not start with 'ZV' signature bytes");
+                    throw new LZFException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): did not start with 'ZV' signature bytes");
                 }
                 int type = (int) data[ptr+2];
                 int blockLen = uint16(data, ptr+3);
@@ -165,17 +177,17 @@ public abstract class ChunkDecoder
                     uncompressedSize += uint16(data, ptr+5);
                     ptr += 7;
                 } else { // unknown... CRC-32 would be 2, but that's not implemented by cli tool
-                    throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): unrecognized block type "+(type & 0xFF));
+                    throw new LZFException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): unrecognized block type "+(type & 0xFF));
                 }
                 ptr += blockLen;
             } catch (ArrayIndexOutOfBoundsException e) {
-                throw new IOException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): truncated block header");
+                throw new LZFException("Corrupt input data, block #"+blockNr+" (at offset "+ptr+"): truncated block header");
             }
             ++blockNr;
         }
         // one more sanity check:
         if (ptr != end) {
-            throw new IOException("Corrupt input data: block #"+blockNr+" extends "+(data.length - ptr)+" beyond end of input");
+            throw new LZFException("Corrupt input data: block #"+blockNr+" extends "+(data.length - ptr)+" beyond end of input");
         }
         return uncompressedSize;
     }
@@ -230,7 +242,7 @@ public abstract class ChunkDecoder
         while (left > 0) {
             int count = is.read(outputBuffer, offset, left);
             if (count < 0) { // EOF not allowed here
-                throw new IOException("EOF in "+len+" byte ("
+                throw new LZFException("EOF in "+len+" byte ("
                         +(compressed ? "" : "un")+"compressed) block: could only read "
                         +(len-left)+" bytes");
             }
@@ -239,6 +251,23 @@ public abstract class ChunkDecoder
         }
     }
 
+    protected final static void skipFully(final InputStream is, int amount) throws IOException
+    {
+        final int orig = amount;
+        while (amount > 0) {
+            long skipped = is.skip(amount);
+            if (skipped <= 0) {
+                throw new LZFException("Input problem: failed to skip "+orig+" bytes in input stream, only skipped "
+                        +(orig-amount));
+            }
+            amount -= (int) skipped;
+        }
+    }
+    
+    protected void _reportCorruptHeader() throws IOException {
+        throw new LZFException("Corrupt input data, block did not start with 2 byte signature ('ZV') followed by type byte, 2-byte length)");
+    }
+    
     /**
      * Helper method called when it is determined that the target buffer can not
      * hold all data to copy or uncompress
@@ -246,7 +275,7 @@ public abstract class ChunkDecoder
     protected void _reportArrayOverflow(byte[] targetBuffer, int outPtr, int dataLen)
             throws IOException
     {
-        throw new IOException("Target buffer too small ("+targetBuffer.length+"): can not copy/uncompress "
+        throw new LZFException("Target buffer too small ("+targetBuffer.length+"): can not copy/uncompress "
                 +dataLen+" bytes to offset "+outPtr);
     }
 }

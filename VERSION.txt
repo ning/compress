@@ -1,3 +1,11 @@
+0.9.6 (xx-Aug-2012)
+
+* [Issue#17] Add IOException subtypes 'LZFException' and 'GZIPException' (with
+  common supertype of 'CompressionFormatException) to allow for better
+  catching of decompression errors
+* [Issue#19] (more) Efficient skipping with LZFInputStream, LZFFileInputStream;
+  can skip full chunks without decoding
+
 0.9.5 (25-May-2012)
 
 * Add 'LZFCompressingInputStream' to allow streaming compression

@@ -199,7 +199,7 @@ public class OptimizedGZIPInputStream
             return count;
         } catch (DataFormatException e) {
             String s = e.getMessage();
-            throw new ZipException(s != null ? s : "Invalid ZLIB data format");
+            throw new GZIPException(s != null ? s : "Invalid ZLIB data format");
         }
     }
 
@@ -249,12 +249,12 @@ public class OptimizedGZIPInputStream
         // Check header magic
         int sig = _readShort();
         if (sig != GZIPUncompressor.GZIP_MAGIC) {
-            throw new ZipException("Not in GZIP format (got 0x"+Integer.toHexString(sig)
+            throw new GZIPException("Not in GZIP format (got 0x"+Integer.toHexString(sig)
                     +", should be 0x"+Integer.toHexString(GZIPUncompressor.GZIP_MAGIC)+")");
         }
         // Check compression method
         if (_readByte() != Deflater.DEFLATED) {
-            throw new ZipException("Unsupported compression method (only support Deflate, "+Deflater.DEFLATED+")");
+            throw new GZIPException("Unsupported compression method (only support Deflate, "+Deflater.DEFLATED+")");
         }
         // Read flags
         int flg = _readByte();
@@ -277,7 +277,7 @@ public class OptimizedGZIPInputStream
             int act = (int)_crc.getValue() & 0xffff;
             int exp = _readShort();
             if (act != exp) {
-                throw new IOException("Corrupt GZIP header (header CRC 0x"
+                throw new GZIPException("Corrupt GZIP header (header CRC 0x"
                                       +Integer.toHexString(act)+", expected 0x "
                                       +Integer.toHexString(exp));
             }
@@ -300,10 +300,10 @@ public class OptimizedGZIPInputStream
         int actCount32 = (int) _inflater.getBytesWritten();
 
         if (actCount32 != expCount) {
-            throw new ZipException("Corrupt trailer: expected byte count "+expCount+", read "+actCount32);
+            throw new GZIPException("Corrupt trailer: expected byte count "+expCount+", read "+actCount32);
         }
         if (expCrc != actCrc) {
-            throw new ZipException("Corrupt trailer: expected CRC "+Integer.toHexString(expCrc)+", computed "+Integer.toHexString(actCrc));
+            throw new GZIPException("Corrupt trailer: expected CRC "+Integer.toHexString(expCrc)+", computed "+Integer.toHexString(actCrc));
         }
     }
 
@@ -351,7 +351,7 @@ public class OptimizedGZIPInputStream
         if (count < 1) {
             String prob = (count < 0) ?
                 "Unexpected end of input" : "Strange underlying stream (returned 0 bytes for read)";
-            throw new IOException(prob+" when reading "+_state);
+            throw new GZIPException(prob+" when reading "+_state);
         }
         _bufferPtr = 0;
         _bufferEnd = count;
