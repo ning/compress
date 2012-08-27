@@ -148,7 +148,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         readFully(is, true, inputBuffer, 0, 2);
         int uncompLen = uint16(inputBuffer, 0);
         // can we just skip it wholesale?
-        if (compLen <= maxToSkip) { // awesome: skip N physical compressed bytes, which mean M logical (uncomp) bytes
+        if (uncompLen <= maxToSkip) { // awesome: skip N physical compressed bytes, which mean M logical (uncomp) bytes
             skipFully(is, compLen);
             return uncompLen;
         }

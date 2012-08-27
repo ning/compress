@@ -125,6 +125,29 @@ public class TestLZFInputStream extends BaseForTests
         Assert.assertEquals(actual, fluff);
     }
 
+    // Mostly for [Issue#19]
+    @Test
+    public void testLongSkips() throws Exception
+    {
+        // 64k per block, 200k gives 3 full, one small
+        byte[] fluff = constructFluff(200000);
+        byte[] comp = LZFEncoder.encode(fluff);
+
+        // we get about 200k, maybe byte or two more, so:
+        final int LENGTH = fluff.length;
+        
+        LZFInputStream in = new LZFInputStream(new ByteArrayInputStream(comp));
+        // read one byte for fun
+        Assert.assertEquals(in.read(), fluff[0] & 0xFF);
+        // then skip all but one
+        long amt = in.skip(LENGTH-2);
+        Assert.assertEquals(amt, (long) (LENGTH-2));
+        Assert.assertEquals(in.read(), fluff[LENGTH-1] & 0xFF);
+        
+        Assert.assertEquals(in.read(), -1);
+        in.close();
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////
     // Helper methods

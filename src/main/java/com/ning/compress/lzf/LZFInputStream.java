@@ -245,6 +245,7 @@ public class LZFInputStream extends InputStream
             int amount = _decoder.skipOrDecodeChunk(_inputStream, _inputBuffer, _decodedBytes, n);
             if (amount >= 0) { // successful skipping of the chunk
                 skipped += amount;
+
                 n -= amount;
                 if (n <= 0L) {
                     return skipped;
