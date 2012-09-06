@@ -1,6 +1,5 @@
 # Ning-Compress
 
-
 ## Overview
 
 Ning-compress is a Java library for encoding and decoding data in LZF format, written by Tatu Saloranta (tatu.saloranta@iki.fi)
@@ -40,7 +39,7 @@ Note that resulting jar is both an OSGi bundle, and a command-line tool (has man
 
 This means that you can use it like:
 
-    java -jar compress-lzf-0.9.3.jar
+    java -jar compress-lzf-0.9.6.jar
   
 (which will display necessary usage arguments)
 
