@@ -17,10 +17,12 @@ public class CompressionFormatException extends IOException
     }
 
     protected CompressionFormatException(Throwable t) {
-        super(t);
+        super();
+        initCause(t);
     }
 
     protected CompressionFormatException(String message, Throwable t) {
-        super(message, t);
+        super(message);
+        initCause(t);
     }
 }
