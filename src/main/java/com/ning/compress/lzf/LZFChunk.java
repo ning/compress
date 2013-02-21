@@ -26,9 +26,11 @@ public class LZFChunk
      */
     public static final int MAX_LITERAL = 1 << 5; // 32
 
-    // Chunk length is limited by 2-byte length indicator, to 64k
+    /**
+     *  Chunk length is limited by 2-byte length indicator, to 64k
+     */
     public static final int MAX_CHUNK_LEN = 0xFFFF;
-
+    
     /**
      * Header can be either 7 bytes (compressed) or 5 bytes (uncompressed)
      * long

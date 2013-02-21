@@ -65,15 +65,16 @@ public final class ChunkEncoder
      */
     public ChunkEncoder(int totalLength)
     {
-        int largestChunkLen = Math.max(totalLength, LZFChunk.MAX_CHUNK_LEN);
-        
+        // Need room for at most a single full chunk
+        int largestChunkLen = Math.min(totalLength, LZFChunk.MAX_CHUNK_LEN);       
         int suggestedHashLen = calcHashLen(largestChunkLen);
         _recycler = BufferRecycler.instance();
         _hashTable = _recycler.allocEncodingHash(suggestedHashLen);
         _hashModulo = _hashTable.length - 1;
         // Ok, then, what's the worst case output buffer length?
         // length indicator for each 32 literals, so:
-        int bufferLen = largestChunkLen + ((largestChunkLen + 31) >> 5);
+        // 21-Feb-2013, tatu: Plus we want to prepend chunk header in place:
+        int bufferLen = largestChunkLen + ((largestChunkLen + 31) >> 5) + LZFChunk.MAX_HEADER_LEN;
         _encodeBuffer = _recycler.allocEncodingBuffer(bufferLen);
     }
 
@@ -175,14 +176,15 @@ public final class ChunkEncoder
     public void encodeAndWriteChunk(byte[] data, int offset, int len, OutputStream out)
         throws IOException
     {
+        // Pre-0.9.7
+        /*
         byte[] headerBuf = _headerBuffer;
         if (headerBuf == null) {
             _headerBuffer = headerBuf = new byte[LZFChunk.MAX_HEADER_LEN];
         }
         if (len >= MIN_BLOCK_TO_COMPRESS) {
-            /* If we have non-trivial block, and can compress it by at least
-             * 2 bytes (since header is 2 bytes longer), let's compress:
-             */
+            // If we have non-trivial block, and can compress it by at least
+            // 2 bytes (since header is 2 bytes longer), let's compress:
             int compLen = tryCompress(data, offset, offset+len, _encodeBuffer, 0);
             if (compLen < (len-2)) { // yes, compressed block is smaller (consider header is 2 bytes longer)
                 LZFChunk.writeCompressedHeader(len, compLen, out, headerBuf);
@@ -191,6 +193,26 @@ public final class ChunkEncoder
             }
         }
         // Otherwise leave uncompressed:
+        LZFChunk.writeNonCompressedHeader(len, out, headerBuf);
+        out.write(data, offset, len);
+        */
+        
+        if (len >= MIN_BLOCK_TO_COMPRESS) {
+            // If we have non-trivial block, and can compress it by at least
+            // 2 bytes (since header is 2 bytes longer), let's compress:
+            int compEnd = tryCompress(data, offset, offset+len, _encodeBuffer, LZFChunk.HEADER_LEN_COMPRESSED);
+            final int compLen = compEnd - LZFChunk.HEADER_LEN_COMPRESSED;
+            if (compLen < (len-2)) { // yes, compressed block is smaller (consider header is 2 bytes longer)
+                LZFChunk.appendCompressedHeader(len, compLen, _encodeBuffer, 0);
+                out.write(_encodeBuffer, 0, compEnd);
+                return;
+            }
+        }
+        // Otherwise leave uncompressed:
+        byte[] headerBuf = _headerBuffer;
+        if (headerBuf == null) {
+            _headerBuffer = headerBuf = new byte[LZFChunk.MAX_HEADER_LEN];
+        }
         LZFChunk.writeNonCompressedHeader(len, out, headerBuf);
         out.write(data, offset, len);
     }
