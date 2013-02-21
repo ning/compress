@@ -18,16 +18,22 @@ import java.io.IOException;
  * calls {@link ChunkEncoder} to compress individual chunks and
  * combines resulting chunks into contiguous output byte array.
  * 
- * @author tatu@ning.com
+ * @author Tatu Saloranta
  */
 public class LZFEncoder
 {
+    /* Approximate maximum size for a full chunk, in case where it does not compress
+     * at all. Such chunks are converted to uncompressed chunks, but during compression
+     * process this amount of space is still needed.
+     */
+    public final static int MAX_CHUNK_RESULT_SIZE = LZFChunk.MAX_HEADER_LEN + LZFChunk.MAX_CHUNK_LEN + (LZFChunk.MAX_CHUNK_LEN * 32 / 31);
+
     // Static methods only, no point in instantiating
     private LZFEncoder() { }
     
     public static byte[] encode(byte[] data) throws IOException
     {
-    	return encode(data, data.length);
+        return encode(data, data.length);
     }
     
     /**
@@ -97,5 +103,39 @@ public class LZFEncoder
             ptr = first.copyTo(result, ptr);
         }
         return result;
+    }
+
+    /**
+     * Alternate version that accepts pre-allocated output buffer.
+     * 
+     * @since 0.9.7
+     */
+
+    /**
+     * Helper method that can be used to estimate maximum space needed to
+     * try compression of given amount of data. This is slightly larger
+     * than maximum resulting content since compressor has a choice of
+     * uncompressed chunks to use, but that is only done after compression
+     * fails to reduce size; and this temporary expansion of up to 3.3% or so
+     * (1 indicator for every 31 bytes of uncompressed data)
+     * is more than what eventual expansion would be (5 bytes header per
+     * each uncompressed chunk, usually 0.01%).
+     * 
+     * @since 0.9.7
+     */
+    public static int estimateMaxWorkspaceSize(int inputSize)
+    {
+        // single chunk; give a rough estimate with +5% (1 + 1/32 + 1/64)
+        if (inputSize <= LZFChunk.MAX_CHUNK_LEN) {
+            return LZFChunk.MAX_HEADER_LEN + inputSize + (inputSize >> 5) + (inputSize >> 6);
+        }
+        // one more special case, 2 chunks
+        inputSize -= LZFChunk.MAX_CHUNK_LEN;
+        if (inputSize <= LZFChunk.MAX_CHUNK_LEN) { // uncompressed chunk actually has 5 byte header but
+            return MAX_CHUNK_RESULT_SIZE + inputSize + LZFChunk.MAX_HEADER_LEN;
+        }
+        // check number of chunks we should be creating (assuming use of full chunks)
+        int chunkCount = 1 + ((inputSize + (LZFChunk.MAX_CHUNK_LEN-1)) / LZFChunk.MAX_CHUNK_LEN);
+        return MAX_CHUNK_RESULT_SIZE + chunkCount * (LZFChunk.MAX_CHUNK_LEN + LZFChunk.MAX_HEADER_LEN);
     }
 }

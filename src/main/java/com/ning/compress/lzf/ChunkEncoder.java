@@ -212,6 +212,7 @@ public final class ChunkEncoder
                 literals = 0;
             }
             int len = 3;
+            // find match length
             while (len < maxLen && in[ref + len] == in[inPos + len]) {
                 len++;
             }

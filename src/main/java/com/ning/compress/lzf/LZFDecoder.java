@@ -25,6 +25,8 @@ import com.ning.compress.lzf.util.ChunkDecoderFactory;
  * to find actual {@link ChunkDecoder} instance to use.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
+ * 
+ * @see com.ning.compress.lzf.ChunkDecoder
  */
 public class LZFDecoder
 {

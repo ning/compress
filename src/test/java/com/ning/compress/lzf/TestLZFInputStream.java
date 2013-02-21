@@ -211,6 +211,7 @@ public class TestLZFInputStream extends BaseForTests
             byte[] result = bytes.toByteArray();
             Assert.assertEquals(result.length, uncomp.length);
             Assert.assertEquals(result, uncomp);
+            lzIn.close();
     }
 
     private void doDecompressReadByte(byte[] bytes, byte[] reference) throws IOException
@@ -224,6 +225,7 @@ public class TestLZFInputStream extends BaseForTests
             Assert.assertEquals(rVal, testVal);
             ++i;
         }
+        is.close();
     }
 
     private void doDecompressReadBlock(byte[] bytes, byte[] reference) throws IOException
@@ -241,5 +243,6 @@ public class TestLZFInputStream extends BaseForTests
             }
         }
         Assert.assertTrue(outputBytes == reference.length);
+        is.close();
     }
 }

@@ -102,5 +102,6 @@ public class TestLZFOutputStream extends BaseForTests
             int refVal = ((int)reference[idx++]) & 255;
             Assert.assertEquals(refVal, val);
         }
+        lzfi.close();
     }
 }
