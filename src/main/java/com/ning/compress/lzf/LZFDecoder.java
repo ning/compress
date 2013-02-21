@@ -36,15 +36,15 @@ public class LZFDecoder
     ///////////////////////////////////////////////////////////////////////
      */
 
-    public static byte[] decode(final byte[] inputBuffer) throws IOException {
+    public static byte[] decode(final byte[] inputBuffer) throws LZFException {
         return decode(inputBuffer, 0, inputBuffer.length);
     }
     
-    public static byte[] decode(final byte[] inputBuffer, int offset, int length) throws IOException {
+    public static byte[] decode(final byte[] inputBuffer, int offset, int length) throws LZFException {
         return ChunkDecoderFactory.optimalInstance().decode(inputBuffer, offset, length);
     }
     
-    public static int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException {
+    public static int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws LZFException {
         return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
 
