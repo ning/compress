@@ -31,6 +31,9 @@ public class ManualPerfComparison
         
         System.out.println("Read "+input.length+" bytes to compress, uncompress; will do "+REPS+" repetitions");
 
+        // But first, validate!
+        _preValidate(input);
+        
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
             int round = (i++ % TYPES);
@@ -81,8 +84,8 @@ public class ManualPerfComparison
                             (int) den,
                             times[0] / den, times[1] / den);
                             
+                    System.out.println();
                 }
-                System.out.println();
             }
             if ((i % 17) == 0) {
                 System.out.println("[GC]");
@@ -90,12 +93,35 @@ public class ManualPerfComparison
                 System.gc();
                 Thread.sleep(100L);
             }
-            if (lf) {
-                System.out.println();
-            }
         }
     }
 
+    protected void _preValidate(byte[] input) throws LZFException
+    {
+        byte[] encoded1 = LZFEncoder.encode(input);
+        byte[] encoded2 = UnsafeLZFEncoder.encode(input);
+
+        if (encoded1.length != encoded2.length) {
+            throw new IllegalStateException("Compressed contents differ!");
+        }
+        for (int i = 0, len = encoded1.length; i < len; ++i) {
+            if (encoded1[i] != encoded2[i]) {
+                throw new IllegalStateException("Compressed contents differ at "+i+"/"+len);
+            }
+        }
+        // uncompress too
+        byte[] output1 = LZFDecoder.decode(encoded1);
+        byte[] output2 = LZFDecoder.decode(encoded2);
+        if (output1.length != output2.length) {
+            throw new IllegalStateException("Uncompressed contents differ!");
+        }
+        for (int i = 0, len = output1.length; i < len; ++i) {
+            if (output1[i] != output2[i]) {
+                throw new IllegalStateException("Uncompressed contents differ at "+i+"/"+len);
+            }
+        }
+    }
+    
     protected final long testLZFCompress(int REPS, byte[] input) throws Exception
     {
         long start = System.currentTimeMillis();

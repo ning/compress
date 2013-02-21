@@ -13,6 +13,9 @@ package com.ning.compress.lzf.nuevo;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
+
+import sun.misc.Unsafe;
 
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.LZFChunk;
@@ -342,12 +345,6 @@ public final class UnsafeChunkEncoder
         return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
     }
 
-    /*
-    private static int next(int v, byte[] in, int inPos) {
-        return (v << 8) + (in[inPos + 2] & 255);
-    }
-*/
-
     private final int hash(int h) {
         // or 184117; but this seems to give better hashing?
         return ((h * 57321) >> 9) & _hashModulo;
@@ -363,7 +360,6 @@ public final class UnsafeChunkEncoder
     ///////////////////////////////////////////////////////////////////////
      */
 
-    /*
     private static final Unsafe unsafe;
     static {
         try {
@@ -385,6 +381,7 @@ public final class UnsafeChunkEncoder
         return unsafe.getInt(src, BYTE_ARRAY_OFFSET + srcIndex) & MASK;
     }
 
+    /*
     private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
