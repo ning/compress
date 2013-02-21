@@ -34,6 +34,9 @@ public class LZFChunk
      * long
      */
     public static final int MAX_HEADER_LEN = 7;
+
+    public static final int HEADER_LEN_COMPRESSED = 7;
+    public static final int HEADER_LEN_NOT_COMPRESSED = 5;
     
     public final static byte BYTE_Z = 'Z';
     public final static byte BYTE_V = 'V';
@@ -52,7 +55,7 @@ public class LZFChunk
      */
     public static LZFChunk createCompressed(int origLen, byte[] encData, int encPtr, int encLen)
     {
-        byte[] result = new byte[encLen + 7];
+        byte[] result = new byte[encLen + HEADER_LEN_COMPRESSED];
         result[0] = BYTE_Z;
         result[1] = BYTE_V;
         result[2] = BLOCK_TYPE_COMPRESSED;
@@ -60,12 +63,11 @@ public class LZFChunk
         result[4] = (byte) encLen;
         result[5] = (byte) (origLen >> 8);
         result[6] = (byte) origLen;
-        System.arraycopy(encData, encPtr, result, 7, encLen);
+        System.arraycopy(encData, encPtr, result, HEADER_LEN_COMPRESSED, encLen);
         return new LZFChunk(result);
     }
 
     public static int appendCompressedHeader(int origLen, int encLen, byte[] headerBuffer, int offset)
-        throws IOException
     {
         headerBuffer[offset++] = BYTE_Z;
         headerBuffer[offset++] = BYTE_V;
@@ -87,7 +89,7 @@ public class LZFChunk
         headerBuffer[4] = (byte) encLen;
         headerBuffer[5] = (byte) (origLen >> 8);
         headerBuffer[6] = (byte) origLen;
-        out.write(headerBuffer, 0, 7);
+        out.write(headerBuffer, 0, HEADER_LEN_COMPRESSED);
     }
     
     /**
@@ -95,18 +97,35 @@ public class LZFChunk
      */
     public static LZFChunk createNonCompressed(byte[] plainData, int ptr, int len)
     {
-        byte[] result = new byte[len + 5];
+        byte[] result = new byte[len + HEADER_LEN_NOT_COMPRESSED];
         result[0] = BYTE_Z;
         result[1] = BYTE_V;
         result[2] = BLOCK_TYPE_NON_COMPRESSED;
         result[3] = (byte) (len >> 8);
         result[4] = (byte) len;
-        System.arraycopy(plainData, ptr, result, 5, len);
+        System.arraycopy(plainData, ptr, result, HEADER_LEN_NOT_COMPRESSED, len);
         return new LZFChunk(result);
     }
 
+    /**
+     * Method for appending specific content as non-compressed chunk, in
+     * given buffer.
+     * 
+     * @since 0.9.7
+     */
+    public static int appendNonCompressed(byte[] plainData, int ptr, int len,
+            byte[] outputBuffer, int outputPtr)
+    {
+        outputBuffer[outputPtr++] = BYTE_Z;
+        outputBuffer[outputPtr++] = BYTE_V;
+        outputBuffer[outputPtr++] = BLOCK_TYPE_NON_COMPRESSED;
+        outputBuffer[outputPtr++] = (byte) (len >> 8);
+        outputBuffer[outputPtr++] = (byte) len;
+        System.arraycopy(plainData, ptr, outputBuffer, outputPtr, len);
+        return outputPtr + len;
+    }
+    
     public static int appendNonCompressedHeader(int len, byte[] headerBuffer, int offset)
-        throws IOException
     {
         headerBuffer[offset++] = BYTE_Z;
         headerBuffer[offset++] = BYTE_V;
@@ -124,7 +143,7 @@ public class LZFChunk
         headerBuffer[2] = BLOCK_TYPE_NON_COMPRESSED;
         headerBuffer[3] = (byte) (len >> 8);
         headerBuffer[4] = (byte) len;
-        out.write(headerBuffer, 0, 5);
+        out.write(headerBuffer, 0, HEADER_LEN_NOT_COMPRESSED);
     }
     
     public void setNext(LZFChunk next) { _next = next; }

@@ -43,7 +43,7 @@ public class VanillaChunkDecoder extends ChunkDecoder
     
     @Override
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
-            throws IOException
+        throws LZFException
     {
         do {
             int ctrl = in[inPos++] & 255;

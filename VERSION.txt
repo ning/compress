@@ -1,6 +1,8 @@
 0.9.7:
 
 * Add LZFEncoder.estimateMaxWorkspaceSize() to help allocate work buffers.
+* [Issue#22] Add method(s) to allow encoding into caller-provided (pre-allocated)
+ buffer.
 
 0.9.6 (05-Sep-2012)
 

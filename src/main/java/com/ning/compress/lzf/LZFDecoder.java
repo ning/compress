@@ -48,11 +48,12 @@ public class LZFDecoder
         return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
 
-    public static int decode(final byte[] sourceBuffer, int offset, int length, final byte[] targetBuffer) throws IOException {
+    public static int decode(final byte[] sourceBuffer, int offset, int length, final byte[] targetBuffer)
+            throws LZFException {
         return ChunkDecoderFactory.optimalInstance().decode(sourceBuffer, offset, length, targetBuffer);        
     }
 
-    public static int calculateUncompressedSize(byte[] data, int offset, int length) throws IOException {
+    public static int calculateUncompressedSize(byte[] data, int offset, int length) throws LZFException {
         return ChunkDecoder.calculateUncompressedSize(data, length, length);
     }
 }

@@ -31,7 +31,7 @@ public abstract class ChunkDecoder
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public final byte[] decode(final byte[] inputBuffer) throws IOException
+    public final byte[] decode(final byte[] inputBuffer) throws LZFException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, 0, inputBuffer.length)];
         decode(inputBuffer, 0, inputBuffer.length, result);
@@ -45,7 +45,7 @@ public abstract class ChunkDecoder
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public final byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws IOException
+    public final byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws LZFException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, inputPtr, inputLen)];
         decode(inputBuffer, inputPtr, inputLen, result);
@@ -59,7 +59,7 @@ public abstract class ChunkDecoder
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.
      */
-    public final int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws IOException
+    public final int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws LZFException
     {
         return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
@@ -72,7 +72,7 @@ public abstract class ChunkDecoder
      * chunks; partial chunks can not be handled.
      */
     public int decode(final byte[] sourceBuffer, int inPtr, int inLength,
-            final byte[] targetBuffer) throws IOException
+            final byte[] targetBuffer) throws LZFException
     {
         int outPtr = 0;
         int blockNr = 0;
@@ -126,7 +126,7 @@ public abstract class ChunkDecoder
      * Main decode method for individual chunks.
      */
     public abstract void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
-        throws IOException;
+        throws LZFException;
 
     /**
      * @return If positive number, number of bytes skipped; if -1, end-of-stream was
@@ -151,7 +151,7 @@ public abstract class ChunkDecoder
      * Will do basic sanity checking, so that this method can be called to
      * verify against some types of corruption.
      */
-    public static int calculateUncompressedSize(byte[] data, int ptr, int length) throws IOException
+    public static int calculateUncompressedSize(byte[] data, int ptr, int length) throws LZFException
     {
         int uncompressedSize = 0;
         int blockNr = 0;
@@ -264,7 +264,7 @@ public abstract class ChunkDecoder
         }
     }
     
-    protected void _reportCorruptHeader() throws IOException {
+    protected void _reportCorruptHeader() throws LZFException {
         throw new LZFException("Corrupt input data, block did not start with 2 byte signature ('ZV') followed by type byte, 2-byte length)");
     }
     
@@ -273,7 +273,7 @@ public abstract class ChunkDecoder
      * hold all data to copy or uncompress
      */
     protected void _reportArrayOverflow(byte[] targetBuffer, int outPtr, int dataLen)
-            throws IOException
+        throws LZFException
     {
         throw new LZFException("Target buffer too small ("+targetBuffer.length+"): can not copy/uncompress "
                 +dataLen+" bytes to offset "+outPtr);

@@ -38,8 +38,8 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     public UnsafeChunkDecoder() { }
 
     @Override
-    public final int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
-            throws IOException
+    public final int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer)
+        throws IOException
     {
         /* note: we do NOT read more than 5 bytes because otherwise might need to shuffle bytes
          * for output buffer (could perhaps optimize in future?)
@@ -67,7 +67,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     
     @Override
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
-            throws IOException
+        throws LZFException
     {
         main_loop:
         do {

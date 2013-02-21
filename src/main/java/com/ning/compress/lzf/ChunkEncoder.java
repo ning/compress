@@ -138,6 +138,38 @@ public final class ChunkEncoder
     }
 
     /**
+     * Alternate chunk compression method that will append encoded chunk in
+     * pre-allocated buffer. Note that caller must ensure that the buffer is
+     * large enough to hold not just encoded result but also intermediate
+     * result; latter may be up to 4% larger than input; caller may use
+     * {@link LZFEncoder#estimateMaxWorkspaceSize(int)} to calculate
+     * necessary buffer size.
+     * 
+     * @return Offset in output buffer after appending the encoded chunk
+     * 
+     * @since 0.9.7
+     */
+    public int appendEncodedChunk(final byte[] input, final int inputPtr, final int inputLen,
+            final byte[] outputBuffer, final int outputPos)
+    {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            /* If we have non-trivial block, and can compress it by at least
+             * 2 bytes (since header is 2 bytes longer), use as-is
+             */
+            final int compStart = outputPos + LZFChunk.HEADER_LEN_COMPRESSED;
+            final int end = tryCompress(input, inputPtr, inputPtr+inputLen, outputBuffer, compStart);
+            final int uncompEnd = (outputPos + LZFChunk.HEADER_LEN_NOT_COMPRESSED) + inputLen;
+            if (end < uncompEnd) { // yes, compressed by at least one byte
+                final int compLen = end - compStart;
+                LZFChunk.appendCompressedHeader(inputLen, compLen, outputBuffer, outputPos);
+                return end;
+            }
+        }
+        // Otherwise append as non-compressed chunk instead (length + 5):
+        return LZFChunk.appendNonCompressed(input, inputPtr, inputLen, outputBuffer, outputPos);
+    }
+    
+    /**
      * Method for encoding individual chunk, writing it to given output stream.
      */
     public void encodeAndWriteChunk(byte[] data, int offset, int len, OutputStream out)
@@ -152,7 +184,7 @@ public final class ChunkEncoder
              * 2 bytes (since header is 2 bytes longer), let's compress:
              */
             int compLen = tryCompress(data, offset, offset+len, _encodeBuffer, 0);
-            if (compLen < (len-2)) { // nah; just return uncompressed
+            if (compLen < (len-2)) { // yes, compressed block is smaller (consider header is 2 bytes longer)
                 LZFChunk.writeCompressedHeader(len, compLen, out, headerBuf);
                 out.write(_encodeBuffer, 0, compLen);
                 return;
@@ -166,6 +198,9 @@ public final class ChunkEncoder
     /**
      * Main workhorse method that will try to compress given chunk, and return
      * end position (offset to byte after last included byte)
+     * 
+     * @return Output pointer after handling content, such that <code>result - originalOutPost</code>
+     *    is the actual length of compressed chunk (without header)
      */
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {

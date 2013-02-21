@@ -7,7 +7,7 @@ public class BaseForTests
 {
     private final static byte[] ABCD = new byte[] { 'a', 'b', 'c', 'd' };
     
-    protected byte[] constructFluff(int length) throws IOException
+    protected byte[] constructFluff(int length)
     {
         Random rnd = new Random(length);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream(length + 100);
@@ -15,7 +15,11 @@ public class BaseForTests
             int num = rnd.nextInt();
             switch (num & 3) {
             case 0:
-                bytes.write(ABCD);
+                try {
+                    bytes.write(ABCD);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             case 1:
                 bytes.write(num);
