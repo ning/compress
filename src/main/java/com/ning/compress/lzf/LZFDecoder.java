@@ -11,8 +11,6 @@
 
 package com.ning.compress.lzf;
 
-import java.io.IOException;
-
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
