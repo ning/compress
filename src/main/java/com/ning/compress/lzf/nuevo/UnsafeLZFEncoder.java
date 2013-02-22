@@ -15,7 +15,7 @@ import com.ning.compress.lzf.LZFChunk;
 
 /**
  * Encoder that handles splitting of input into chunks to encode,
- * calls {@link UnsafeChunkEncoder} to compress individual chunks and
+ * calls {@link UnsafeChunkEncoders} to compress individual chunks and
  * combines resulting chunks into contiguous output byte array.
  * 
  * @author Tatu Saloranta
@@ -93,7 +93,7 @@ public class UnsafeLZFEncoder
      */
     public static byte[] encode(byte[] data, int offset, int length)
     {
-        UnsafeChunkEncoder enc = new UnsafeChunkEncoder(length);
+        UnsafeChunkEncoder enc = UnsafeChunkEncoders.createEncoder(length);
         byte[] result = encode(enc, data, offset, length);
         // important: may be able to reuse buffers
         enc.close();
@@ -153,7 +153,7 @@ public class UnsafeLZFEncoder
      */
     public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
-        return appendEncoded(UnsafeChunkEncoder.nonAllocatingEncoder(inputLength),
+        return appendEncoded(UnsafeChunkEncoders.createNonAllocatingEncoder(inputLength),
                 input, inputPtr, inputLength, outputBuffer, outputPtr);
     }
     

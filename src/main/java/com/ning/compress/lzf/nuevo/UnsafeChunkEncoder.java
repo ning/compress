@@ -1,20 +1,8 @@
-/* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
- * OF ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- */
-
 package com.ning.compress.lzf.nuevo;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.nio.ByteOrder;
 
 import sun.misc.Unsafe;
 
@@ -22,54 +10,69 @@ import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.LZFChunk;
 
 /**
- * Class that handles actual encoding of individual chunks.
- * Resulting chunks can be compressed or non-compressed; compression
- * is only used if it actually reduces chunk size (including overhead
- * of additional header bytes)
+ * {@link ChunkEncoder} implementation that handles actual encoding of individual chunks,
+ * using Sun's <code>sun.misc.Unsafe</code> functionality, which gives
+ * nice extra boost for speed.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
 @SuppressWarnings("restriction")
-public final class UnsafeChunkEncoder
+public abstract class UnsafeChunkEncoder
 {
     // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off
-    private static final int MIN_BLOCK_TO_COMPRESS = 16;
+    protected static final int MIN_BLOCK_TO_COMPRESS = 16;
 
-    private static final int MIN_HASH_SIZE = 256;
+    protected static final int MIN_HASH_SIZE = 256;
 
     // Not much point in bigger tables, with 8k window
-    private static final int MAX_HASH_SIZE = 16384;
+    protected static final int MAX_HASH_SIZE = 16384;
 
-    private static final int MAX_OFF = 1 << 13; // 8k
-    private static final int MAX_REF = (1 << 8) + (1 << 3); // 264
+    protected static final int MAX_OFF = 1 << 13; // 8k
+    protected static final int MAX_REF = (1 << 8) + (1 << 3); // 264
+
+    // // Our Nitro Booster, mr. Unsafe!
 
     /**
      * How many tail bytes are we willing to just copy as is, to simplify
      * loop end checks? 4 is bare minimum, may be raised to 8?
      */
-    private static final int TAIL_LENGTH = 4;
+    protected static final int TAIL_LENGTH = 4;
+
+    protected static final Unsafe unsafe;
+    static {
+        try {
+            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            unsafe = (Unsafe) theUnsafe.get(null);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
     
     // // Encoding tables etc
 
-    private final BufferRecycler _recycler;
+    protected final BufferRecycler _recycler;
 
     /**
      * Hash table contains lookup based on 3-byte sequence; key is hash
      * of such triplet, value is offset in buffer.
      */
-    private int[] _hashTable;
+    protected int[] _hashTable;
     
-    private final int _hashModulo;
+    protected final int _hashModulo;
 
     /**
      * Buffer in which encoded content is stored during processing
      */
-    private byte[] _encodeBuffer;
+    protected byte[] _encodeBuffer;
 
     /**
      * Small buffer passed to LZFChunk, needed for writing chunk header
      */
-    private byte[] _headerBuffer;
+    protected byte[] _headerBuffer;
     
     /**
      * @param totalLength Total encoded length; used for calculating size
@@ -94,7 +97,7 @@ public final class UnsafeChunkEncoder
      * Alternate constructor used when we want to avoid allocation encoding
      * buffer, in cases where caller wants full control over allocations.
      */
-    private UnsafeChunkEncoder(int totalLength, boolean bogus)
+    protected UnsafeChunkEncoder(int totalLength, boolean bogus)
     {
         int largestChunkLen = Math.max(totalLength, LZFChunk.MAX_CHUNK_LEN);
         int suggestedHashLen = calcHashLen(largestChunkLen);
@@ -104,10 +107,22 @@ public final class UnsafeChunkEncoder
         _encodeBuffer = null;
     }
 
-    public static UnsafeChunkEncoder nonAllocatingEncoder(int totalLength) {
-        return new UnsafeChunkEncoder(totalLength, true);
+    private static int calcHashLen(int chunkSize)
+    {
+        // in general try get hash table size of 2x input size
+        chunkSize += chunkSize;
+        // but no larger than max size:
+        if (chunkSize >= MAX_HASH_SIZE) {
+            return MAX_HASH_SIZE;
+        }
+        // otherwise just need to round up to nearest 2x
+        int hashLen = MIN_HASH_SIZE;
+        while (hashLen < chunkSize) {
+            hashLen += hashLen;
+        }
+        return hashLen;
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public API
@@ -208,6 +223,12 @@ public final class UnsafeChunkEncoder
         out.write(data, offset, len);
     }
 
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Abstract methods for sub-classes
+    ///////////////////////////////////////////////////////////////////////
+     */
+
     /**
      * Main workhorse method that will try to compress given chunk, and return
      * end position (offset to byte after last included byte)
@@ -215,171 +236,28 @@ public final class UnsafeChunkEncoder
      * @return Output pointer after handling content, such that <code>result - originalOutPost</code>
      *    is the actual length of compressed chunk (without header)
      */
-    protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
-    {
-        final int[] hashTable = _hashTable;
-        int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
-        
-        int literals = 0;
-        inEnd -= TAIL_LENGTH;
-        final int firstPos = inPos; // so that we won't have back references across block boundary
+    protected abstract int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos);
 
-        while (inPos < inEnd) {
-            seen = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos - 1);
-            if (IS_LITTLE_ENDIAN) {
-                seen = Integer.reverseBytes(seen);
-            }
-            int off = hash(seen);
-            int ref = hashTable[off];
-            hashTable[off] = inPos;
-  
-            // First expected common case: no back-ref (for whatever reason)
-            if (ref >= inPos // can't refer forward (i.e. leftovers)
-                    || ref < firstPos // or to previous block
-                    || (off = inPos - ref) > MAX_OFF
-                    || _nonMatch(seen, in, ref)) {
-                ++inPos;
-                ++literals;
-                if (literals == LZFChunk.MAX_LITERAL) {
-                    outPos = _copyFullLiterals(in, inPos, out, outPos);
-                    literals = 0;
-                }
-                continue;
-            }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
-            if (literals > 0) {
-                outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
-                literals = 0;
-            }
-            int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
-            
-            --off; // was off by one earlier
-            if (len < 7) {
-                out[outPos++] = (byte) ((off >> 8) + (len << 5));
-            } else {
-                out[outPos++] = (byte) ((off >> 8) + (7 << 5));
-                out[outPos++] = (byte) (len - 7);
-            }
-            out[outPos++] = (byte) off;
-            inPos += len;
-            int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
-            if (IS_LITTLE_ENDIAN) {
-                value = Integer.reverseBytes(value);
-            }
-            hashTable[hash(value >> 8)] = inPos;
-            ++inPos;
-            hashTable[hash(value)] = inPos;
-            ++inPos;
-        }
-        // try offlining the tail
-        return handleTail(in, inPos, inEnd+4, out, outPos, literals);
-    }
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Shared helper methods
+    ///////////////////////////////////////////////////////////////////////
+     */
 
-    private final boolean _nonMatch(int seen, byte[] in, int inPos)
-    {
-        int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos - 1);
-        if (IS_LITTLE_ENDIAN) {
-            value = Integer.reverseBytes(value);
-        }
-        return (seen << 8) != (value << 8);
-    }   
-                
-    private final int handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
-            int literals)
-    {
-        while (inPos < inEnd) {
-            ++inPos;
-            ++literals;
-            if (literals == LZFChunk.MAX_LITERAL) {
-                out[outPos++] = (byte) (literals-1); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
-                System.arraycopy(in, inPos-literals, out, outPos, literals);
-                outPos += literals;
-                literals = 0;
-            }
-        }
-        if (literals > 0) {
-            out[outPos++] = (byte) (literals - 1);
-            System.arraycopy(in, inPos-literals, out, outPos, literals);
-            outPos += literals;
-        }
-        return outPos;
-    }
-
-    private final static int _findMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
-    {
-        // Expect at least 8 bytes to check for fast case; offline others
-        if ((ptr1 + 8) >= maxPtr1) { // rare case, offline
-            return _findTailMatchLength(in, ptr1, ptr2, maxPtr1);
-        }
-        // short matches common, so start with specialized comparison
-        // NOTE: we know that we have 4 bytes of slack before end, so this is safe:
-        int i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
-        int i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
-        if (i1 != i2) {
-            return 1 + _leadingBytes(i1, i2);
-        }
-        ptr1 += 4;
-        ptr2 += 4;
-
-        i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
-        i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
-        if (i1 != i2) {
-            return 5 + _leadingBytes(i1, i2);
-        }
-        return _findLongMatchLength(in, ptr1+4, ptr2+4, maxPtr1);
-    }
-
-    private final static int _findLongMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
-    {
-        final int base = ptr1 - 9;
-        // and then just loop with longs if we get that far
-        final int longEnd = maxPtr1-8;
-        while (ptr1 <= longEnd) {
-            long l1 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr1);
-            long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
-            if (l1 != l2) {
-                long xor = l1 ^ l2;
-                int zeroBits = IS_LITTLE_ENDIAN ? Long.numberOfTrailingZeros(xor) : Long.numberOfLeadingZeros(xor);
-                return ptr1 - base + (zeroBits >> 3);
-            }
-            ptr1 += 8;
-            ptr2 += 8;
-        }
-        // or, if running out of runway, handle last bytes with loop-de-loop...
-        while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
-            ++ptr1;
-            ++ptr2;
-        }
-        return ptr1 - base; // i.e. 
-    }
-
-    private final static int _leadingBytes(int i1, int i2) {
-        int xor = i1 ^ i2;
-        int zeroBits = IS_LITTLE_ENDIAN ? Long.numberOfTrailingZeros(xor) : Long.numberOfLeadingZeros(xor);
-        return (zeroBits >> 3);
+    protected final int hash(int h) {
+        // or 184117; but this seems to give better hashing?
+        return ((h * 57321) >> 9) & _hashModulo;
+        // original lzf-c.c used this:
+        //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
+        // but that didn't seem to provide better matches
     }
     
-    private final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
-    {
-        final int start1 = ptr1;
-        while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
-            ++ptr1;
-            ++ptr2;
-        }
-        return ptr1 - start1 + 1; // i.e. 
-    }
-    
-    private final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
+    protected final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
         out[outPos++] = (byte) (literals-1);
 
         // Here use of Unsafe is clear win:
-        
 //        System.arraycopy(in, inPos-literals, out, outPos, literals);
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - literals;
@@ -410,7 +288,7 @@ public final class UnsafeChunkEncoder
         return outPos+literals;
     }
 
-    private final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
+    protected final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
     {
         // literals == 32
         out[outPos++] = (byte) 31;
@@ -436,140 +314,34 @@ public final class UnsafeChunkEncoder
         return (outPos + 32);
     }
 
-    /*
-    ///////////////////////////////////////////////////////////////////////
-    // Internal methods
-    ///////////////////////////////////////////////////////////////////////
-     */
-    
-    private static int calcHashLen(int chunkSize)
+    protected final static int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+            int literals)
     {
-        // in general try get hash table size of 2x input size
-        chunkSize += chunkSize;
-        // but no larger than max size:
-        if (chunkSize >= MAX_HASH_SIZE) {
-            return MAX_HASH_SIZE;
-        }
-        // otherwise just need to round up to nearest 2x
-        int hashLen = MIN_HASH_SIZE;
-        while (hashLen < chunkSize) {
-            hashLen += hashLen;
-        }
-        return hashLen;
-    }
-
-    private final int first(byte[] in, int inPos) {
-//        return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
-        short v = unsafe.getShort(in, BYTE_ARRAY_OFFSET + inPos);
-        if (IS_LITTLE_ENDIAN) {
-            return Short.reverseBytes(v);
-        }
-        return v;
-    }
-
-    private final int hash(int h) {
-        // or 184117; but this seems to give better hashing?
-        return ((h * 57321) >> 9) & _hashModulo;
-        // original lzf-c.c used this:
-        //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
-        // but that didn't seem to provide better matches
-    }
-    
-    /*
-    ///////////////////////////////////////////////////////////////////////
-    // Alternative experimental version using Unsafe
-    // NOTE: not currently used, retained for future inspiration...
-    ///////////////////////////////////////////////////////////////////////
-     */
-
-    private static final Unsafe unsafe;
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            unsafe = (Unsafe) theUnsafe.get(null);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
-
-    private static final boolean IS_LITTLE_ENDIAN = (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN);
-    
-    /*
-    private final int MASK = 0xFFFFFF;
-    
-    private final int get3Bytes(byte[] src, int srcIndex)
-    {
-        return unsafe.getInt(src, BYTE_ARRAY_OFFSET + srcIndex) & MASK;
-    }
-    */
-
-    /*
-    private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
-    {
-        final int[] hashTable = _hashTable;
-        ++outPos;
-        int literals = 0;
-        inEnd -= 4;
-        final int firstPos = inPos; // so that we won't have back references across block boundary
-        
         while (inPos < inEnd) {
-            int seen = get3Bytes(in, inPos);
-            int off = hash(seen);
-            int ref = hashTable[off];
-            hashTable[off] = inPos;
-  
-            // First expected common case: no back-ref (for whatever reason)
-            if (ref >= inPos // can't refer forward (i.e. leftovers)
-                    || ref < firstPos // or to previous block
-                    || (off = inPos - ref) > MAX_OFF
-                    || get3Bytes(in, ref) != seen
-                    ) {
-                out[outPos++] = in[inPos++];
-                literals++;
-                if (literals == LZFChunk.MAX_LITERAL) {
-                    out[outPos - 33] = (byte) 31; // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
-                    literals = 0;
-                    outPos++;
-                }
-                continue;
-            }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
-            if (literals == 0) {
-                outPos--;
-            } else {
-                out[outPos - literals - 1] = (byte) (literals - 1);
+            ++inPos;
+            ++literals;
+            if (literals == LZFChunk.MAX_LITERAL) {
+                out[outPos++] = (byte) (literals-1); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                System.arraycopy(in, inPos-literals, out, outPos, literals);
+                outPos += literals;
                 literals = 0;
             }
-            int len = 3;
-            while (len < maxLen && in[ref + len] == in[inPos + len]) {
-                len++;
-            }
-            len -= 2;
-            --off; // was off by one earlier
-            if (len < 7) {
-                out[outPos++] = (byte) ((off >> 8) + (len << 5));
-            } else {
-                out[outPos++] = (byte) ((off >> 8) + (7 << 5));
-                out[outPos++] = (byte) (len - 7);
-            }
-            out[outPos] = (byte) off;
-            outPos += 2;
-            inPos += len;
-            hashTable[hash(get3Bytes(in, inPos))] = inPos;
-            ++inPos;
-            hashTable[hash(get3Bytes(in, inPos))] = inPos;
-            ++inPos;
         }
-        // try offlining the tail
-        return handleTail(in, inPos, inEnd+4, out, outPos, literals);
+        if (literals > 0) {
+            out[outPos++] = (byte) (literals - 1);
+            System.arraycopy(in, inPos-literals, out, outPos, literals);
+            outPos += literals;
+        }
+        return outPos;
     }
-    */
+
+    protected final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    {
+        final int start1 = ptr1;
+        while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
+            ++ptr1;
+            ++ptr2;
+        }
+        return ptr1 - start1 + 1; // i.e. 
+    }
 }
