@@ -37,6 +37,12 @@ public final class ChunkEncoder
     private static final int MAX_OFF = 1 << 13; // 8k
     private static final int MAX_REF = (1 << 8) + (1 << 3); // 264
     
+    /**
+     * How many tail bytes are we willing to just copy as is, to simplify
+     * loop end checks? 4 is bare minimum, may be raised to 8?
+     */
+    private static final int TAIL_LENGTH = 4;
+    
     // // Encoding tables etc
 
     private final BufferRecycler _recycler;
@@ -230,7 +236,7 @@ public final class ChunkEncoder
         ++outPos; // To leave one byte for literal-length indicator
         int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
-        inEnd -= 4;
+        inEnd -= TAIL_LENGTH;
         final int firstPos = inPos; // so that we won't have back references across block boundary
         
         while (inPos < inEnd) {

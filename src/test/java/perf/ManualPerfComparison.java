@@ -102,7 +102,7 @@ public class ManualPerfComparison
         byte[] encoded2 = UnsafeLZFEncoder.encode(input);
 
         if (encoded1.length != encoded2.length) {
-            throw new IllegalStateException("Compressed contents differ!");
+            throw new IllegalStateException("Compressed contents differ: expected "+encoded1.length+", got "+encoded2.length);
         }
         for (int i = 0, len = encoded1.length; i < len; ++i) {
             if (encoded1[i] != encoded2[i]) {

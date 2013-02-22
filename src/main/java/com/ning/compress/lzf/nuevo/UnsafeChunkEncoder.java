@@ -14,6 +14,7 @@ package com.ning.compress.lzf.nuevo;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.ByteOrder;
 
 import sun.misc.Unsafe;
 
@@ -28,6 +29,7 @@ import com.ning.compress.lzf.LZFChunk;
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
+@SuppressWarnings("restriction")
 public final class UnsafeChunkEncoder
 {
     // Beyond certain point we won't be able to compress; let's use 16 bytes as cut-off
@@ -40,6 +42,12 @@ public final class UnsafeChunkEncoder
 
     private static final int MAX_OFF = 1 << 13; // 8k
     private static final int MAX_REF = (1 << 8) + (1 << 3); // 264
+
+    /**
+     * How many tail bytes are we willing to just copy as is, to simplify
+     * loop end checks? 4 is bare minimum, may be raised to 8?
+     */
+    private static final int TAIL_LENGTH = 4;
     
     // // Encoding tables etc
 
@@ -231,10 +239,9 @@ public final class UnsafeChunkEncoder
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
-        ++outPos;
         int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
-        inEnd -= 4;
+        inEnd -= TAIL_LENGTH;
         final int firstPos = inPos; // so that we won't have back references across block boundary
         
         while (inPos < inEnd) {
@@ -252,12 +259,11 @@ public final class UnsafeChunkEncoder
                     || in[ref+2] != p2 // must match hash
                     || in[ref+1] != (byte) (seen >> 8)
                     || in[ref] != (byte) (seen >> 16)) {
-                out[outPos++] = in[inPos++];
-                literals++;
+                ++inPos;
+                ++literals;
                 if (literals == LZFChunk.MAX_LITERAL) {
-                    out[outPos - 33] = (byte) 31; // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                    outPos = _copyFullLiterals(in, inPos, out, outPos);
                     literals = 0;
-                    outPos++;
                 }
                 continue;
             }
@@ -266,18 +272,12 @@ public final class UnsafeChunkEncoder
             if (maxLen > MAX_REF) {
                 maxLen = MAX_REF;
             }
-            if (literals == 0) {
-                outPos--;
-            } else {
-                out[outPos - literals - 1] = (byte) (literals - 1);
+            if (literals > 0) {
+                outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
                 literals = 0;
             }
-            int len = 3;
-            // find match length
-            while (len < maxLen && in[ref + len] == in[inPos + len]) {
-                len++;
-            }
-            len -= 2;
+            int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
+            
             --off; // was off by one earlier
             if (len < 7) {
                 out[outPos++] = (byte) ((off >> 8) + (len << 5));
@@ -286,7 +286,6 @@ public final class UnsafeChunkEncoder
                 out[outPos++] = (byte) (len - 7);
             }
             out[outPos++] = (byte) off;
-            outPos++;
             inPos += len;
             seen = first(in, inPos);
             seen = (seen << 8) + (in[inPos + 2] & 255);
@@ -304,19 +303,150 @@ public final class UnsafeChunkEncoder
             int literals)
     {
         while (inPos < inEnd) {
-            out[outPos++] = in[inPos++];
-            literals++;
+            ++inPos;
+            ++literals;
             if (literals == LZFChunk.MAX_LITERAL) {
-                out[outPos - literals - 1] = (byte) (literals - 1);
+                out[outPos++] = (byte) (literals-1); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                System.arraycopy(in, inPos-literals, out, outPos, literals);
+                outPos += literals;
                 literals = 0;
-                outPos++;
             }
         }
-        out[outPos - literals - 1] = (byte) (literals - 1);
-        if (literals == 0) {
-            outPos--;
+        if (literals > 0) {
+            out[outPos++] = (byte) (literals - 1);
+            System.arraycopy(in, inPos-literals, out, outPos, literals);
+            outPos += literals;
         }
         return outPos;
+    }
+
+    private final static int _findMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    {
+        // Expect at least 8 bytes to check for fast case; offline others
+        if ((ptr1 + 8) >= maxPtr1) { // rare case, offline
+            return _findTailMatchLength(in, ptr1, ptr2, maxPtr1);
+        }
+        // short matches common, so start with specialized comparison
+        // NOTE: we know that we have 4 bytes of slack before end, so this is safe:
+        int i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
+        int i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
+        if (i1 != i2) {
+            return 1 + _leadingBytes(i1, i2);
+        }
+        ptr1 += 4;
+        ptr2 += 4;
+
+        i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
+        i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
+        if (i1 != i2) {
+            return 5 + _leadingBytes(i1, i2);
+        }
+        return _findLongMatchLength(in, ptr1+4, ptr2+4, maxPtr1);
+    }
+
+    private final static int _findLongMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    {
+        final int base = ptr1 - 9;
+        // and then just loop with longs if we get that far
+        final int longEnd = maxPtr1-8;
+        while (ptr1 <= longEnd) {
+            long l1 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr1);
+            long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
+            if (l1 != l2) {
+                long xor = l1 ^ l2;
+                int zeroBits = IS_BIG_ENDIAN ? Long.numberOfLeadingZeros(xor) : Long.numberOfTrailingZeros(xor);
+                return ptr1 - base + (zeroBits >> 3);
+            }
+            ptr1 += 8;
+            ptr2 += 8;
+        }
+        // or, if running out of runway, handle last bytes with loop-de-loop...
+        while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
+            ++ptr1;
+            ++ptr2;
+        }
+        return ptr1 - base; // i.e. 
+    }
+
+    private final static int _leadingBytes(int i1, int i2) {
+        int xor = i1 ^ i2;
+        int zeroBits = IS_BIG_ENDIAN ? Integer.numberOfLeadingZeros(xor) : Integer.numberOfTrailingZeros(xor);
+        return (zeroBits >> 3);
+    }
+    
+    private final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    {
+        final int start1 = ptr1;
+        while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
+            ++ptr1;
+            ++ptr2;
+        }
+        return ptr1 - start1 + 1; // i.e. 
+    }
+    
+    private final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
+            int literals)
+    {
+        out[outPos++] = (byte) (literals-1);
+
+        // Here use of Unsafe is clear win:
+        
+//        System.arraycopy(in, inPos-literals, out, outPos, literals);
+
+        long rawInPtr = BYTE_ARRAY_OFFSET + inPos - literals;
+        long rawOutPtr= BYTE_ARRAY_OFFSET + outPos;
+
+        switch (literals >> 3) {
+        case 3:
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+        case 2:
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+        case 1:
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+        }
+        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        int left = (literals & 7);
+        if (left > 4) {
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        } else {
+            unsafe.putInt(out, rawOutPtr, unsafe.getInt(in, rawInPtr));
+        }
+
+        return outPos+literals;
+    }
+
+    private final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
+    {
+        // literals == 32
+        out[outPos++] = (byte) 31;
+
+        // But here it's bit of a toss, since this gets rarely called
+        
+        System.arraycopy(in, inPos-32, out, outPos, 32);
+
+        /*
+        long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
+        long rawOutPtr= BYTE_ARRAY_OFFSET + outPos;
+    
+        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        rawInPtr += 8;
+        rawOutPtr += 8;
+        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        rawInPtr += 8;
+        rawOutPtr += 8;
+        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        rawInPtr += 8;
+        rawOutPtr += 8;
+        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+        */
+
+        return (outPos + 32);
     }
 
     /*
@@ -374,12 +504,16 @@ public final class UnsafeChunkEncoder
 
     private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
 
+    private static final boolean IS_BIG_ENDIAN = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN);
+    
+    /*
     private final int MASK = 0xFFFFFF;
     
     private final int get3Bytes(byte[] src, int srcIndex)
     {
         return unsafe.getInt(src, BYTE_ARRAY_OFFSET + srcIndex) & MASK;
     }
+    */
 
     /*
     private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
