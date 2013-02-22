@@ -23,6 +23,7 @@ public class ManualPerfComparison
         // Let's try to guestimate suitable size... to get to 10 megs to process
         final int REPS = (int) ((double) (10 * 1000 * 1000) / (double) input.length);
 
+//        final int TYPES = 1;
         final int TYPES = 2;
         final int WARMUP_ROUNDS = 5;
         int i = 0;
@@ -46,12 +47,12 @@ public class ManualPerfComparison
             switch (round) {
 
             case 0:
-                msg = "LZF compress/block";
-                msecs = testLZFCompress(REPS, input);
-                break;
-            case 1:
                 msg = "LZF-Unsafe compress/block";
                 msecs = testLZFUnsafeCompress(REPS, input);
+                break;
+            case 1:
+                msg = "LZF compress/block";
+                msecs = testLZFCompress(REPS, input);
                 break;
                 /*
             case 1:
@@ -80,10 +81,14 @@ public class ManualPerfComparison
                 ++roundsDone;
                 if ((roundsDone % 3) == 0 && roundsDone > WARMUP_ROUNDS) {
                     double den = (double) (roundsDone - WARMUP_ROUNDS);
-                    System.out.printf("Averages after %d rounds (pre / no): %.1f / %.1f msecs\n",
-                            (int) den,
-                            times[0] / den, times[1] / den);
-                            
+                    if (times.length == 1) {
+                        System.out.printf("Averages after %d rounds: %.1f msecs\n",
+                                (int) den, times[0] / den);
+                    } else {
+                        System.out.printf("Averages after %d rounds (NEW / old): %.1f / %.1f msecs\n",
+                                (int) den,
+                                times[0] / den, times[1] / den);
+                    }
                     System.out.println();
                 }
             }
@@ -101,14 +106,20 @@ public class ManualPerfComparison
         byte[] encoded1 = LZFEncoder.encode(input);
         byte[] encoded2 = UnsafeLZFEncoder.encode(input);
 
-        if (encoded1.length != encoded2.length) {
-            throw new IllegalStateException("Compressed contents differ: expected "+encoded1.length+", got "+encoded2.length);
-        }
-        for (int i = 0, len = encoded1.length; i < len; ++i) {
-            if (encoded1[i] != encoded2[i]) {
-                throw new IllegalStateException("Compressed contents differ at "+i+"/"+len);
+        if (encoded1.length == encoded2.length) {
+            for (int i = 0, len = encoded1.length; i < len; ++i) {
+                if (encoded1[i] != encoded2[i]) {
+                    throw new IllegalStateException("Compressed contents differ at "+i+"/"+len);
+                }
             }
-        }
+        } else {
+            // Actually, let's allow some slack...
+            int diff = Math.abs(encoded1.length - encoded2.length);
+            if (diff > 16) {
+               throw new IllegalStateException("Compressed contents differ by more than 16 bytes: expected "+encoded1.length+", got "+encoded2.length);
+            }
+            System.err.printf("WARN: sizes differ slightly, %d vs %s (old/new)\n", encoded1.length, encoded2.length);
+        } 
         // uncompress too
         byte[] output1 = LZFDecoder.decode(encoded1);
         byte[] output2 = LZFDecoder.decode(encoded2);

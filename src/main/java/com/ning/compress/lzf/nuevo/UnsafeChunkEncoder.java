@@ -188,27 +188,6 @@ public final class UnsafeChunkEncoder
     public void encodeAndWriteChunk(byte[] data, int offset, int len, OutputStream out)
         throws IOException
     {
-        // Pre-0.9.7
-        /*
-        byte[] headerBuf = _headerBuffer;
-        if (headerBuf == null) {
-            _headerBuffer = headerBuf = new byte[LZFChunk.MAX_HEADER_LEN];
-        }
-        if (len >= MIN_BLOCK_TO_COMPRESS) {
-            // If we have non-trivial block, and can compress it by at least
-            // 2 bytes (since header is 2 bytes longer), let's compress:
-            int compLen = tryCompress(data, offset, offset+len, _encodeBuffer, 0);
-            if (compLen < (len-2)) { // yes, compressed block is smaller (consider header is 2 bytes longer)
-                LZFChunk.writeCompressedHeader(len, compLen, out, headerBuf);
-                out.write(_encodeBuffer, 0, compLen);
-                return;
-            }
-        }
-        // Otherwise leave uncompressed:
-        LZFChunk.writeNonCompressedHeader(len, out, headerBuf);
-        out.write(data, offset, len);
-        */
-        
         if (len >= MIN_BLOCK_TO_COMPRESS) {
             // If we have non-trivial block, and can compress it by at least
             // 2 bytes (since header is 2 bytes longer), let's compress:
@@ -240,25 +219,41 @@ public final class UnsafeChunkEncoder
     {
         final int[] hashTable = _hashTable;
         int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
+        
         int literals = 0;
         inEnd -= TAIL_LENGTH;
         final int firstPos = inPos; // so that we won't have back references across block boundary
-        
+
         while (inPos < inEnd) {
             byte p2 = in[inPos + 2];
-            // next
             seen = (seen << 8) + (p2 & 255);
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
+
+            /*
+            int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
+            if (IS_LITTLE_ENDIAN){
+                value = Integer.reverseBytes(value);
+            }
+            seen = (seen << 8) + (value & 255);
+            int off = hash(seen);
+            int ref = hashTable[off];
+            hashTable[off] = inPos;
+            */
   
             // First expected common case: no back-ref (for whatever reason)
             if (ref >= inPos // can't refer forward (i.e. leftovers)
                     || ref < firstPos // or to previous block
                     || (off = inPos - ref) > MAX_OFF
+                    || _nonMatch(seen, in, ref)
+/*
                     || in[ref+2] != p2 // must match hash
                     || in[ref+1] != (byte) (seen >> 8)
-                    || in[ref] != (byte) (seen >> 16)) {
+                    || in[ref] != (byte) (seen >> 16)
+                    */
+                    ) {
+                    
                 ++inPos;
                 ++literals;
                 if (literals == LZFChunk.MAX_LITERAL) {
@@ -287,11 +282,12 @@ public final class UnsafeChunkEncoder
             }
             out[outPos++] = (byte) off;
             inPos += len;
-            seen = first(in, inPos);
-            seen = (seen << 8) + (in[inPos + 2] & 255);
-            hashTable[hash(seen)] = inPos;
+            seen = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
+            if (IS_LITTLE_ENDIAN) {
+                seen = Integer.reverseBytes(seen);
+            }
+            hashTable[hash(seen >> 8)] = inPos;
             ++inPos;
-            seen = (seen << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
@@ -299,6 +295,15 @@ public final class UnsafeChunkEncoder
         return handleTail(in, inPos, inEnd+4, out, outPos, literals);
     }
 
+    private final boolean _nonMatch(int seen, byte[] in, int inPos)
+    {
+        int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos - 1);
+        if (IS_LITTLE_ENDIAN) {
+            value = Integer.reverseBytes(value);
+        }
+        return (seen << 8) != (value << 8);
+    }   
+                
     private final int handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
             int literals)
     {
@@ -354,7 +359,7 @@ public final class UnsafeChunkEncoder
             long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
             if (l1 != l2) {
                 long xor = l1 ^ l2;
-                int zeroBits = IS_BIG_ENDIAN ? Long.numberOfLeadingZeros(xor) : Long.numberOfTrailingZeros(xor);
+                int zeroBits = IS_LITTLE_ENDIAN ? Long.numberOfTrailingZeros(xor) : Long.numberOfLeadingZeros(xor);
                 return ptr1 - base + (zeroBits >> 3);
             }
             ptr1 += 8;
@@ -370,7 +375,7 @@ public final class UnsafeChunkEncoder
 
     private final static int _leadingBytes(int i1, int i2) {
         int xor = i1 ^ i2;
-        int zeroBits = IS_BIG_ENDIAN ? Integer.numberOfLeadingZeros(xor) : Integer.numberOfTrailingZeros(xor);
+        int zeroBits = IS_LITTLE_ENDIAN ? Long.numberOfTrailingZeros(xor) : Long.numberOfLeadingZeros(xor);
         return (zeroBits >> 3);
     }
     
@@ -428,11 +433,10 @@ public final class UnsafeChunkEncoder
 
         // But here it's bit of a toss, since this gets rarely called
         
-        System.arraycopy(in, inPos-32, out, outPos, 32);
+//        System.arraycopy(in, inPos-32, out, outPos, 32);
 
-        /*
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
-        long rawOutPtr= BYTE_ARRAY_OFFSET + outPos;
+        long rawOutPtr = BYTE_ARRAY_OFFSET + outPos;
     
         unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
         rawInPtr += 8;
@@ -444,7 +448,6 @@ public final class UnsafeChunkEncoder
         rawInPtr += 8;
         rawOutPtr += 8;
         unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
-        */
 
         return (outPos + 32);
     }
@@ -472,7 +475,12 @@ public final class UnsafeChunkEncoder
     }
 
     private final int first(byte[] in, int inPos) {
-        return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
+//        return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
+        short v = unsafe.getShort(in, BYTE_ARRAY_OFFSET + inPos);
+        if (IS_LITTLE_ENDIAN) {
+            return Short.reverseBytes(v);
+        }
+        return v;
     }
 
     private final int hash(int h) {
@@ -504,7 +512,7 @@ public final class UnsafeChunkEncoder
 
     private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
 
-    private static final boolean IS_BIG_ENDIAN = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN);
+    private static final boolean IS_LITTLE_ENDIAN = (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN);
     
     /*
     private final int MASK = 0xFFFFFF;
