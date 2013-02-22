@@ -225,35 +225,19 @@ public final class UnsafeChunkEncoder
         final int firstPos = inPos; // so that we won't have back references across block boundary
 
         while (inPos < inEnd) {
-            byte p2 = in[inPos + 2];
-            seen = (seen << 8) + (p2 & 255);
-            int off = hash(seen);
-            int ref = hashTable[off];
-            hashTable[off] = inPos;
-
-            /*
-            int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
-            if (IS_LITTLE_ENDIAN){
-                value = Integer.reverseBytes(value);
+            seen = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos - 1);
+            if (IS_LITTLE_ENDIAN) {
+                seen = Integer.reverseBytes(seen);
             }
-            seen = (seen << 8) + (value & 255);
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
-            */
   
             // First expected common case: no back-ref (for whatever reason)
             if (ref >= inPos // can't refer forward (i.e. leftovers)
                     || ref < firstPos // or to previous block
                     || (off = inPos - ref) > MAX_OFF
-                    || _nonMatch(seen, in, ref)
-/*
-                    || in[ref+2] != p2 // must match hash
-                    || in[ref+1] != (byte) (seen >> 8)
-                    || in[ref] != (byte) (seen >> 16)
-                    */
-                    ) {
-                    
+                    || _nonMatch(seen, in, ref)) {
                 ++inPos;
                 ++literals;
                 if (literals == LZFChunk.MAX_LITERAL) {
@@ -282,13 +266,13 @@ public final class UnsafeChunkEncoder
             }
             out[outPos++] = (byte) off;
             inPos += len;
-            seen = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
+            int value = unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
             if (IS_LITTLE_ENDIAN) {
-                seen = Integer.reverseBytes(seen);
+                value = Integer.reverseBytes(value);
             }
-            hashTable[hash(seen >> 8)] = inPos;
+            hashTable[hash(value >> 8)] = inPos;
             ++inPos;
-            hashTable[hash(seen)] = inPos;
+            hashTable[hash(value)] = inPos;
             ++inPos;
         }
         // try offlining the tail
