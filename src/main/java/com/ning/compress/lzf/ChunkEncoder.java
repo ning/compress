@@ -227,7 +227,7 @@ public final class ChunkEncoder
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
-        ++outPos;
+        ++outPos; // To leave one byte for literal-length indicator
         int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
         inEnd -= 4;
@@ -253,7 +253,7 @@ public final class ChunkEncoder
                 if (literals == LZFChunk.MAX_LITERAL) {
                     out[outPos - 33] = (byte) 31; // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
                     literals = 0;
-                    outPos++;
+                    outPos++; // To leave one byte for literal-length indicator
                 }
                 continue;
             }
@@ -263,7 +263,7 @@ public final class ChunkEncoder
                 maxLen = MAX_REF;
             }
             if (literals == 0) {
-                outPos--;
+                outPos--; // We do not need literal length indicator, go back
             } else {
                 out[outPos - literals - 1] = (byte) (literals - 1);
                 literals = 0;
