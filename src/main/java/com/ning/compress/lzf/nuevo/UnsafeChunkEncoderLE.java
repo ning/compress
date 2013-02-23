@@ -25,8 +25,11 @@ public class UnsafeChunkEncoderLE
         inEnd -= TAIL_LENGTH;
         final int firstPos = inPos; // so that we won't have back references across block boundary
 
+        int seen = _getInt(in, inPos) >> 16;
+        
         while (inPos < inEnd) {
-            final int seen = _getInt(in, inPos-1);
+            seen = (seen << 8) + (in[inPos + 2] & 255);
+
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
@@ -64,10 +67,10 @@ public class UnsafeChunkEncoderLE
             }
             out[outPos++] = (byte) off;
             inPos += len;
-            final int value = _getInt(in, inPos);
-            hashTable[hash(value >> 8)] = inPos;
+            seen = _getInt(in, inPos);
+            hashTable[hash(seen >> 8)] = inPos;
             ++inPos;
-            hashTable[hash(value)] = inPos;
+            hashTable[hash(seen)] = inPos;
             ++inPos;
         }
         // try offlining the tail
