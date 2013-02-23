@@ -9,9 +9,13 @@
  * governing permissions and limitations under the License.
  */
 
-package com.ning.compress.lzf.nuevo;
+package com.ning.compress.lzf.util;
 
 import java.nio.ByteOrder;
+
+import com.ning.compress.lzf.nuevo.UnsafeChunkEncoder;
+import com.ning.compress.lzf.nuevo.UnsafeChunkEncoderBE;
+import com.ning.compress.lzf.nuevo.UnsafeChunkEncoderLE;
 
 /**
  * Class that handles actual encoding of individual chunks.
@@ -23,17 +27,17 @@ import java.nio.ByteOrder;
  */
 public final class UnsafeChunkEncoders
 {
+    private final static boolean LITTLE_ENDIAN = (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN);
+    
     public static UnsafeChunkEncoder createEncoder(int totalLength) {
-        ByteOrder bo = ByteOrder.nativeOrder();
-        if (bo == ByteOrder.LITTLE_ENDIAN) {
+        if (LITTLE_ENDIAN) {
             return new UnsafeChunkEncoderLE(totalLength);
         }
         return new UnsafeChunkEncoderBE(totalLength);
     }
 
     public static UnsafeChunkEncoder createNonAllocatingEncoder(int totalLength) {
-        ByteOrder bo = ByteOrder.nativeOrder();
-        if (bo == ByteOrder.LITTLE_ENDIAN) {
+        if (LITTLE_ENDIAN) {
             return new UnsafeChunkEncoderLE(totalLength, false);
         }
         return new UnsafeChunkEncoderBE(totalLength, false);
