@@ -21,7 +21,7 @@ public class ManualPerfComparison
         _lzfEncoded = LZFEncoder.encode(input);
 
         // Let's try to guestimate suitable size... to get to 10 megs to process
-        final int REPS = (int) ((double) (10 * 1000 * 1000) / (double) input.length);
+        final int REPS = Math.max(1, (int) ((double) (10 * 1000 * 1000) / (double) input.length));
 
 //        final int TYPES = 1;
         final int TYPES = 2;
@@ -115,8 +115,10 @@ public class ManualPerfComparison
         } else {
             // Actually, let's allow some slack...
             int diff = Math.abs(encoded1.length - encoded2.length);
-            if (diff > 16) {
-               throw new IllegalStateException("Compressed contents differ by more than 16 bytes: expected "+encoded1.length+", got "+encoded2.length);
+            // 1/256 seems fine (but at least 16)
+            int maxDiff = Math.max(16, encoded1.length >> 8);
+            if (diff > maxDiff) {
+               throw new IllegalStateException("Compressed contents differ by more than "+maxDiff+" bytes: expected "+encoded1.length+", got "+encoded2.length);
             }
             System.err.printf("WARN: sizes differ slightly, %d vs %s (old/new)\n", encoded1.length, encoded2.length);
         } 
