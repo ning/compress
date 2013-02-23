@@ -11,6 +11,8 @@
 
 package com.ning.compress.lzf;
 
+import com.ning.compress.lzf.impl.VanillaChunkEncoder;
+
 /**
  * Encoder that handles splitting of input into chunks to encode,
  * calls {@link ChunkEncoder} to compress individual chunks and
@@ -91,7 +93,7 @@ public class LZFEncoder
      */
     public static byte[] encode(byte[] data, int offset, int length)
     {
-        ChunkEncoder enc = new ChunkEncoder(length);
+        ChunkEncoder enc = new VanillaChunkEncoder(length);
         byte[] result = encode(enc, data, offset, length);
         // important: may be able to reuse buffers
         enc.close();
@@ -151,7 +153,7 @@ public class LZFEncoder
      */
     public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
-        return appendEncoded(ChunkEncoder.nonAllocatingEncoder(inputLength),
+        return appendEncoded(VanillaChunkEncoder.nonAllocatingEncoder(inputLength),
                 input, inputPtr, inputLength, outputBuffer, outputPtr);
     }
     

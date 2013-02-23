@@ -4,6 +4,7 @@ import java.io.*;
 
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.*;
+import com.ning.compress.lzf.impl.VanillaChunkEncoder;
 
 /**
  * Helper class that allows use of LZF compression even if a library requires
@@ -58,7 +59,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     public LZFFileOutputStream(File file) throws FileNotFoundException {
         super(file);
-        _encoder = new ChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
@@ -66,7 +67,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     public LZFFileOutputStream(File file, boolean append) throws FileNotFoundException {
         super(file, append);
-        _encoder = new ChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
@@ -74,7 +75,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     public LZFFileOutputStream(FileDescriptor fdObj) {
         super(fdObj);
-        _encoder = new ChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
@@ -82,7 +83,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     public LZFFileOutputStream(String name) throws FileNotFoundException {
         super(name);
-        _encoder = new ChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
@@ -90,7 +91,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     public LZFFileOutputStream(String name, boolean append) throws FileNotFoundException {
         super(name, append);
-        _encoder = new ChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
