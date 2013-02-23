@@ -347,12 +347,6 @@ public final class ChunkEncoder
         return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
     }
 
-    /*
-    private static int next(int v, byte[] in, int inPos) {
-        return (v << 8) + (in[inPos + 2] & 255);
-    }
-*/
-
     private final int hash(int h) {
         // or 184117; but this seems to give better hashing?
         return ((h * 57321) >> 9) & _hashModulo;
@@ -360,98 +354,4 @@ public final class ChunkEncoder
         //return (((h ^ (h << 5)) >> (24 - HLOG) - h*5) & _hashModulo;
         // but that didn't seem to provide better matches
     }
-    
-    /*
-    ///////////////////////////////////////////////////////////////////////
-    // Alternative experimental version using Unsafe
-    // NOTE: not currently used, retained for future inspiration...
-    ///////////////////////////////////////////////////////////////////////
-     */
-
-    /*
-    private static final Unsafe unsafe;
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            unsafe = (Unsafe) theUnsafe.get(null);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
-
-    private final int MASK = 0xFFFFFF;
-    
-    private final int get3Bytes(byte[] src, int srcIndex)
-    {
-        return unsafe.getInt(src, BYTE_ARRAY_OFFSET + srcIndex) & MASK;
-    }
-
-    private int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
-    {
-        final int[] hashTable = _hashTable;
-        ++outPos;
-        int literals = 0;
-        inEnd -= 4;
-        final int firstPos = inPos; // so that we won't have back references across block boundary
-        
-        while (inPos < inEnd) {
-            int seen = get3Bytes(in, inPos);
-            int off = hash(seen);
-            int ref = hashTable[off];
-            hashTable[off] = inPos;
-  
-            // First expected common case: no back-ref (for whatever reason)
-            if (ref >= inPos // can't refer forward (i.e. leftovers)
-                    || ref < firstPos // or to previous block
-                    || (off = inPos - ref) > MAX_OFF
-                    || get3Bytes(in, ref) != seen
-                    ) {
-                out[outPos++] = in[inPos++];
-                literals++;
-                if (literals == LZFChunk.MAX_LITERAL) {
-                    out[outPos - 33] = (byte) 31; // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
-                    literals = 0;
-                    outPos++;
-                }
-                continue;
-            }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
-            if (literals == 0) {
-                outPos--;
-            } else {
-                out[outPos - literals - 1] = (byte) (literals - 1);
-                literals = 0;
-            }
-            int len = 3;
-            while (len < maxLen && in[ref + len] == in[inPos + len]) {
-                len++;
-            }
-            len -= 2;
-            --off; // was off by one earlier
-            if (len < 7) {
-                out[outPos++] = (byte) ((off >> 8) + (len << 5));
-            } else {
-                out[outPos++] = (byte) ((off >> 8) + (7 << 5));
-                out[outPos++] = (byte) (len - 7);
-            }
-            out[outPos] = (byte) off;
-            outPos += 2;
-            inPos += len;
-            hashTable[hash(get3Bytes(in, inPos))] = inPos;
-            ++inPos;
-            hashTable[hash(get3Bytes(in, inPos))] = inPos;
-            ++inPos;
-        }
-        // try offlining the tail
-        return handleTail(in, inPos, inEnd+4, out, outPos, literals);
-    }
-    */
 }
