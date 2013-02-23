@@ -12,6 +12,7 @@
 package com.ning.compress.lzf.nuevo;
 
 import com.ning.compress.lzf.LZFChunk;
+import com.ning.compress.lzf.util.UnsafeChunkEncoders;
 
 /**
  * Encoder that handles splitting of input into chunks to encode,

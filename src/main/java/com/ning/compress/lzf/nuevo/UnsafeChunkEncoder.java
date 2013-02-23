@@ -47,7 +47,7 @@ public abstract class UnsafeChunkEncoder
     // Shared helper methods
     ///////////////////////////////////////////////////////////////////////
      */
-    
+
     protected final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
@@ -73,7 +73,6 @@ public abstract class UnsafeChunkEncoder
             rawInPtr += 8;
             rawOutPtr += 8;
         }
-        unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
         int left = (literals & 7);
         if (left > 4) {
             unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
@@ -84,14 +83,44 @@ public abstract class UnsafeChunkEncoder
         return outPos+literals;
     }
 
+    protected final static int _copyLongLiterals(byte[] in, int inPos, byte[] out, int outPos,
+            int literals)
+    {
+        inPos -= literals;
+
+        long rawInPtr = BYTE_ARRAY_OFFSET + inPos;
+        long rawOutPtr = BYTE_ARRAY_OFFSET + outPos;
+        
+        while (literals >= LZFChunk.MAX_LITERAL) {
+            out[outPos++] = (byte) 31;
+
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
+            rawInPtr += 8;
+            rawOutPtr += 8;
+            
+            inPos += LZFChunk.MAX_LITERAL;
+            outPos += LZFChunk.MAX_LITERAL;
+            literals -= LZFChunk.MAX_LITERAL;
+        }
+        if (literals > 0) {
+            return _copyPartialLiterals(in, inPos, out, outPos, literals);
+        }
+        return outPos;
+    }
+    
     protected final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
     {
         // literals == 32
         out[outPos++] = (byte) 31;
-
-        // But here it's bit of a toss, since this gets rarely called
-        
-//        System.arraycopy(in, inPos-32, out, outPos, 32);
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
         long rawOutPtr = BYTE_ARRAY_OFFSET + outPos;
