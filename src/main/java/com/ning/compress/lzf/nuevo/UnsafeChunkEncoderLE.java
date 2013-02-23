@@ -47,15 +47,12 @@ public class UnsafeChunkEncoderLE
                 }
                 continue;
             }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
             if (literals > 0) {
                 outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
                 literals = 0;
             }
+            // match
+            final int maxLen = Math.min(MAX_REF, inEnd - inPos + 2);
             int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
             
             --off; // was off by one earlier
