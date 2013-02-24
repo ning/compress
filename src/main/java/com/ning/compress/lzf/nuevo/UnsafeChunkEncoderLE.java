@@ -29,11 +29,11 @@ public class UnsafeChunkEncoderLE
         
         while (inPos < inEnd) {
             seen = (seen << 8) + (in[inPos + 2] & 255);
+//            seen = (seen << 8) + (unsafe.getByte(in, BYTE_ARRAY_OFFSET_PLUS2 + inPos) & 0xFF);
 
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
-
             // First expected common case: no back-ref (for whatever reason)
             if ((ref >= inPos) // can't refer forward (i.e. leftovers)
                     || (ref < firstPos) // or to previous block
@@ -53,6 +53,11 @@ public class UnsafeChunkEncoderLE
             }
             // match
             final int maxLen = Math.min(MAX_REF, inEnd - inPos + 2);
+            /*int maxLen = inEnd - inPos + 2;
+            if (maxLen > MAX_REF) {
+                maxLen = MAX_REF;
+            }*/
+            
             int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
             
             --off; // was off by one earlier
