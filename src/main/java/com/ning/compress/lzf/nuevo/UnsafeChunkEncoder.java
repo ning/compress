@@ -115,7 +115,7 @@ public abstract class UnsafeChunkEncoder
             literals -= LZFChunk.MAX_LITERAL;
         }
         if (literals > 0) {
-            return _copyPartialLiterals(in, inPos, out, outPos, literals);
+            return _copyPartialLiterals(in, inPos+literals, out, outPos, literals);
         }
         return outPos;
     }
