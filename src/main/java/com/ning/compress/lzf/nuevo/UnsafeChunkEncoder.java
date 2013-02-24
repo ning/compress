@@ -95,6 +95,7 @@ public abstract class UnsafeChunkEncoder
         
         while (literals >= LZFChunk.MAX_LITERAL) {
             out[outPos++] = (byte) 31;
+            ++rawOutPtr;
 
             unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
             rawInPtr += 8;
