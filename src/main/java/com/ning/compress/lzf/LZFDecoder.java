@@ -11,6 +11,8 @@
 
 package com.ning.compress.lzf;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
@@ -28,30 +30,127 @@ import com.ning.compress.lzf.util.ChunkDecoderFactory;
  */
 public class LZFDecoder
 {
+    /**
+     * Lazily initialized "fast" instance that may use <code>sun.misc.Unsafe</code>
+     * to speed up decompression
+     */
+    protected final static AtomicReference<ChunkDecoder> _fastDecoderRef = new AtomicReference<ChunkDecoder>();
+
+    /**
+     * Lazily initialized "safe" instance that DOES NOT use <code>sun.misc.Unsafe</code>
+     * for decompression, just standard JDK functionality.
+     */
+    protected final static AtomicReference<ChunkDecoder> _safeDecoderRef = new AtomicReference<ChunkDecoder>();
+
     /*
     ///////////////////////////////////////////////////////////////////////
-    // Old API
+    // Factory methods for ChunkDecoders
     ///////////////////////////////////////////////////////////////////////
      */
 
+    /**
+     * Accessor method that can be used to obtain {@link ChunkDecoder}
+     * that uses all possible optimization methods available, including
+     * <code>sun.misc.Unsafe</code> for memory access.
+     * 
+     * @since 0.9.7
+     */
+    public static ChunkDecoder fastDecoder() {
+        // race conditions are ok here, we don't really mind
+        ChunkDecoder dec = _fastDecoderRef.get();
+        if (dec == null) { // 
+            dec = ChunkDecoderFactory.optimalInstance();
+            _fastDecoderRef.compareAndSet(null, dec);
+        }
+        return dec;
+    }
+
+    /**
+     * Accessor method that can be used to obtain {@link ChunkDecoder}
+     * that only uses standard JDK access methods, and should work on
+     * all Java platforms and JVMs.
+     * 
+     * @since 0.9.7
+     */
+    public static ChunkDecoder safeDecoder() {
+        // race conditions are ok here, we don't really mind
+        ChunkDecoder dec = _safeDecoderRef.get();
+        if (dec == null) { // 
+            dec = ChunkDecoderFactory.safeInstance();
+            _safeDecoderRef.compareAndSet(null, dec);
+        }
+        return dec;
+    }
+    
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Basic API, general
+    ///////////////////////////////////////////////////////////////////////
+     */
+
+    /**
+     * Helper method that checks resulting size of an LZF chunk, regardless of
+     * whether it contains compressed or uncompressed contents.
+     */
+    public static int calculateUncompressedSize(byte[] data, int offset, int length) throws LZFException {
+        return ChunkDecoder.calculateUncompressedSize(data, length, length);
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Basic API, fast decode methods
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
     public static byte[] decode(final byte[] inputBuffer) throws LZFException {
-        return decode(inputBuffer, 0, inputBuffer.length);
+        return fastDecoder().decode(inputBuffer, 0, inputBuffer.length);
     }
     
     public static byte[] decode(final byte[] inputBuffer, int offset, int length) throws LZFException {
-        return ChunkDecoderFactory.optimalInstance().decode(inputBuffer, offset, length);
+        return fastDecoder().decode(inputBuffer, offset, length);
     }
     
     public static int decode(final byte[] inputBuffer, final byte[] targetBuffer) throws LZFException {
-        return decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
+        return fastDecoder().decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
 
     public static int decode(final byte[] sourceBuffer, int offset, int length, final byte[] targetBuffer)
             throws LZFException {
-        return ChunkDecoderFactory.optimalInstance().decode(sourceBuffer, offset, length, targetBuffer);        
+        return fastDecoder().decode(sourceBuffer, offset, length, targetBuffer);        
     }
 
-    public static int calculateUncompressedSize(byte[] data, int offset, int length) throws LZFException {
-        return ChunkDecoder.calculateUncompressedSize(data, length, length);
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Basic API, "safe" decode methods
+    ///////////////////////////////////////////////////////////////////////
+     */
+    
+    /**
+     * @since 0.9.7
+     */
+    public static byte[] safeDecode(final byte[] inputBuffer) throws LZFException {
+        return safeDecoder().decode(inputBuffer, 0, inputBuffer.length);
+    }
+    
+    /**
+     * @since 0.9.7
+     */
+    public static byte[] safeDecode(final byte[] inputBuffer, int offset, int length) throws LZFException {
+        return safeDecoder().decode(inputBuffer, offset, length);
+    }
+    
+    /**
+     * @since 0.9.7
+     */
+    public static int safeDecode(final byte[] inputBuffer, final byte[] targetBuffer) throws LZFException {
+        return safeDecoder().decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
+    }
+
+    /**
+     * @since 0.9.7
+     */
+    public static int safeDecode(final byte[] sourceBuffer, int offset, int length, final byte[] targetBuffer)
+            throws LZFException {
+        return safeDecoder().decode(sourceBuffer, offset, length, targetBuffer);        
     }
 }

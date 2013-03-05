@@ -3,6 +3,10 @@ package com.ning.compress;
 import java.io.*;
 import java.util.Random;
 
+import com.ning.compress.lzf.LZFDecoder;
+import com.ning.compress.lzf.LZFEncoder;
+import com.ning.compress.lzf.LZFException;
+
 public class BaseForTests
 {
     private final static byte[] ABCD = new byte[] { 'a', 'b', 'c', 'd' };
@@ -53,5 +57,21 @@ public class BaseForTests
         }
         in.close();
         return bytes.toByteArray();
+    }
+
+    protected byte[] compress(byte[] input) {
+        return LZFEncoder.encode(input);
+    }
+
+    protected byte[] compress(byte[] input, int offset, int len) {
+        return LZFEncoder.encode(input, offset, len);
+    }
+    
+    protected byte[] uncompress(byte[] input) throws LZFException {
+        return LZFDecoder.safeDecode(input);
+    }
+
+    protected byte[] uncompress(byte[] input, int offset, int len) throws LZFException {
+        return LZFDecoder.safeDecode(input, offset, len);
     }
 }

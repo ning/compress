@@ -16,11 +16,11 @@ public class TestLZFCompressingInputStream extends BaseForTests
         byte[] source = constructFluff(140000);
         LZFCompressingInputStream compIn = new LZFCompressingInputStream(new ByteArrayInputStream(source));
         byte[] comp = readAll(compIn);
-        byte[] uncomp = LZFDecoder.decode(comp);
+        byte[] uncomp = uncompress(comp);
         Assert.assertEquals(uncomp, source);
 
         // and then check that size is about same as with static methods
-        byte[] comp2 = LZFEncoder.encode(source);
+        byte[] comp2 = compress(source);
         Assert.assertEquals(comp2.length, comp.length);
     }
 
@@ -33,7 +33,7 @@ public class TestLZFCompressingInputStream extends BaseForTests
         byte[] comp = readAll(compIn);
         // 2 non-compressed chunks with headers:
         Assert.assertEquals(comp.length, 89000 + 5 + 5);
-        byte[] uncomp = LZFDecoder.decode(comp);
+        byte[] uncomp = uncompress(comp);
         Assert.assertEquals(uncomp, source);
     }
 }

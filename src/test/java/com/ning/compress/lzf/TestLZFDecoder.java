@@ -5,23 +5,29 @@ import java.io.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.ning.compress.BaseForTests;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
-public class TestLZFDecoder
+public class TestLZFDecoder extends BaseForTests
 {
     @Test
-    public void testSimple() throws IOException
+    public void testSimple() throws IOException {
+        _testSimple(ChunkDecoderFactory.safeInstance());
+        _testSimple(ChunkDecoderFactory.optimalInstance());
+    }
+
+    private void _testSimple(ChunkDecoder decoder) throws IOException
     {
         byte[] orig = "Another trivial test".getBytes("UTF-8");
-        byte[] compressed = LZFEncoder.encode(orig);
-        byte[] result = ChunkDecoderFactory.optimalInstance().decode(compressed);
+        byte[] compressed = compress(orig);
+        byte[] result = decoder.decode(compressed);
         Assert.assertEquals(result, orig);
 
         // also, ensure that offset, length are passed
         byte[] compressed2 = new byte[compressed.length + 4];
         System.arraycopy(compressed, 0, compressed2, 2, compressed.length);
 
-        result = ChunkDecoderFactory.optimalInstance().decode(compressed2, 2, compressed.length);
+        result = decoder.decode(compressed2, 2, compressed.length);
         Assert.assertEquals(result, orig);
 
         // two ways to do that as well:
@@ -30,7 +36,12 @@ public class TestLZFDecoder
     }
 
     @Test
-    public void testChunks() throws IOException
+    public void testChunks() throws IOException {
+        _testChunks(ChunkDecoderFactory.safeInstance());
+        _testChunks(ChunkDecoderFactory.optimalInstance());
+    }
+
+    private void _testChunks(ChunkDecoder decoder) throws IOException
     {
         byte[] orig1 = "Another trivial test".getBytes("UTF-8");
         byte[] orig2 = " with some of repepepepepetitition too!".getBytes("UTF-8");
@@ -39,14 +50,14 @@ public class TestLZFDecoder
         out.write(orig2);
         byte[] orig = out.toByteArray();
 
-        byte[] compressed1 = LZFEncoder.encode(orig1);
-        byte[] compressed2 = LZFEncoder.encode(orig2);
+        byte[] compressed1 = compress(orig1);
+        byte[] compressed2 = compress(orig2);
         out = new ByteArrayOutputStream();
         out.write(compressed1);
         out.write(compressed2);
         byte[] compressed = out.toByteArray();
         
-        byte[] result = ChunkDecoderFactory.optimalInstance().decode(compressed);
+        byte[] result = decoder.decode(compressed);
         Assert.assertEquals(result, orig);
    }
 }

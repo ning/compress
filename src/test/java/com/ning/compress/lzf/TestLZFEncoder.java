@@ -33,7 +33,7 @@ public class TestLZFEncoder extends BaseForTests
         Assert.assertEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
-        byte[] uncomp = LZFDecoder.decode(buffer, 0, compLen);
+        byte[] uncomp = uncompress(buffer, 0, compLen);
 
         Assert.assertEquals(uncomp.length, source.length);
         Assert.assertEquals(uncomp, source);
@@ -54,7 +54,7 @@ public class TestLZFEncoder extends BaseForTests
         Assert.assertEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
-        byte[] uncomp = LZFDecoder.decode(buffer, 0, compLen);
+        byte[] uncomp = uncompress(buffer, 0, compLen);
 
         Assert.assertEquals(uncomp.length, source.length);
         Assert.assertEquals(uncomp, source);
@@ -74,7 +74,7 @@ public class TestLZFEncoder extends BaseForTests
         Assert.assertEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
-        byte[] uncomp = LZFDecoder.decode(buffer, 0, compLen);
+        byte[] uncomp = uncompress(buffer, 0, compLen);
 
         Assert.assertEquals(uncomp.length, source.length);
         Assert.assertEquals(uncomp, source);
