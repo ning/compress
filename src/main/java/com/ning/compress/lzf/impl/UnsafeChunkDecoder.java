@@ -113,18 +113,14 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             len = in[inPos++] & 255;
             ctrl -= in[inPos++] & 255;
             // First: ovelapping case can't use default handling, off line:
-            if (ctrl >= -9) {
+            if (ctrl >= -9 || (outPos > outputEnd32)) {
                 outPos = copyOverlappingLong(out, outPos, ctrl, len);
                 continue;
             }
             // but non-overlapping is simple
             len += 9;
             if (len <= 32) {
-                if (outPos > outputEnd32) {
-                    System.arraycopy(out, outPos+ctrl, out, outPos, len);
-                } else {
-                    copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
-                }
+                copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
                 outPos += len;
                 continue;
             }
