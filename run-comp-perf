@@ -1,0 +1,7 @@
+#!/bin/sh
+
+java -Xmx200m -server \
+ -cp target/classes:target/test-classes \
+ perf.ManualCompressComparison \
+  $*
+

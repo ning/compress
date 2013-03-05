@@ -4,13 +4,12 @@ import java.io.*;
 
 import com.ning.compress.lzf.*;
 import com.ning.compress.lzf.nuevo.UnsafeLZFEncoder;
-import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and
  * decompress speeds of this LZF implementation with other codecs.
  */
-public class ManualPerfComparison
+public class ManualCompressComparison
 {
     protected int size = 0;
  
@@ -58,14 +57,6 @@ public class ManualPerfComparison
             case 1:
                 msg = "LZF compress/stream";
                 msecs = testLZFCompressStream(REPS, input);
-                break;
-            case 2:
-                msg = "LZF decompress/block";
-                msecs = testLZFDecompress(REPS, _lzfEncoded);
-                break;
-            case 3:
-                msg = "LZF decompress/stream";
-                msecs = testLZFDecompressStream(REPS, _lzfEncoded);
                 break;
                 */
             default:
@@ -170,39 +161,6 @@ public class ManualPerfComparison
         return System.currentTimeMillis() - start;
     }
     
-    protected final long testLZFDecompress(int REPS, byte[] encoded) throws Exception
-    {
-        size = encoded.length;
-        long start = System.currentTimeMillis();
-        byte[] uncomp = null;
-
-        final ChunkDecoder decoder = ChunkDecoderFactory.optimalInstance();
-
-        while (--REPS >= 0) {
-            uncomp = decoder.decode(encoded);
-        }
-        size = uncomp.length;
-        return System.currentTimeMillis() - start;
-    }
-
-    protected final long testLZFDecompressStream(int REPS, byte[] encoded) throws Exception
-    {
-        final byte[] buffer = new byte[8000];
-        size = 0;
-        long start = System.currentTimeMillis();
-        while (--REPS >= 0) {
-            int total = 0;
-            LZFInputStream in = new LZFInputStream(new ByteArrayInputStream(encoded));
-            int count;
-            while ((count = in.read(buffer)) > 0) {
-                total += count;
-            }
-            size = total;
-            in.close();
-        }
-        return System.currentTimeMillis() - start;
-    }
-    
     public static void main(String[] args) throws Exception
     {
         if (args.length != 1) {
@@ -219,10 +177,10 @@ public class ManualPerfComparison
             bytes.write(buffer, 0, count);
         }
         in.close();
-        new ManualPerfComparison().test(bytes.toByteArray());
+        new ManualCompressComparison().test(bytes.toByteArray());
     }
 
-    final static class BogusOutputStream extends OutputStream
+    private final static class BogusOutputStream extends OutputStream
     {
         protected int _bytes;
         
