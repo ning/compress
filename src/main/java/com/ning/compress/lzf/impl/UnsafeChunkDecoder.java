@@ -15,6 +15,8 @@ import com.ning.compress.lzf.*;
  *<p>
  * Credits for the idea go to Dain Sundstrom, who kindly suggested this use,
  * and is all-around great source for optimization tips and tricks.
+ * Big thanks also to LZ4-java developers, whose stellar performance made
+ * me go back and see what more I can do to optimize this code!
  */
 @SuppressWarnings("restriction")
 public class UnsafeChunkDecoder extends ChunkDecoder
@@ -97,12 +99,14 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             if (len < 7) {
                 ctrl -= in[inPos++] & 255;
                 if (ctrl < -7 && outPos < outputEnd8) { // non-overlapping? can use efficient bulk copy
-                    moveLong(out, outPos, outEnd, ctrl);
-                    outPos += len + 2;
-                } else {
-                    // otherwise, byte-by-byte
-                    outPos = copyOverlappingShort(out, outPos, ctrl, len);
+                    final long rawOffset = BYTE_ARRAY_OFFSET + outPos;
+                    unsafe.putLong(out, rawOffset, unsafe.getLong(out, rawOffset + ctrl));
+//                    moveLong(out, outPos, outEnd, ctrl);
+                    outPos += len+2;
+                    continue;
                 }
+                // otherwise, byte-by-byte
+                outPos = copyOverlappingShort(out, outPos, ctrl, len);
                 continue;
             }
             // long back reference: 3 bytes, length of up to 264 bytes
@@ -237,11 +241,13 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     /* Note: 'delta' is negative (back ref); dataEnd is the first location AFTER
      * end of expected uncompressed data (i.e. end marker)
      */
+    /*
     private final static void moveLong(byte[] data, int resultOffset, int dataEnd, int delta)
     {
         final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
         unsafe.putLong(data, rawOffset, unsafe.getLong(data, rawOffset + delta));
     }
+    */
 
     private final static void copyUpTo32(byte[] in, int inputIndex, byte[] out, int outputIndex, int lengthMinusOne)
     {
