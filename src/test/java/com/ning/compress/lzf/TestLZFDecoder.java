@@ -16,6 +16,24 @@ public class TestLZFDecoder extends BaseForTests
         _testSimple(ChunkDecoderFactory.optimalInstance());
     }
 
+    @Test
+    public void testLonger() throws IOException {
+        _testLonger(ChunkDecoderFactory.safeInstance());
+        _testLonger(ChunkDecoderFactory.optimalInstance());
+    }
+    
+    @Test
+    public void testChunks() throws IOException {
+        _testChunks(ChunkDecoderFactory.safeInstance());
+        _testChunks(ChunkDecoderFactory.optimalInstance());
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Second-level test methods
+    ///////////////////////////////////////////////////////////////////////
+     */
+
     private void _testSimple(ChunkDecoder decoder) throws IOException
     {
         byte[] orig = "Another trivial test".getBytes("UTF-8");
@@ -34,11 +52,24 @@ public class TestLZFDecoder extends BaseForTests
         result = LZFDecoder.decode(compressed2, 2, compressed.length);
         Assert.assertEquals(result, orig);
     }
+    
+    private void _testLonger(ChunkDecoder decoder) throws IOException
+    {
+        byte[] orig = this.constructFluff(250000); // 250k
+        byte[] compressed = compress(orig);
+        byte[] result = decoder.decode(compressed);
+        Assert.assertEquals(result, orig);
 
-    @Test
-    public void testChunks() throws IOException {
-        _testChunks(ChunkDecoderFactory.safeInstance());
-        _testChunks(ChunkDecoderFactory.optimalInstance());
+        // also, ensure that offset, length are passed
+        byte[] compressed2 = new byte[compressed.length + 4];
+        System.arraycopy(compressed, 0, compressed2, 2, compressed.length);
+
+        result = decoder.decode(compressed2, 2, compressed.length);
+        Assert.assertEquals(result, orig);
+
+        // two ways to do that as well:
+        result = LZFDecoder.decode(compressed2, 2, compressed.length);
+        Assert.assertEquals(result, orig);
     }
 
     private void _testChunks(ChunkDecoder decoder) throws IOException
