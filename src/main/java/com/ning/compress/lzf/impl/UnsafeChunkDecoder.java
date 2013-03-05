@@ -114,7 +114,11 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             // but non-overlapping is simple
             len += 9;
             if (len <= 32) {
-                copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
+                if (outPos > outputLongEnd) {
+                    safeCopyUpTo32(out, outPos+ctrl, out, outPos, len-1);
+                } else {
+                    copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
+                }
             } else {
                 copyLong(out, outPos+ctrl, out, outPos, len);
 //                System.arraycopy(out, outPos+ctrl, out, outPos, len);
