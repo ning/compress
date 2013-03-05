@@ -110,7 +110,8 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             if (len <= 32) {
                 copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
             } else {
-                System.arraycopy(out, outPos+ctrl, out, outPos, len);
+                copyLong(out, outPos+ctrl, out, outPos, len);
+//                System.arraycopy(out, outPos+ctrl, out, outPos, len);
             }
             outPos += len;
         } while (outPos < outEnd);
@@ -292,6 +293,29 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 long value = unsafe.getLong(in, inPtr);
                 unsafe.putLong(out, outPtr, value);
             }
+        }
+    }
+
+    private final static void copyLong(byte[] in, int inputIndex, byte[] out, int outputIndex, int length)
+    {
+        if ((outputIndex + 8) > out.length) {
+            System.arraycopy(in, inputIndex, out, outputIndex, length);
+            return;
+        }
+        long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
+        long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
+        
+        do {
+            unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+            inPtr += 8;
+            outPtr += 8;
+            length -= 8;
+        } while (length >= 8);
+
+        if (length > 4) {
+            unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        } else if (length > 0) {
+            unsafe.putInt(out, outPtr, unsafe.getInt(in, inPtr));
         }
     }
 }

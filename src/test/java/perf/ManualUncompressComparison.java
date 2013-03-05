@@ -20,8 +20,8 @@ public class ManualUncompressComparison
     {
         _lzfEncoded = LZFEncoder.encode(input);
 
-        // Let's try to guestimate suitable size... to get to 10 megs to process
-        final int REPS = Math.max(1, (int) ((double) (10 * 1000 * 1000) / (double) input.length));
+        // Let's try to guestimate suitable size... to get to 20 megs to process
+        final int REPS = Math.max(1, (int) ((double) (20 * 1000 * 1000) / (double) input.length));
 
 //        final int TYPES = 1;
         final int TYPES = 2;
@@ -47,10 +47,14 @@ public class ManualUncompressComparison
             switch (round) {
 
             case 0:
-                msg = "LZF decompress/block";
-                msecs = testLZFDecompress(REPS, _lzfEncoded);
+                msg = "LZF decompress/block/safe";
+                msecs = testLZFDecompress(REPS, _lzfEncoded, ChunkDecoderFactory.safeInstance());
                 break;
             case 1:
+                msg = "LZF decompress/block/UNSAFE";
+                msecs = testLZFDecompress(REPS, _lzfEncoded, ChunkDecoderFactory.optimalInstance());
+                break;
+            case 2:
                 msg = "LZF decompress/stream";
                 msecs = testLZFDecompressStream(REPS, _lzfEncoded);
                 break;
@@ -121,13 +125,11 @@ public class ManualUncompressComparison
         }
     }
 
-    protected final long testLZFDecompress(int REPS, byte[] encoded) throws Exception
+    protected final long testLZFDecompress(int REPS, byte[] encoded, ChunkDecoder decoder) throws Exception
     {
         size = encoded.length;
         long start = System.currentTimeMillis();
         byte[] uncomp = null;
-
-        final ChunkDecoder decoder = ChunkDecoderFactory.optimalInstance();
 
         while (--REPS >= 0) {
             uncomp = decoder.decode(encoded);
