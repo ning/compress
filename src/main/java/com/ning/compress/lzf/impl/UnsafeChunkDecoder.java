@@ -69,13 +69,15 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
-        final int outputLongEnd = outEnd - 8;
-        
+        // We need to take care of end condition, leave last 32 bytes out
+        final int outputEnd8 = outEnd - 8;
+        final int outputEnd32 = outEnd - 32;
+
         main_loop:
         do {
             int ctrl = in[inPos++] & 255;
             while (ctrl < LZFChunk.MAX_LITERAL) { // literal run(s)
-                if (outPos > outputLongEnd) {
+                if (outPos > outputEnd32) {
                     System.arraycopy(in, inPos, out, outPos, ctrl+1);
                 } else {
                     copyUpTo32(in, inPos, out, outPos, ctrl);
@@ -94,7 +96,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             // short back reference? 2 bytes; run lengths of 2 - 8 bytes
             if (len < 7) {
                 ctrl -= in[inPos++] & 255;
-                if (ctrl < -7 && outPos < outputLongEnd) { // non-overlapping? can use efficient bulk copy
+                if (ctrl < -7 && outPos < outputEnd8) { // non-overlapping? can use efficient bulk copy
                     moveLong(out, outPos, outEnd, ctrl);
                     outPos += len + 2;
                 } else {
@@ -107,14 +109,14 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             len = in[inPos++] & 255;
             ctrl -= in[inPos++] & 255;
             // First: ovelapping case can't use default handling, off line:
-            if ((ctrl + len) >= -9) {
+            if (ctrl >= -9) {
                 outPos = copyOverlappingLong(out, outPos, ctrl, len);
                 continue;
             }
             // but non-overlapping is simple
             len += 9;
             if (len <= 32) {
-                if (outPos > outputLongEnd) {
+                if (outPos > outputEnd32) {
                     System.arraycopy(out, outPos+ctrl, out, outPos, len);
                 } else {
                     copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
@@ -122,8 +124,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 outPos += len;
                 continue;
             }
-            copyLong(out, outPos+ctrl, out, outPos, len);
-//                System.arraycopy(out, outPos+ctrl, out, outPos, len);
+            copyLong(out, outPos+ctrl, out, outPos, len, outputEnd8);
             outPos += len;
         } while (outPos < outEnd);
 
@@ -265,22 +266,39 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         }
     }
 
-    private final static void copyLong(byte[] in, int inputIndex, byte[] out, int outputIndex, int length)
+    private final static void copyLong(byte[] in, int inputIndex, byte[] out, int outputIndex, int length,
+            int outputEnd8)
     {
-        if ((outputIndex + 8) > out.length) {
+        if ((outputIndex + length) > outputEnd8) {
             System.arraycopy(in, inputIndex, out, outputIndex, length);
             return;
         }
         long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
         long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
-        
-        do {
+
+        // We have minimum of 32 bytes bulk, so:
+        /*
+        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        inPtr += 8;
+        outPtr += 8;
+        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        inPtr += 8;
+        outPtr += 8;
+        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        inPtr += 8;
+        outPtr += 8;
+        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        inPtr += 8;
+        outPtr += 8;
+        length -= 32;
+        */
+
+        while (length >= 8) {
             unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
             inPtr += 8;
             outPtr += 8;
             length -= 8;
-        } while (length >= 8);
-
+        }
         if (length > 4) {
             unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
         } else if (length > 0) {
