@@ -75,7 +75,7 @@ public class ManualUncompressComparison
                         System.out.printf("Averages after %d rounds: %.1f msecs\n",
                                 (int) den, times[0] / den);
                     } else {
-                        System.out.printf("Averages after %d rounds (NEW / old): %.1f / %.1f msecs\n",
+                        System.out.printf("Averages after %d rounds (safe / UNSAFE): %.1f / %.1f msecs\n",
                                 (int) den,
                                 times[0] / den, times[1] / den);
                     }

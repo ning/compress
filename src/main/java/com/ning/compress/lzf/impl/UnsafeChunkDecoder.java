@@ -91,10 +91,10 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 if (ctrl < -7) { // non-overlapping? can use efficient bulk copy
                     moveLong(out, outPos, outEnd, ctrl);
                     outPos += len + 2;
-                    continue;
+                } else {
+                    // otherwise, byte-by-byte
+                    outPos = copyOverlappingShort(out, outPos, ctrl, len);
                 }
-                // otherwise, byte-by-byte
-                outPos = copyOverlappingShort(out, outPos, ctrl, len);
                 continue;
             }
             // long back reference: 3 bytes, length of up to 264 bytes
@@ -227,13 +227,12 @@ public class UnsafeChunkDecoder extends ChunkDecoder
      */
     private final static void moveLong(byte[] data, int resultOffset, int dataEnd, int delta)
     {
-        if ((resultOffset + 8) < dataEnd) {
-            final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
-            long value = unsafe.getLong(data, rawOffset + delta);
-            unsafe.putLong(data, rawOffset, value);
+        if ((resultOffset + 8) >= dataEnd) {
+            System.arraycopy(data, resultOffset+delta, data, resultOffset, data.length - resultOffset);
             return;
         }
-        System.arraycopy(data, resultOffset+delta, data, resultOffset, data.length - resultOffset);
+        final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
+        unsafe.putLong(data, rawOffset, unsafe.getLong(data, rawOffset + delta));
     }
     
     private final static void copyUpTo32(byte[] in, int inputIndex, byte[] out, int outputIndex, int lengthMinusOne)
@@ -245,53 +244,20 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
         long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
 
-        switch (lengthMinusOne >>> 3) {
-        case 3:
-            {
-                long value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
+        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+        if (lengthMinusOne > 7) {
+            inPtr += 8;
+            outPtr += 8;
+            unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+            if (lengthMinusOne > 15) {
                 inPtr += 8;
                 outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-                inPtr += 8;
-                outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-                inPtr += 8;
-                outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-            }
-            break;
-        case 2:
-            {
-                long value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-                inPtr += 8;
-                outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-                inPtr += 8;
-                outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-            }
-            break;
-        case 1:
-            {
-                long value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-                inPtr += 8;
-                outPtr += 8;
-                value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
-            }
-            break;
-        case 0:
-            {
-                long value = unsafe.getLong(in, inPtr);
-                unsafe.putLong(out, outPtr, value);
+                unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+                if (lengthMinusOne > 23) {
+                    inPtr += 8;
+                    outPtr += 8;
+                    unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+                }
             }
         }
     }
