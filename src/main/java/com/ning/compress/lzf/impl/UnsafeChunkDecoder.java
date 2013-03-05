@@ -124,7 +124,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 outPos += len;
                 continue;
             }
-            copyLong(out, outPos+ctrl, out, outPos, len, outputEnd8);
+            copyLong(out, outPos+ctrl, out, outPos, len, outputEnd32);
             outPos += len;
         } while (outPos < outEnd);
 
