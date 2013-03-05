@@ -94,7 +94,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             // short back reference? 2 bytes; run lengths of 2 - 8 bytes
             if (len < 7) {
                 ctrl -= in[inPos++] & 255;
-                if (ctrl < -7) { // non-overlapping? can use efficient bulk copy
+                if (ctrl < -7 && outPos < outputLongEnd) { // non-overlapping? can use efficient bulk copy
                     moveLong(out, outPos, outEnd, ctrl);
                     outPos += len + 2;
                 } else {
@@ -238,10 +238,6 @@ public class UnsafeChunkDecoder extends ChunkDecoder
      */
     private final static void moveLong(byte[] data, int resultOffset, int dataEnd, int delta)
     {
-        if ((resultOffset + 8) >= dataEnd) {
-            System.arraycopy(data, resultOffset+delta, data, resultOffset, data.length - resultOffset);
-            return;
-        }
         final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
         unsafe.putLong(data, rawOffset, unsafe.getLong(data, rawOffset + delta));
     }
