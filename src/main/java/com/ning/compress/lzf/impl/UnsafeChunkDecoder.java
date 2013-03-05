@@ -69,11 +69,17 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
+        final int outputLongEnd = outEnd - 8;
+        
         main_loop:
         do {
             int ctrl = in[inPos++] & 255;
             while (ctrl < LZFChunk.MAX_LITERAL) { // literal run(s)
-                copyUpTo32(in, inPos, out, outPos, ctrl);
+                if (outPos > outputLongEnd) {
+                    safeCopyUpTo32(in, inPos, out, outPos, ctrl);
+                } else {
+                    copyUpTo32(in, inPos, out, outPos, ctrl);
+                }
                 ++ctrl;
                 inPos += ctrl;
                 outPos += ctrl;
@@ -234,13 +240,9 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
         unsafe.putLong(data, rawOffset, unsafe.getLong(data, rawOffset + delta));
     }
-    
+
     private final static void copyUpTo32(byte[] in, int inputIndex, byte[] out, int outputIndex, int lengthMinusOne)
     {
-        if ((outputIndex + 32) > out.length) {
-            System.arraycopy(in, inputIndex, out, outputIndex, lengthMinusOne+1);
-            return;
-        }
         long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
         long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
 
@@ -262,6 +264,12 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         }
     }
 
+    private final static void safeCopyUpTo32(byte[] in, int inputIndex, byte[] out,
+            int outputIndex, int lengthMinusOne)
+    {
+        System.arraycopy(in, inputIndex, out, outputIndex, lengthMinusOne+1);
+    }
+    
     private final static void copyLong(byte[] in, int inputIndex, byte[] out, int outputIndex, int length)
     {
         if ((outputIndex + 8) > out.length) {
