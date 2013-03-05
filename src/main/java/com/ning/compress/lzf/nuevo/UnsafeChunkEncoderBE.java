@@ -35,7 +35,7 @@ public final class UnsafeChunkEncoderBE
             hashTable[off] = inPos;
 
             // First expected common case: no back-ref (for whatever reason)
-            if (ref >= inPos // can't refer forward (i.e. leftovers)
+            if ((ref >= inPos) // can't refer forward (i.e. leftovers)
                     || ref < firstPos // or to previous block
                     || (off = inPos - ref) > MAX_OFF
                     || ((seen << 8) != (_getInt(in, ref-1) << 8))) {

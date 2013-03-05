@@ -11,6 +11,7 @@
 
 package com.ning.compress.lzf;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -22,10 +23,16 @@ import com.ning.compress.lzf.nuevo.UnsafeLZFEncoder;
  * Resulting chunks can be compressed or non-compressed; compression
  * is only used if it actually reduces chunk size (including overhead
  * of additional header bytes)
+ *<p>
+ * Note that instances <b>are stateful</b> and hence
+ * <b>not thread-safe</b>; one instance is meant to be used
+ * for processing a sequence of chunks where total length
+ * is known.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
 public abstract class ChunkEncoder
+    implements Closeable
 {
     // // // Constants
     
@@ -127,6 +134,7 @@ public abstract class ChunkEncoder
      * Method to close once encoder is no longer in use. Note: after calling
      * this method, further calls to {@link #encodeChunk} will fail
      */
+//    @Override
     public final void close()
     {
         byte[] buf = _encodeBuffer;

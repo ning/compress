@@ -6,6 +6,9 @@ import java.io.InputStream;
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
  * combining them into a single contiguous result byte array.
+ *<p>
+ * Note that instances have no state, so they are
+ * <b>fully thread-safe</b> and reusable.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  * 
