@@ -134,7 +134,6 @@ com.ning.compress,
 com.ning.compress.gzip,
 com.ning.compress.lzf,
 com.ning.compress.lzf.impl,
-com.ning.compress.lzf.nuevo,
 com.ning.compress.lzf.util
               </Export-Package>
               <Main-Class>com.ning.compress.lzf.LZF</Main-Class>
