@@ -71,8 +71,8 @@ public class TestLZFRoundTrip
 
         // decompress and verify bytes haven't changed
         in = new BufferedInputStream(new FileInputStream(file));
-        DataInputStream compressedIn = new DataInputStream(new LZFInputStream(
-                new FileInputStream(compressedFile), false, decoder));
+        DataInputStream compressedIn = new DataInputStream(new LZFInputStream(decoder,
+                new FileInputStream(compressedFile), false));
         while ((len = in.read(buf, 0, buf.length)) >= 0) {
             byte[] buf2 = new byte[len];
             compressedIn.readFully(buf2, 0, len);
@@ -109,7 +109,7 @@ public class TestLZFRoundTrip
         for (String name : FILES) {
             byte[] data = readResource(name);
             byte[] lzf = LZFEncoder.encode(data);
-            LZFInputStream comp = new LZFInputStream(new ByteArrayInputStream(lzf), false, decoder);
+            LZFInputStream comp = new LZFInputStream(decoder, new ByteArrayInputStream(lzf), false);
             byte[] decoded = readAll(comp);
     
             Assert.assertEquals(decoded.length,  data.length);

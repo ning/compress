@@ -85,6 +85,12 @@ public class LZFInputStream extends InputStream
         this(inputStream, false);
     }
 
+    public LZFInputStream(final ChunkDecoder decoder, final InputStream in)
+        throws IOException
+    {
+        this(decoder, in, false);
+    }
+    
     /**
      * @param in Underlying input stream to use
      * @param fullReads Whether {@link #read(byte[])} should try to read exactly
@@ -93,10 +99,10 @@ public class LZFInputStream extends InputStream
      */
     public LZFInputStream(final InputStream in, boolean fullReads) throws IOException
     {
-        this(in, fullReads, ChunkDecoderFactory.optimalInstance());
+        this(ChunkDecoderFactory.optimalInstance(), in, fullReads);
     }
 
-    public LZFInputStream(final InputStream in, boolean fullReads, ChunkDecoder decoder)
+    public LZFInputStream(final ChunkDecoder decoder, final InputStream in, boolean fullReads)
         throws IOException
     {
         super();
