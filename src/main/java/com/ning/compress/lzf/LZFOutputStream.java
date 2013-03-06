@@ -3,7 +3,7 @@ package com.ning.compress.lzf;
 import java.io.*;
 
 import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.impl.VanillaChunkEncoder;
+import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 /**
  * Decorator {@link OutputStream} implementation that will compress
@@ -51,7 +51,12 @@ public class LZFOutputStream extends OutputStream
 
     public LZFOutputStream(final OutputStream outputStream)
     {
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), outputStream);
+    }
+    
+    public LZFOutputStream(final ChunkEncoder encoder, final OutputStream outputStream)
+    {
+        _encoder = encoder;
         _recycler = BufferRecycler.instance();
         _outputStream = outputStream;
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);

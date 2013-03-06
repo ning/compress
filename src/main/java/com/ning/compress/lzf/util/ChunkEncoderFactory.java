@@ -6,10 +6,7 @@ import com.ning.compress.lzf.impl.*;
 /**
  * Simple helper class used for loading
  * {@link ChunkEncoder} implementations, based on criteria
- * such as "fastest available".
- *<p>
- * As with {@link ChunkDecoderFactory}, is butt-ugly, but does the job.
- * Improvement ideas welcome
+ * such as "fastest available" or "safe to run anywhere".
  * 
  * @since 0.9.7
  */

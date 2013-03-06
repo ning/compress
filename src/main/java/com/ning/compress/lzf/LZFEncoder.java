@@ -11,7 +11,7 @@
 
 package com.ning.compress.lzf;
 
-import com.ning.compress.lzf.impl.VanillaChunkEncoder;
+import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 /**
  * Encoder that handles splitting of input into chunks to encode,
@@ -30,7 +30,7 @@ public class LZFEncoder
 
     // Static methods only, no point in instantiating
     private LZFEncoder() { }
-
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Helper methods
@@ -72,14 +72,24 @@ public class LZFEncoder
      */
     
     public static byte[] encode(byte[] data) {
-        return encode(data, data.length);
+        return encode(data, 0, data.length);
+    }
+
+    /**
+     * @since 0.9.7
+     */
+    public static byte[] safeEncode(byte[] data) {
+        return safeEncode(data, 0, data.length);
     }
     
     /**
      * Method for compressing given input data using LZF encoding and
      * block structure (compatible with lzf command line utility).
      * Result consists of a sequence of chunks.
+     * 
+     * @deprecated Use {@link #encode(byte[],int,int)} instead
      */
+    @Deprecated
     public static byte[] encode(byte[] data, int length) {
         return encode(data, 0, length);
     }
@@ -93,12 +103,25 @@ public class LZFEncoder
      */
     public static byte[] encode(byte[] data, int offset, int length)
     {
-        ChunkEncoder enc = new VanillaChunkEncoder(length);
-        byte[] result = encode(enc, data, offset, length);
-        // important: may be able to reuse buffers
-        enc.close();
-        return result;
+        ChunkEncoder enc = ChunkEncoderFactory.optimalInstance(length);
+        try {
+            return encode(enc, data, offset, length);
+        } finally {
+            // important: may be able to reuse buffers
+            enc.close();
+        }
     }
+
+    public static byte[] safeEncode(byte[] data, int offset, int length)
+    {
+        ChunkEncoder enc = ChunkEncoderFactory.safeInstance(length);
+        try {
+            return encode(enc, data, offset, length);
+        } finally {
+            // important: may be able to reuse buffers
+            enc.close();
+        }
+    }    
 
     public static byte[] encode(ChunkEncoder enc, byte[] data, int length) {
         return encode(enc, data, 0, length);
@@ -153,7 +176,18 @@ public class LZFEncoder
      */
     public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
-        return appendEncoded(VanillaChunkEncoder.nonAllocatingEncoder(inputLength),
+        return appendEncoded(ChunkEncoderFactory.optimalNonAllocatingInstance(inputLength),
+                input, inputPtr, inputLength, outputBuffer, outputPtr);
+    }
+
+    /**
+     * Alternate version that accepts pre-allocated output buffer.
+     * 
+     * @since 0.9.7
+     */
+    public static int safeEppendEncoded(byte[] input, int inputPtr, int inputLength,
+            byte[] outputBuffer, int outputPtr) {
+        return appendEncoded(ChunkEncoderFactory.safeNonAllocatingInstance(inputLength),
                 input, inputPtr, inputLength, outputBuffer, outputPtr);
     }
     

@@ -4,7 +4,6 @@ import java.io.*;
 
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.*;
-import com.ning.compress.lzf.impl.VanillaChunkEncoder;
 
 /**
  * Helper class that allows use of LZF compression even if a library requires
@@ -58,40 +57,60 @@ public class LZFFileOutputStream extends FileOutputStream
      */
 
     public LZFFileOutputStream(File file) throws FileNotFoundException {
-        super(file);
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
-        _recycler = BufferRecycler.instance();
-        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
-        _wrapper = new Wrapper();
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), file);
     }
 
     public LZFFileOutputStream(File file, boolean append) throws FileNotFoundException {
-        super(file, append);
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
-        _recycler = BufferRecycler.instance();
-        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
-        _wrapper = new Wrapper();
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), file, append);
     }
 
     public LZFFileOutputStream(FileDescriptor fdObj) {
-        super(fdObj);
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
-        _recycler = BufferRecycler.instance();
-        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
-        _wrapper = new Wrapper();
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), fdObj);
     }
 
     public LZFFileOutputStream(String name) throws FileNotFoundException {
-        super(name);
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), name);
+    }
+
+    public LZFFileOutputStream(String name, boolean append) throws FileNotFoundException {
+        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), name, append);
+    }
+    
+    public LZFFileOutputStream(ChunkEncoder encoder, File file) throws FileNotFoundException {
+        super(file);
+        _encoder = encoder;
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();
     }
 
-    public LZFFileOutputStream(String name, boolean append) throws FileNotFoundException {
+    public LZFFileOutputStream(ChunkEncoder encoder, File file, boolean append) throws FileNotFoundException {
+        super(file, append);
+        _encoder = encoder;
+        _recycler = BufferRecycler.instance();
+        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileOutputStream(ChunkEncoder encoder, FileDescriptor fdObj) {
+        super(fdObj);
+        _encoder = encoder;
+        _recycler = BufferRecycler.instance();
+        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileOutputStream(ChunkEncoder encoder, String name) throws FileNotFoundException {
+        super(name);
+        _encoder = encoder;
+        _recycler = BufferRecycler.instance();
+        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileOutputStream(ChunkEncoder encoder, String name, boolean append) throws FileNotFoundException {
         super(name, append);
-        _encoder = new VanillaChunkEncoder(OUTPUT_BUFFER_SIZE);
+        _encoder = encoder;
         _recycler = BufferRecycler.instance();
         _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _wrapper = new Wrapper();

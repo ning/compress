@@ -1,5 +1,6 @@
 0.9.7:
 
+* #23 Add UnsafeChunkEncoder that uses 'sun.misc.Unsafe' for additional Oomph.
 * Add LZFEncoder.estimateMaxWorkspaceSize() to help allocate work buffers.
 * [Issue#22] Add method(s) to allow encoding into caller-provided (pre-allocated)
  buffer.

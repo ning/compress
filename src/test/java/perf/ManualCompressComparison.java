@@ -51,7 +51,7 @@ public class ManualCompressComparison
                 break;
             case 1:
                 msg = "LZF compress/block";
-                msecs = testLZFCompress(REPS, input);
+                msecs = testLZFSafeCompress(REPS, input);
                 break;
                 /*
             case 1:
@@ -126,12 +126,12 @@ public class ManualCompressComparison
         }
     }
     
-    protected final long testLZFCompress(int REPS, byte[] input) throws Exception
+    protected final long testLZFSafeCompress(int REPS, byte[] input) throws Exception
     {
         long start = System.currentTimeMillis();
         byte[] comp = null;
         while (--REPS >= 0) {
-            comp = LZFEncoder.encode(input);
+            comp = LZFEncoder.safeEncode(input);
         }
         size = comp.length;
         return System.currentTimeMillis() - start;
