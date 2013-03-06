@@ -44,7 +44,7 @@ public class ChunkDecoderFactory
      */
     
     /**
-     * Method to use for getting decompressor instance that uses the most optimal
+     * Method to use for getting decoder instance that uses the most optimal
      * available methods for underlying data access. It should be safe to call
      * this method as implementations are dynamically loaded; however, on some
      * non-standard platforms it may be necessary to either directly load
@@ -60,7 +60,7 @@ public class ChunkDecoderFactory
     }
 
     /**
-     * Method that can be used to ensure that a "safe" decompressor instance is loaded.
+     * Method that can be used to ensure that a "safe" decoder instance is loaded.
      * Safe here means that it should work on any and all Java platforms.
      */
     public static ChunkDecoder safeInstance() {

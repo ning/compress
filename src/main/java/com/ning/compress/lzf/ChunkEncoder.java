@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.nuevo.UnsafeLZFEncoder;
+import com.ning.compress.lzf.impl.UnsafeLZFEncoder;
 
 /**
  * Class that handles actual encoding of individual chunks.

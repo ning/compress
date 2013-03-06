@@ -1,19 +1,19 @@
-package com.ning.compress.lzf.nuevo;
+package com.ning.compress.lzf.impl;
 
 import com.ning.compress.lzf.LZFChunk;
 
 /**
- * Implementation to use on Big-Endian architectures.
+ * Implementation to use on Little Endian architectures.
  */
 @SuppressWarnings("restriction")
-public final class UnsafeChunkEncoderBE
+public class UnsafeChunkEncoderLE
     extends UnsafeChunkEncoder
 {
-    public UnsafeChunkEncoderBE(int totalLength) {
+    public UnsafeChunkEncoderLE(int totalLength) {
         super(totalLength);
     }
 
-    public UnsafeChunkEncoderBE(int totalLength, boolean bogus) {
+    public UnsafeChunkEncoderLE(int totalLength, boolean bogus) {
         super(totalLength, bogus);
     }
 
@@ -29,14 +29,14 @@ public final class UnsafeChunkEncoderBE
         
         while (inPos < inEnd) {
             seen = (seen << 8) + (in[inPos + 2] & 255);
+//            seen = (seen << 8) + (unsafe.getByte(in, BYTE_ARRAY_OFFSET_PLUS2 + inPos) & 0xFF);
 
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
-
             // First expected common case: no back-ref (for whatever reason)
             if ((ref >= inPos) // can't refer forward (i.e. leftovers)
-                    || ref < firstPos // or to previous block
+                    || (ref < firstPos) // or to previous block
                     || (off = inPos - ref) > MAX_OFF
                     || ((seen << 8) != (_getInt(in, ref-1) << 8))) {
                 ++inPos;
@@ -47,15 +47,17 @@ public final class UnsafeChunkEncoderBE
                 }
                 continue;
             }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
             if (literals > 0) {
                 outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
                 literals = 0;
             }
+            // match
+            final int maxLen = Math.min(MAX_REF, inEnd - inPos + 2);
+            /*int maxLen = inEnd - inPos + 2;
+            if (maxLen > MAX_REF) {
+                maxLen = MAX_REF;
+            }*/
+            
             int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
             
             --off; // was off by one earlier
@@ -78,7 +80,7 @@ public final class UnsafeChunkEncoderBE
     }
 
     private final static int _getInt(final byte[] in, final int inPos) {
-        return unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos);
+        return Integer.reverseBytes(unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos));
     }
 
     /*
@@ -120,7 +122,7 @@ public final class UnsafeChunkEncoderBE
             long l1 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr1);
             long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
             if (l1 != l2) {
-                return ptr1 - base + (Long.numberOfLeadingZeros(l1 ^ l2) >> 3);
+                return ptr1 - base + (Long.numberOfTrailingZeros(l1 ^ l2) >> 3);
             }
             ptr1 += 8;
             ptr2 += 8;
@@ -134,6 +136,6 @@ public final class UnsafeChunkEncoderBE
     }
 
     private final static int _leadingBytes(int i1, int i2) {
-        return (Long.numberOfLeadingZeros(i1 ^ i2) >> 3);
+        return (Long.numberOfTrailingZeros(i1 ^ i2) >> 3);
     }
 }

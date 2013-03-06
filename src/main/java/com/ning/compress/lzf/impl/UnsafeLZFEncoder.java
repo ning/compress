@@ -9,10 +9,9 @@
  * governing permissions and limitations under the License.
  */
 
-package com.ning.compress.lzf.nuevo;
+package com.ning.compress.lzf.impl;
 
 import com.ning.compress.lzf.LZFChunk;
-import com.ning.compress.lzf.util.UnsafeChunkEncoders;
 
 /**
  * Encoder that handles splitting of input into chunks to encode,

@@ -9,13 +9,10 @@
  * governing permissions and limitations under the License.
  */
 
-package com.ning.compress.lzf.util;
+package com.ning.compress.lzf.impl;
 
 import java.nio.ByteOrder;
 
-import com.ning.compress.lzf.nuevo.UnsafeChunkEncoder;
-import com.ning.compress.lzf.nuevo.UnsafeChunkEncoderBE;
-import com.ning.compress.lzf.nuevo.UnsafeChunkEncoderLE;
 
 /**
  * Class that handles actual encoding of individual chunks.

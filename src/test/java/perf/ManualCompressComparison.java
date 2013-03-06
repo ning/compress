@@ -3,7 +3,7 @@ package perf;
 import java.io.*;
 
 import com.ning.compress.lzf.*;
-import com.ning.compress.lzf.nuevo.UnsafeLZFEncoder;
+import com.ning.compress.lzf.impl.UnsafeLZFEncoder;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and

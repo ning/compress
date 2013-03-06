@@ -1,4 +1,4 @@
-package com.ning.compress.lzf.nuevo;
+package com.ning.compress.lzf.impl;
 
 import java.lang.reflect.Field;
 
