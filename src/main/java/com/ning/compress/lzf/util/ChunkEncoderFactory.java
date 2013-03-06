@@ -19,6 +19,16 @@ public class ChunkEncoderFactory
      */
     
     /**
+     * Convenience method, equivalent to:
+     *<code>
+     *   return optimalInstance(LZFChunk.MAX_CHUNK_LEN);
+     *</code>
+     */
+    public static ChunkEncoder optimalInstance() {
+        return optimalInstance(LZFChunk.MAX_CHUNK_LEN);
+    }
+    
+    /**
      * Method to use for getting compressor instance that uses the most optimal
      * available methods for underlying data access. It should be safe to call
      * this method as implementations are dynamically loaded; however, on some
@@ -39,6 +49,10 @@ public class ChunkEncoderFactory
         }
     }
 
+    /**
+     * Factory method for constructing encoder that is always passed buffer
+     * externally, so that it will not (nor need) allocate encoding buffer.
+     */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength)
     {
         try {
@@ -49,6 +63,15 @@ public class ChunkEncoderFactory
         }
     }
 
+    /**
+     * Convenience method, equivalent to:
+     *<code>
+     *   return safeInstance(LZFChunk.MAX_CHUNK_LEN);
+     *</code>
+     */
+    public static ChunkEncoder safeInstance() {
+        return safeInstance(LZFChunk.MAX_CHUNK_LEN);
+    }    
     /**
      * Method that can be used to ensure that a "safe" compressor instance is loaded.
      * Safe here means that it should work on any and all Java platforms.
@@ -61,6 +84,10 @@ public class ChunkEncoderFactory
         return new VanillaChunkEncoder(totalLength);
     }
 
+    /**
+     * Factory method for constructing encoder that is always passed buffer
+     * externally, so that it will not (nor need) allocate encoding buffer.
+     */
     public static ChunkEncoder safeNonAllocatingInstance(int totalLength) {
         return VanillaChunkEncoder.nonAllocatingEncoder(totalLength);
     }

@@ -185,7 +185,7 @@ public class LZFEncoder
      * 
      * @since 0.9.7
      */
-    public static int safeEppendEncoded(byte[] input, int inputPtr, int inputLength,
+    public static int safeAppendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
         return appendEncoded(ChunkEncoderFactory.safeNonAllocatingInstance(inputLength),
                 input, inputPtr, inputLength, outputBuffer, outputPtr);
