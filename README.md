@@ -26,15 +26,11 @@ or by block operation:
     byte[] compressed = LZFEncoder.encode(uncompressedData);
     byte[] uncompressed = LZFDecoder.decode(compressedData);
 
-## Use as command-line tool
-
-Note that resulting jar is both an OSGi bundle, and a command-line tool (has manifest that points to 'com.ning.compress.lzf.LZF' as the class having main() method to call).
-
-This means that you can use it like:
+and you can even use the LZF jar as a command-line tool (it has manifest that points to 'com.ning.compress.lzf.LZF' as the class having main() method to call), like so:
 
     java -jar compress-lzf-0.9.6.jar
   
-(which will display necessary usage arguments)
+(which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
 ## Related
 
@@ -42,5 +38,4 @@ Check out [jvm-compress-benchmark](https://github.com/ning/jvm-compressor-benchm
 
 ## More
 
-Check out [Project Wiki](https://github.com/ning/compress/wiki) for more information.
-
+[Project Wiki](https://github.com/ning/compress/wiki).
