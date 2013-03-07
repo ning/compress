@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.impl.VanillaChunkEncoder;
+import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 /**
  * Decorator {@link InputStream} implementation used for
@@ -78,12 +78,21 @@ public class LZFCompressingInputStream extends InputStream
     
     public LZFCompressingInputStream(InputStream in)
     {
+        this(null, in);
+    }
+
+    /**
+     * @since 0.9.8
+     */
+    public LZFCompressingInputStream(final ChunkEncoder encoder, InputStream in)
+    {
+        // may be passed by caller, or could be null
+        _encoder = encoder;
         _inputStream = in;
         _recycler = BufferRecycler.instance();
         _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
         // let's not yet allocate encoding buffer; don't know optimal size
     }
-
 
     /**
      * Method that can be used define whether reads should be "full" or
@@ -251,12 +260,14 @@ public class LZFCompressingInputStream extends InputStream
         }
 
         _bufferPosition = 0;
-
         // Ok: if we don't yet have an encoder (and buffer for it), let's get one
         if (_encoder == null) {
             // need 7 byte header, plus regular max buffer size:
             int bufferLen = chunkLength + ((chunkLength + 31) >> 5) + 7;
-            _encoder = VanillaChunkEncoder.nonAllocatingEncoder(bufferLen);
+            _encoder = ChunkEncoderFactory.optimalNonAllocatingInstance(bufferLen);
+        }
+        if (_encodedBytes == null) {
+            int bufferLen = chunkLength + ((chunkLength + 31) >> 5) + 7;
             _encodedBytes = _recycler.allocEncodingBuffer(bufferLen);
         }
         // offset of 7 so we can prepend header as necessary
