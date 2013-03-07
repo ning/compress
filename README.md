@@ -4,34 +4,27 @@
 
 Ning-compress is a Java library for encoding and decoding data in LZF format, written by Tatu Saloranta (tatu.saloranta@iki.fi)
 
-Data format and algorithm based on original [LZF library](http://freshmeat.net/projects/liblzf) by Marc A Lehmann
+Data format and algorithm based on original [LZF library](http://freshmeat.net/projects/liblzf) by Marc A Lehmann. See [LZF Format](compress/wiki/LZFFormat) for full description.
 
 Format differs slightly from some other adaptations, such as one used by [H2 database project](http://www.h2database.com) (by Thomas Mueller); although internal block compression structure is the same, block identifiers differ.
 This package uses the original LZF identifiers to be 100% compatible with existing command-line lzf tool(s).
 
 LZF alfgorithm itself is optimized for speed, with somewhat more modest compression: compared to Deflate (algorithm gzip uses) LZF can be 5-6 times as fast to compress, and twice as fast to decompress.
 
-## API usage
+## Usage
 
-Both compression and decompression can be done either block-by-block or using Java stream.
-For full details, check out Javadocs from [Wiki](compress/wiki).
+See [Wiki](compress/wiki) for more details; here's a "TL;DNR" version.
 
-When reading compressed data from a file you can do it simply creating a `LZFInputStream` and use it for reading content
+Both compression and decompression can be done either by streaming approach:
 
     InputStream in = new LZFInputStream(new FileInputStream("data.lzf"));
-
-(note, too, that stream is buffered: there is no need to or benefit from using `BufferedInputStream`!)
-
-and similarly you can compress content using `LZFOutputStream`:
-
     OutputStream out = new LZFOutputStream(new FileOutputStream("results.lzf"));
+    InputStream compIn = new LZFCompressingInputStream(new FileInputStream("stuff.txt"));
 
-Compressing and decompressing individual blocks is as simple:
+or by block operation:
 
     byte[] compressed = LZFEncoder.encode(uncompressedData);
     byte[] uncompressed = LZFDecoder.decode(compressedData);
-
-Finally, note that LZF encoded chunks have length of at most 64 kB; longer content will be split into such chunks.
 
 ## Use as command-line tool
 
