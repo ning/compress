@@ -59,7 +59,7 @@ public class VanillaChunkEncoder
   
             // First expected common case: no back-ref (for whatever reason)
             if (ref >= inPos // can't refer forward (i.e. leftovers)
-                    || ref < firstPos // or to previous block
+                    || (ref < firstPos) // or to previous block
                     || (off = inPos - ref) > MAX_OFF
                     || in[ref+2] != p2 // must match hash
                     || in[ref+1] != (byte) (seen >> 8)
