@@ -104,23 +104,17 @@ public class LZFEncoder
     public static byte[] encode(byte[] data, int offset, int length)
     {
         ChunkEncoder enc = ChunkEncoderFactory.optimalInstance(length);
-        try {
-            return encode(enc, data, offset, length);
-        } finally {
-            // important: may be able to reuse buffers
-            enc.close();
-        }
+        byte[] result = encode(enc, data, offset, length);
+        enc.close(); // important for buffer reuse!
+        return result;
     }
 
     public static byte[] safeEncode(byte[] data, int offset, int length)
     {
         ChunkEncoder enc = ChunkEncoderFactory.safeInstance(length);
-        try {
-            return encode(enc, data, offset, length);
-        } finally {
-            // important: may be able to reuse buffers
-            enc.close();
-        }
+        byte[] result = encode(enc, data, offset, length);
+        enc.close();
+        return result;
     }    
 
     public static byte[] encode(ChunkEncoder enc, byte[] data, int length) {
@@ -176,8 +170,10 @@ public class LZFEncoder
      */
     public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
-        return appendEncoded(ChunkEncoderFactory.optimalNonAllocatingInstance(inputLength),
-                input, inputPtr, inputLength, outputBuffer, outputPtr);
+        ChunkEncoder enc = ChunkEncoderFactory.optimalNonAllocatingInstance(inputLength);
+        int len = appendEncoded(enc, input, inputPtr, inputLength, outputBuffer, outputPtr);
+        enc.close();
+        return len;
     }
 
     /**
@@ -187,8 +183,10 @@ public class LZFEncoder
      */
     public static int safeAppendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
-        return appendEncoded(ChunkEncoderFactory.safeNonAllocatingInstance(inputLength),
-                input, inputPtr, inputLength, outputBuffer, outputPtr);
+        ChunkEncoder enc = ChunkEncoderFactory.safeNonAllocatingInstance(inputLength);
+        int len = appendEncoded(enc, input, inputPtr, inputLength, outputBuffer, outputPtr);
+        enc.close();
+        return len;
     }
     
     /**
