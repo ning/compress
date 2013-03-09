@@ -12,9 +12,10 @@ public class ManualCompressComparison
 {
     protected int size = 0;
     
-    private void test(String[] names, byte[][] docs, int totalSize) throws Exception
+    private void test(String[] names, byte[][] docs, int workSize, int totalSize) throws Exception
     {
         final int DOC_COUNT = docs.length;
+        final byte[] WORKSPACE = new byte[totalSize];
 
         // Let's try to guestimate suitable size... to get to 10 megs to process
         // but, with more docs, give more time
@@ -35,7 +36,6 @@ public class ManualCompressComparison
         // But first, validate!
         _preValidate(docs);
         int[] msecs = new int[DOC_COUNT];
-        boolean roundDone = false;
 
         for (;; ++roundTotal) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
@@ -47,22 +47,24 @@ public class ManualCompressComparison
 
             case 0:
                 msg = "LZF-Unsafe compress/block";
-                msec = testLZFUnsafeCompress(REPS, docs, msecs);
-                break;
-            case 1:
-                msg = "LZF compress/block";
-                msec = testLZFSafeCompress(REPS, docs, msecs);
-                roundDone = true;
+                msec = testLZFUnsafeCompress(REPS, docs, WORKSPACE, msecs);
                 break;
                 /*
             case 1:
-                msg = "LZF compress/stream";
-                msec = testLZFCompressStream(REPS, _lzfEncoded, msecs);
+                msg = "LZF compress/block";
+                msec = testLZFSafeCompress(REPS, docs, WORKSPACE, msecs);
+                roundDone = true;
                 break;
                 */
+            case 1:
+                msg = "LZF compress/stream";
+                msec = testLZFCompressStream(REPS, docs, msecs);
+                break;
             default:
                 throw new Error();
             }
+            
+            boolean roundDone = (round == 1);
             
             // skip first 5 rounds to let results stabilize
             if (roundsDone >= WARMUP_ROUNDS) {
@@ -159,35 +161,39 @@ public class ManualCompressComparison
         }
     }
     
-    protected final long testLZFSafeCompress(int REPS, byte[][] inputs, int[] msecs) throws Exception
+    protected final long testLZFSafeCompress(int REPS, byte[][] inputs,
+            final byte[] WORKSPACE, int[] msecs) throws Exception
     {
         size = 0;
         final long mainStart = System.currentTimeMillis();
         for (int i = 0, len = inputs.length; i < len; ++i) {
             final long start = System.currentTimeMillis();
-            byte[] comp = null;
             int reps = REPS;
+            int bytes = 0;
             while (--reps >= 0) {
-                comp = LZFEncoder.safeEncode(inputs[i]);
+                final byte[] input = inputs[i];
+                bytes = LZFEncoder.safeAppendEncoded(input, 0, input.length, WORKSPACE, 0);
             }
-            size += comp.length;
+            size += bytes;
             msecs[i] = (int) (System.currentTimeMillis() - start);
         }
         return System.currentTimeMillis() - mainStart;
     }
 
-    protected final long testLZFUnsafeCompress(int REPS, byte[][] inputs, int[] msecs) throws Exception
+    protected final long testLZFUnsafeCompress(int REPS, byte[][] inputs,
+            final byte[] WORKSPACE, int[] msecs) throws Exception
     {
         size = 0;
         final long mainStart = System.currentTimeMillis();
         for (int i = 0, len = inputs.length; i < len; ++i) {
             final long start = System.currentTimeMillis();
-            byte[] comp = null;
             int reps = REPS;
+            int bytes = 0;
             while (--reps >= 0) {
-                comp = LZFEncoder.encode(inputs[i]);
+                final byte[] input = inputs[i];
+                bytes = LZFEncoder.appendEncoded(input, 0, input.length, WORKSPACE, 0);
             }
-            size += comp.length;
+            size += bytes;
             msecs[i] = (int) (System.currentTimeMillis() - start);
         }
         return System.currentTimeMillis() - mainStart;
@@ -223,6 +229,8 @@ public class ManualCompressComparison
         byte[][] data = new byte[args.length][];
         String[] names = new String[args.length];
         int totalSize = 0;
+        int maxSize = 0;
+        
         for (int i = 0; i < args.length; ++i) {
             File f = new File(args[i]);
             names[i] = f.getName();
@@ -236,9 +244,11 @@ public class ManualCompressComparison
             }
             in.close();
             data[i] = bytes.toByteArray();
-            totalSize += data[i].length;
+            final int len = data[i].length;
+            totalSize += len;
+            maxSize = Math.max(maxSize, LZFEncoder.estimateMaxWorkspaceSize(len));
         }
-        new ManualCompressComparison().test(names, data, totalSize);
+        new ManualCompressComparison().test(names, data, maxSize, totalSize);
     }
 
     private final static class BogusOutputStream extends OutputStream
