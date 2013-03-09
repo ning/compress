@@ -15,8 +15,9 @@ public class TestLZFRoundTrip
         "/shakespeare/hamlet.xml",
         "/shakespeare/macbeth.xml",
         "/shakespeare/play.dtd",
-        "/shakespeare/r_and_j.xml",
-        "/binary-help.bin"
+        "/shakespeare/r_and_j.xml"
+        ,"/binary/help.bin"
+        ,"/binary/word.doc"
     };
     
     @Test 
@@ -101,7 +102,8 @@ public class TestLZFRoundTrip
             byte[] decoded = decoder.decode(lzf);
 
             Assert.assertEquals(decoded.length,  data.length);
-            Assert.assertEquals(decoded,  data);
+            Assert.assertEquals(decoded,  data,
+            		String.format("File '%s', %d->%d bytes", name, data.length, lzf.length));
         }
     }
 
