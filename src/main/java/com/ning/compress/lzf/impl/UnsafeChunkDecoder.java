@@ -112,13 +112,19 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             // long back reference: 3 bytes, length of up to 264 bytes
             len = in[inPos++] & 255;
             ctrl -= in[inPos++] & 255;
-            // First: ovelapping case can't use default handling, off line:
-            if (ctrl >= -9 || (outPos > outputEnd32)) {
-                outPos = copyOverlappingLong(out, outPos, ctrl, len);
+            len += 9;
+            // First: ovelapping case can't use default handling, off line.
+            /* 08-Mar-2013, tatu: Not sure what gives, but overlapping does not
+             *   work well at all, even at seemingly amounts. So while offsets
+             *   beyond -9 _SHOULD_ work (no overlap per individual copy of 8-byte
+             *   longs), this is not true. So we better just avoid using fast
+             *   copy for any amount of overlap it seems.
+             */
+            if ((ctrl + len) > 0 || (outPos > outputEnd32)) {
+                outPos = copyOverlappingLong(out, outPos, ctrl, len-9);
                 continue;
             }
             // but non-overlapping is simple
-            len += 9;
             if (len <= 32) {
                 copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
                 outPos += len;

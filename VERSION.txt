@@ -1,16 +1,19 @@
-0.9.7:
+0.9.8 (...)
 
-* #23 Add UnsafeChunkEncoder that uses 'sun.misc.Unsafe' for additional Oomph.
+#24: Problems uncompressing certain types of binary documents
+
+0.9.7 (06-Mar-2013)
+
+#23: Add UnsafeChunkEncoder that uses 'sun.misc.Unsafe' for additional Oomph.
 * Add LZFEncoder.estimateMaxWorkspaceSize() to help allocate work buffers.
-* [Issue#22] Add method(s) to allow encoding into caller-provided (pre-allocated)
- buffer.
+#22: Add method(s) to allow encoding into caller-provided (pre-allocated) buffer.
 
 0.9.6 (05-Sep-2012)
 
-* [Issue#17] Add IOException subtypes 'LZFException' and 'GZIPException' (with
+#17: Add IOException subtypes 'LZFException' and 'GZIPException' (with
   common supertype of 'CompressionFormatException) to allow for better
   catching of decompression errors
-* [Issue#19] (more) Efficient skipping with LZFInputStream, LZFFileInputStream;
+#19: (more) Efficient skipping with LZFInputStream, LZFFileInputStream;
   can skip full chunks without decoding -- much faster (as per simple tests)
 
 0.9.5 (25-May-2012)
