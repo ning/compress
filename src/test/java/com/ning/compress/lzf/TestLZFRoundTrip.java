@@ -15,7 +15,8 @@ public class TestLZFRoundTrip
         "/shakespeare/hamlet.xml",
         "/shakespeare/macbeth.xml",
         "/shakespeare/play.dtd",
-        "/shakespeare/r_and_j.xml"
+        "/shakespeare/r_and_j.xml",
+        "/binary-help.bin"
     };
     
     @Test 
