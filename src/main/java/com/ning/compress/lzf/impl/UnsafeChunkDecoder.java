@@ -110,27 +110,20 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 continue;
             }
             // long back reference: 3 bytes, length of up to 264 bytes
-            len = in[inPos++] & 255;
+            len = (in[inPos++] & 255) + 9;
             ctrl -= in[inPos++] & 255;
-            len += 9;
             // First: ovelapping case can't use default handling, off line.
-            /* 08-Mar-2013, tatu: Not sure what gives, but overlapping does not
-             *   work well at all, even at seemingly amounts. So while offsets
-             *   beyond -9 _SHOULD_ work (no overlap per individual copy of 8-byte
-             *   longs), this is not true. So we better just avoid using fast
-             *   copy for any amount of overlap it seems.
-             */
-            if ((ctrl + len) > 0 || (outPos > outputEnd32)) {
+            if ((ctrl > -9) || (outPos > outputEnd32)) {
                 outPos = copyOverlappingLong(out, outPos, ctrl, len-9);
                 continue;
             }
             // but non-overlapping is simple
             if (len <= 32) {
-                copyUpTo32(out, outPos+ctrl, out, outPos, len-1);
+                copyUpTo32(out, outPos+ctrl, outPos, len-1);
                 outPos += len;
                 continue;
             }
-            copyLong(out, outPos+ctrl, out, outPos, len, outputEnd32);
+            copyLong(out, outPos+ctrl, outPos, len, outputEnd32);
             outPos += len;
         } while (outPos < outEnd);
 
@@ -240,16 +233,28 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         return outPos;
     }
 
-    /* Note: 'delta' is negative (back ref); dataEnd is the first location AFTER
-     * end of expected uncompressed data (i.e. end marker)
-     */
-    /*
-    private final static void moveLong(byte[] data, int resultOffset, int dataEnd, int delta)
+    private final static void copyUpTo32(byte[] buffer, int inputIndex, int outputIndex, int lengthMinusOne)
     {
-        final long rawOffset = BYTE_ARRAY_OFFSET + resultOffset;
-        unsafe.putLong(data, rawOffset, unsafe.getLong(data, rawOffset + delta));
+        long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
+        long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
+
+        unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
+        if (lengthMinusOne > 7) {
+            inPtr += 8;
+            outPtr += 8;
+            unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
+            if (lengthMinusOne > 15) {
+                inPtr += 8;
+                outPtr += 8;
+                unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
+                if (lengthMinusOne > 23) {
+                    inPtr += 8;
+                    outPtr += 8;
+                    unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
+                }
+            }
+        }
     }
-    */
 
     private final static void copyUpTo32(byte[] in, int inputIndex, byte[] out, int outputIndex, int lengthMinusOne)
     {
@@ -272,45 +277,34 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 }
             }
         }
-    }
-
-    private final static void copyLong(byte[] in, int inputIndex, byte[] out, int outputIndex, int length,
+    }    
+    private final static void copyLong(byte[] buffer, int inputIndex, int outputIndex, int length,
             int outputEnd8)
     {
         if ((outputIndex + length) > outputEnd8) {
-            System.arraycopy(in, inputIndex, out, outputIndex, length);
+        	copyLongTail(buffer, inputIndex,outputIndex, length);
             return;
         }
         long inPtr = BYTE_ARRAY_OFFSET + inputIndex;
         long outPtr = BYTE_ARRAY_OFFSET + outputIndex;
 
-        // We have minimum of 32 bytes bulk, so:
-        /*
-        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
-        inPtr += 8;
-        outPtr += 8;
-        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
-        inPtr += 8;
-        outPtr += 8;
-        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
-        inPtr += 8;
-        outPtr += 8;
-        unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
-        inPtr += 8;
-        outPtr += 8;
-        length -= 32;
-        */
-
         while (length >= 8) {
-            unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+            unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
             inPtr += 8;
             outPtr += 8;
             length -= 8;
         }
         if (length > 4) {
-            unsafe.putLong(out, outPtr, unsafe.getLong(in, inPtr));
+            unsafe.putLong(buffer, outPtr, unsafe.getLong(buffer, inPtr));
         } else if (length > 0) {
-            unsafe.putInt(out, outPtr, unsafe.getInt(in, inPtr));
+            unsafe.putInt(buffer, outPtr, unsafe.getInt(buffer, inPtr));
         }
+    }
+
+    private final static void copyLongTail(byte[] buffer, int inputIndex, int outputIndex, int length)
+    {
+    	for (final int inEnd = inputIndex + length; inputIndex < inEnd; ) {
+    		buffer[outputIndex++] = buffer[inputIndex++];
+    	}
     }
 }

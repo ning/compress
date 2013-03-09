@@ -3,7 +3,6 @@ package perf;
 import java.io.*;
 
 import com.ning.compress.lzf.*;
-import com.ning.compress.lzf.impl.UnsafeLZFEncoder;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 
 /**
@@ -33,7 +32,7 @@ public class ManualUncompressComparison
         System.out.println("Read "+input.length+" bytes to compress, uncompress; will do "+REPS+" repetitions");
 
         // But first, validate!
-        _preValidate(input);
+        _preValidate(_lzfEncoded);
         
         while (true) {
             try {  Thread.sleep(100L); } catch (InterruptedException ie) { }
@@ -91,37 +90,19 @@ public class ManualUncompressComparison
         }
     }
 
-    protected void _preValidate(byte[] input) throws LZFException
+    protected void _preValidate(byte[] compressed) throws LZFException
     {
-        byte[] encoded1 = LZFEncoder.encode(input);
-        byte[] encoded2 = UnsafeLZFEncoder.encode(input);
+        byte[] decoded1 = LZFDecoder.decode(compressed);
+        byte[] decoded2 = LZFDecoder.safeDecode(compressed);
 
-        if (encoded1.length == encoded2.length) {
-            for (int i = 0, len = encoded1.length; i < len; ++i) {
-                if (encoded1[i] != encoded2[i]) {
-                    throw new IllegalStateException("Compressed contents differ at "+i+"/"+len);
+        if (decoded1.length == decoded2.length) {
+            for (int i = 0, len = decoded1.length; i < len; ++i) {
+                if (decoded1[i] != decoded2[i]) {
+                    throw new IllegalStateException("Uncompressed contents differ at "+i+"/"+len);
                 }
             }
         } else {
-            // Actually, let's allow some slack...
-            int diff = Math.abs(encoded1.length - encoded2.length);
-            // 1/256 seems fine (but at least 16)
-            int maxDiff = Math.max(16, encoded1.length >> 8);
-            if (diff > maxDiff) {
-               throw new IllegalStateException("Compressed contents differ by more than "+maxDiff+" bytes: expected "+encoded1.length+", got "+encoded2.length);
-            }
-            System.err.printf("WARN: sizes differ slightly, %d vs %s (old/new)\n", encoded1.length, encoded2.length);
-        } 
-        // uncompress too
-        byte[] output1 = LZFDecoder.decode(encoded1);
-        byte[] output2 = LZFDecoder.decode(encoded2);
-        if (output1.length != output2.length) {
-            throw new IllegalStateException("Uncompressed contents differ!");
-        }
-        for (int i = 0, len = output1.length; i < len; ++i) {
-            if (output1[i] != output2[i]) {
-                throw new IllegalStateException("Uncompressed contents differ at "+i+"/"+len);
-            }
+        	throw new IllegalStateException("Uncompressed content lengths diff: expected "+decoded1.length+", got "+decoded2.length);
         }
     }
 
