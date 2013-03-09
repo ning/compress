@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.impl.UnsafeLZFEncoder;
 
 /**
  * Class that handles actual encoding of individual chunks.
@@ -134,7 +133,7 @@ public abstract class ChunkEncoder
      * Method to close once encoder is no longer in use. Note: after calling
      * this method, further calls to {@link #encodeChunk} will fail
      */
-//    @Override
+    @Override
     public final void close()
     {
         byte[] buf = _encodeBuffer;
@@ -171,7 +170,7 @@ public abstract class ChunkEncoder
      * pre-allocated buffer. Note that caller must ensure that the buffer is
      * large enough to hold not just encoded result but also intermediate
      * result; latter may be up to 4% larger than input; caller may use
-     * {@link UnsafeLZFEncoder#estimateMaxWorkspaceSize(int)} to calculate
+     * {@link LZFEncoder#estimateMaxWorkspaceSize(int)} to calculate
      * necessary buffer size.
      * 
      * @return Offset in output buffer after appending the encoded chunk

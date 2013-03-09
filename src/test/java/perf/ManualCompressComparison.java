@@ -3,7 +3,6 @@ package perf;
 import java.io.*;
 
 import com.ning.compress.lzf.*;
-import com.ning.compress.lzf.impl.UnsafeLZFEncoder;
 
 /**
  * Simple manual performance micro-benchmark that compares compress and
@@ -95,7 +94,7 @@ public class ManualCompressComparison
     protected void _preValidate(byte[] input) throws LZFException
     {
         byte[] encoded1 = LZFEncoder.encode(input);
-        byte[] encoded2 = UnsafeLZFEncoder.encode(input);
+        byte[] encoded2 = LZFEncoder.safeEncode(input);
 
         if (encoded1.length == encoded2.length) {
             for (int i = 0, len = encoded1.length; i < len; ++i) {
@@ -142,7 +141,7 @@ public class ManualCompressComparison
         long start = System.currentTimeMillis();
         byte[] comp = null;
         while (--REPS >= 0) {
-            comp = UnsafeLZFEncoder.encode(input);
+            comp = LZFEncoder.encode(input);
         }
         size = comp.length;
         return System.currentTimeMillis() - start;
