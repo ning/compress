@@ -1,6 +1,7 @@
-0.9.8 (...)
+0.9.8 (09-Mar-2013
 
 #24: Problems uncompressing certain types of binary documents
+- Minor perf improvement for 'appendEncoded', was not reusing buffers
 
 0.9.7 (06-Mar-2013)
 
