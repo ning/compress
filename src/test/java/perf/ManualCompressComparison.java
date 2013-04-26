@@ -12,14 +12,25 @@ public class ManualCompressComparison
 {
     protected int size = 0;
     
-    private void test(String[] names, byte[][] docs, int workSize, int totalSize) throws Exception
+    protected int totalSize;
+    protected int REPS;
+
+    // 10 megs per cycle
+    protected final static int PER_ITERATION_LENGTH = 10 * 1000 * 1000;
+
+    private ManualCompressComparison(int totalSize)
+    {
+        this.totalSize = totalSize;
+    }
+
+    private void test(String[] names, byte[][] docs, int workSize) throws Exception
     {
         final int DOC_COUNT = docs.length;
         final byte[] WORKSPACE = new byte[totalSize];
 
         // Let's try to guestimate suitable size... to get to 10 megs to process
         // but, with more docs, give more time
-        final int REPS = Math.max(1, (int) ((double) (10 * 1000 * 1000 * Math.sqrt(DOC_COUNT)) / (double) totalSize));
+        REPS = Math.max(1, (int) ((double) (PER_ITERATION_LENGTH * Math.sqrt(DOC_COUNT)) / (double) totalSize));
 
 //        final int TYPES = 1;
         final int TYPES = 2;
@@ -31,7 +42,8 @@ public class ManualCompressComparison
             times[i] = new long[TYPES];
         }
         
-        System.out.println("Read "+totalSize+" bytes to compress, uncompress; will do "+REPS+" repetitions");
+        System.out.printf("Read %d bytes to compress, uncompress; will do %d repetitions, %.1f MB per round\n",
+                totalSize, REPS, (REPS * totalSize) / 1000000.0);
 
         // But first, validate!
         _preValidate(docs);
@@ -47,7 +59,7 @@ public class ManualCompressComparison
 
             case 0:
                 msg = "LZF-Unsafe compress/block";
-                msec = testLZFUnsafeCompress(REPS, docs, WORKSPACE, msecs);
+                msec = testLZFUnsafeCompress(docs, WORKSPACE, msecs);
                 break;
                 /*
             case 1:
@@ -58,7 +70,7 @@ public class ManualCompressComparison
                 */
             case 1:
                 msg = "LZF compress/stream";
-                msec = testLZFCompressStream(REPS, docs, msecs);
+                msec = testLZFCompressStream(docs, msecs);
                 break;
             default:
                 throw new Error();
@@ -113,14 +125,26 @@ public class ManualCompressComparison
         System.out.println();
         // then totals
         System.out.printf("  for a total of: ");
-        for (int i = 0; i < totals.length; ++i){
+        // first, msecs
+        for (int i = 0; i < totals.length; ++i) {
             if (i > 0) {
                 System.out.print('/');
             }
             double msecs = totals[i];
             System.out.printf("%.1f", msecs);
         }
-        System.out.println();
+        System.out.print(" msecs; ");
+        // then throughput
+        for (int i = 0; i < totals.length; ++i) {
+            if (i > 0) {
+                System.out.print('/');
+            }
+            double msecs = totals[i];
+            double bytes = (REPS * totalSize);
+            // msecs-to-seconds, x1000; bytes to megabytes, /1M
+            System.out.printf("%.1f", (bytes / msecs) / 1000.0);
+        }
+        System.out.println(" MB/s");
     }
     
     protected void _preValidate(byte[][] inputs) throws LZFException
@@ -161,7 +185,7 @@ public class ManualCompressComparison
         }
     }
     
-    protected final long testLZFSafeCompress(int REPS, byte[][] inputs,
+    protected final long testLZFSafeCompress(byte[][] inputs,
             final byte[] WORKSPACE, int[] msecs) throws Exception
     {
         size = 0;
@@ -180,7 +204,7 @@ public class ManualCompressComparison
         return System.currentTimeMillis() - mainStart;
     }
 
-    protected final long testLZFUnsafeCompress(int REPS, byte[][] inputs,
+    protected final long testLZFUnsafeCompress(byte[][] inputs,
             final byte[] WORKSPACE, int[] msecs) throws Exception
     {
         size = 0;
@@ -199,7 +223,7 @@ public class ManualCompressComparison
         return System.currentTimeMillis() - mainStart;
     }
     
-    protected final long testLZFCompressStream(int REPS, byte[][] inputs, int[] msecs) throws Exception
+    protected final long testLZFCompressStream(byte[][] inputs, int[] msecs) throws Exception
     {
         size = 0;
         final long mainStart = System.currentTimeMillis();
@@ -248,7 +272,7 @@ public class ManualCompressComparison
             totalSize += len;
             maxSize = Math.max(maxSize, LZFEncoder.estimateMaxWorkspaceSize(len));
         }
-        new ManualCompressComparison().test(names, data, maxSize, totalSize);
+        new ManualCompressComparison(totalSize).test(names, data, maxSize);
     }
 
     private final static class BogusOutputStream extends OutputStream
