@@ -114,9 +114,11 @@ public class TestGzipUncompressor extends BaseForTests
     {
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 
+        @Override
         public void handleData(byte[] buffer, int offset, int len) throws IOException {
             bytes.write(buffer, offset, len);
         }
+        @Override
         public void allDataHandled() throws IOException { }
         public byte[] getBytes() { return bytes.toByteArray(); }
     }
