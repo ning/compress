@@ -69,6 +69,12 @@ public class LZFUncompressor extends Uncompressor
     protected int _state = STATE_INITIAL;
 
     /**
+     * Flag set if {@link DataHandler} indicates that processing should be
+     * terminated.
+     */
+    protected boolean _terminated;
+    
+    /**
      * Number of bytes in current, compressed block
      */
     protected int _compressedLength;
@@ -120,7 +126,7 @@ public class LZFUncompressor extends Uncompressor
      */
     
     @Override
-    public void feedCompressedData(byte[] comp, int offset, int len) throws IOException
+    public boolean feedCompressedData(byte[] comp, int offset, int len) throws IOException
     {
         final int end = offset + len;
         
@@ -221,6 +227,9 @@ public class LZFUncompressor extends Uncompressor
                 // fall through
             case STATE_HEADER_UNCOMPRESSED_STREAMING:
                 offset = _handleUncompressed(comp, --offset, end);
+                if (_terminated) {
+                    break;
+                }
                 // All done?
                 if (_bytesReadFromBlock == _uncompressedLength) {
                     _state = STATE_INITIAL;
@@ -228,6 +237,7 @@ public class LZFUncompressor extends Uncompressor
                 break;
             }
         }
+        return !_terminated;
     }
 
     @Override
@@ -245,16 +255,18 @@ public class LZFUncompressor extends Uncompressor
         }
         // 24-May-2012, tatu: Should we call this here; or fail with exception?
         _handler.allDataHandled();
-        if (_state != STATE_INITIAL) {
-            if (_state == STATE_HEADER_COMPRESSED_BUFFERING) {
-                throw new LZFException("Incomplete compressed LZF block; only got "+_bytesReadFromBlock
-                        +" bytes, needed "+_compressedLength);
+        if (!_terminated) {
+            if (_state != STATE_INITIAL) {
+                if (_state == STATE_HEADER_COMPRESSED_BUFFERING) {
+                    throw new LZFException("Incomplete compressed LZF block; only got "+_bytesReadFromBlock
+                            +" bytes, needed "+_compressedLength);
+                }
+                if (_state == STATE_HEADER_UNCOMPRESSED_STREAMING) {
+                    throw new LZFException("Incomplete uncompressed LZF block; only got "+_bytesReadFromBlock
+                            +" bytes, needed "+_uncompressedLength);
+                }
+                throw new LZFException("Incomplete LZF block; decoding state = "+_state);
             }
-            if (_state == STATE_HEADER_UNCOMPRESSED_STREAMING) {
-                throw new LZFException("Incomplete uncompressed LZF block; only got "+_bytesReadFromBlock
-                        +" bytes, needed "+_uncompressedLength);
-            }
-            throw new LZFException("Incomplete LZF block; decoding state = "+_state);
         }
     }
 
@@ -268,12 +280,13 @@ public class LZFUncompressor extends Uncompressor
     {
         // Simple, we just do pass through...
         int amount = Math.min(end-offset, _uncompressedLength-_bytesReadFromBlock);
-        _handler.handleData(comp, offset, amount);
+        if (!_handler.handleData(comp, offset, amount)) {
+            _terminated = true;
+        }
         _bytesReadFromBlock += amount;
         return offset + amount;
     }
 
-    
     private final int _handleCompressed(byte[] comp, int offset, int end) throws IOException
     {
         // One special case: if we get the whole block, can avoid buffering:

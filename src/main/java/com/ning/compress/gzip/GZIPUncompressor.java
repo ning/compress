@@ -131,6 +131,11 @@ public class GZIPUncompressor extends Uncompressor
      */
     protected int _state = STATE_INITIAL;
 
+    /**
+     * Flag set if {@link DataHandler} indicates that processing should be
+     * terminated.
+     */
+    protected boolean _terminated;
 
     /**
      * Header flags read from gzip header
@@ -187,14 +192,18 @@ public class GZIPUncompressor extends Uncompressor
      */
 
     @Override
-    public void feedCompressedData(byte[] comp, int offset, int len) throws IOException
+    public boolean feedCompressedData(byte[] comp, int offset, int len) throws IOException
     {
+        if (_terminated) {
+            return false;
+        }
+        
         final int end = offset + len;
         if (_state != STATE_BODY) {
             if (_state < STATE_TRAILER_INITIAL) { // header
                 offset = _handleHeader(comp, offset, end);
                 if (offset >= end) { // not fully handled yet
-                    return;
+                    return true;
                 }
                 // fall through to body
             } else { // trailer
@@ -203,7 +212,7 @@ public class GZIPUncompressor extends Uncompressor
                     _throwInternal();
                 }
                 // either way, we are done
-                return;
+                return true;
             }
         }
 
@@ -213,7 +222,7 @@ public class GZIPUncompressor extends Uncompressor
             if (_inflater.needsInput()) {
                 final int left = end-offset;
                 if (left < 1) { // need input but nothing to give, leve
-                    return;
+                    return true;
                 }
                 final int amount = Math.min(left, _inputChunkLength);
                 _inflater.setInput(comp, offset, amount);
@@ -231,7 +240,10 @@ public class GZIPUncompressor extends Uncompressor
                     break;
                 }
                 _crc.update(_decodeBuffer, 0, decoded);
-                _handler.handleData(_decodeBuffer, 0, decoded);
+                if (!_handler.handleData(_decodeBuffer, 0, decoded)) {
+                    _terminated = true;
+                    return false;
+                }
             }
             if (_inflater.finished() || _inflater.needsDictionary()) {
                 _state = STATE_TRAILER_INITIAL;
@@ -249,6 +261,7 @@ public class GZIPUncompressor extends Uncompressor
         if (offset < end) { // sanity check
             _throwInternal();
         }
+        return !_terminated;
     }
 
     @Override
@@ -266,14 +279,16 @@ public class GZIPUncompressor extends Uncompressor
         }
         // 24-May-2012, tatu: Should we call this here; or fail with exception?
         _handler.allDataHandled();
-        if (_state != STATE_INITIAL) {
-            if (_state >= STATE_TRAILER_INITIAL) {
-                if (_state == STATE_BODY) {
-                    throw new GZIPException("Invalid GZIP stream: end-of-input in the middle of compressed data");
+        if (!_terminated) {
+            if (_state != STATE_INITIAL) {
+                if (_state >= STATE_TRAILER_INITIAL) {
+                    if (_state == STATE_BODY) {
+                        throw new GZIPException("Invalid GZIP stream: end-of-input in the middle of compressed data");
+                    }
+                    throw new GZIPException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
                 }
-                throw new GZIPException("Invalid GZIP stream: end-of-input in the trailer (state: "+_state+")");
+                throw new GZIPException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
             }
-            throw new GZIPException("Invalid GZIP stream: end-of-input in header (state: "+_state+")");
         }
     }
 

@@ -1,3 +1,7 @@
+0.9.9 (xx-xxx-2013)
+
+#25: Allow early termination of push-style `Uncompressor` operation
+
 0.9.8 (09-Mar-2013)
 
 #24: Problems uncompressing certain types of binary documents

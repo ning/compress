@@ -101,8 +101,9 @@ public class TestLZFUncompressor extends BaseForTests
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 
         @Override
-        public void handleData(byte[] buffer, int offset, int len) throws IOException {
+        public boolean handleData(byte[] buffer, int offset, int len) throws IOException {
             bytes.write(buffer, offset, len);
+            return true;
         }
         @Override
         public void allDataHandled() throws IOException { }
