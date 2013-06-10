@@ -1,6 +1,7 @@
 package perf;
 
 import java.io.*;
+import java.util.zip.DeflaterOutputStream;
 
 import com.ning.compress.gzip.OptimizedGZIPOutputStream;
 import com.ning.compress.lzf.*;
@@ -59,10 +60,15 @@ public class ManualCompressComparison
             switch (round) {
 
             case 0:
-                msg = "GZIP compress/stream";
-                msec = testGzipStreamCompress(docs, msecs);
+                msg = "GZIP compress/stream/NING";
+                msec = testGzipCompressNing(docs, msecs);
                 break;
-            
+
+            case 1:
+                msg = "GZIP compress/stream/JDK";
+                msec = testGzipCompressJDK(docs, msecs);
+                break;
+                
             /*
             case 0:
                 msg = "LZF-Unsafe compress/block";
@@ -252,8 +258,7 @@ public class ManualCompressComparison
         return System.currentTimeMillis() - mainStart;
     }
 
-    protected final long testGzipStreamCompress(byte[][] inputs, int[] msecs)
-            throws Exception
+    protected final long testGzipCompressNing(byte[][] inputs, int[] msecs) throws IOException
     {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream(8000);
         size = 0;
@@ -266,6 +271,28 @@ public class ManualCompressComparison
             while (--reps >= 0) {
                 bytes.reset();
                 OptimizedGZIPOutputStream out = new OptimizedGZIPOutputStream(bytes);
+                out.write(inputs[i]);
+                out.close();
+            }                
+            size += bytes.size();
+            msecs[i] = (int) (System.currentTimeMillis() - start);
+        }
+        return System.currentTimeMillis() - mainStart;
+    }
+
+    protected final long testGzipCompressJDK(byte[][] inputs, int[] msecs) throws IOException
+    {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(8000);
+        size = 0;
+        final long mainStart = System.currentTimeMillis();
+        for (int i = 0, len = inputs.length; i < len; ++i) {
+            bytes.reset();
+            final long start = System.currentTimeMillis();
+
+            int reps = REPS;
+            while (--reps >= 0) {
+                bytes.reset();
+                DeflaterOutputStream out = new DeflaterOutputStream(bytes);
                 out.write(inputs[i]);
                 out.close();
             }                
@@ -306,7 +333,7 @@ public class ManualCompressComparison
         new ManualCompressComparison(totalSize).test(names, data, maxSize);
     }
 
-    private final static class BogusOutputStream extends OutputStream
+    protected final static class BogusOutputStream extends OutputStream
     {
         protected int _bytes;
         
