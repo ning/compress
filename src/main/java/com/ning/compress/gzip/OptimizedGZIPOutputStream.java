@@ -78,7 +78,7 @@ public class OptimizedGZIPOutputStream
         // write header:
         _rawOut.write(DEFAULT_HEADER);
         _deflater = _gzipRecycler.allocDeflater();
-        _deflaterOut = new DeflaterOutputStream(_rawOut, _deflater, 512);
+        _deflaterOut = new DeflaterOutputStream(_rawOut, _deflater, 4000);
         _crc = new CRC32();
     }
     
