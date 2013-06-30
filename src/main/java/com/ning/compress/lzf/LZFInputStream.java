@@ -69,11 +69,6 @@ public class LZFInputStream extends InputStream
      */
     protected int _bufferLength = 0;
 
-    /**
-     * Number of bytes read from the underlying {@link #_inputStream} 
-     */
-    protected int _readCount = 0;
-    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Construction
@@ -171,20 +166,20 @@ public class LZFInputStream extends InputStream
         if (length < 1) {
             return 0;
         }
-    	if (!readyBuffer()) {
-    	    return -1;
-    	}
-    	// First let's read however much data we happen to have...
-    	int chunkLength = Math.min(_bufferLength - _bufferPosition, length);
-    	System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
-    	_bufferPosition += chunkLength;
+        if (!readyBuffer()) {
+            return -1;
+        }
+        // First let's read however much data we happen to have...
+        int chunkLength = Math.min(_bufferLength - _bufferPosition, length);
+        System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
+        _bufferPosition += chunkLength;
 
-    	if (chunkLength == length || !_cfgFullReads) {
-    	    return chunkLength;
-    	}
-    	// Need more data, then
-    	int totalRead = chunkLength;
-    	do {
+        if (chunkLength == length || !_cfgFullReads) {
+            return chunkLength;
+        }
+        // Need more data, then
+        int totalRead = chunkLength;
+        do {
             offset += chunkLength;
             if (!readyBuffer()) {
                 break;
@@ -193,9 +188,8 @@ public class LZFInputStream extends InputStream
             System.arraycopy(_decodedBytes, _bufferPosition, buffer, offset, chunkLength);
             _bufferPosition += chunkLength;
             totalRead += chunkLength;
-    	} while (totalRead < length);
-
-    	return totalRead;
+        } while (totalRead < length);
+        return totalRead;
     }
     
     @Override
