@@ -1,6 +1,8 @@
 package com.ning.compress;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Random;
 
 import com.ning.compress.lzf.LZFDecoder;
@@ -10,7 +12,7 @@ import com.ning.compress.lzf.LZFException;
 public class BaseForTests
 {
     private final static byte[] ABCD = new byte[] { 'a', 'b', 'c', 'd' };
-    
+
     protected byte[] constructFluff(int length)
     {
         Random rnd = new Random(length);
@@ -48,10 +50,10 @@ public class BaseForTests
 
     protected byte[] readAll(InputStream in) throws IOException
     {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream(1000);
-        byte[] buf = new byte[1000];
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(1024);
+        byte[] buf = new byte[1024];
         int count;
-        
+
         while ((count = in.read(buf)) > 0) {
             bytes.write(buf, 0, count);
         }
@@ -66,7 +68,7 @@ public class BaseForTests
     protected byte[] compress(byte[] input, int offset, int len) {
         return LZFEncoder.encode(input, offset, len);
     }
-    
+
     protected byte[] uncompress(byte[] input) throws LZFException {
         return LZFDecoder.safeDecode(input);
     }
