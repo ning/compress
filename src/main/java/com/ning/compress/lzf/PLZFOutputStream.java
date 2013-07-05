@@ -1,11 +1,20 @@
 package com.ning.compress.lzf;
 
+import java.io.FileInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-
-import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.util.ChunkEncoderFactory;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Decorator {@link OutputStream} implementation that will compress
@@ -13,30 +22,23 @@ import com.ning.compress.lzf.util.ChunkEncoderFactory;
  * to write. Its counterpart is {@link LZFInputStream}; although
  * in some ways {@link LZFCompressingInputStream} can be seen
  * as the opposite.
+ * <p>
+ * This implementation uses a parallel implemenation to make use of all available cores.
  *
  * @author jon hartlaub
  * @author Tatu Saloranta
+ * @author C&eacute;drik Lime
  *
  * @see LZFInputStream
  * @see LZFCompressingInputStream
+ * @see LZFOutputStream
  */
-public class LZFOutputStream extends FilterOutputStream
+public class PLZFOutputStream extends FilterOutputStream
 {
     private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
-    private final ChunkEncoder _encoder;
-    private final BufferRecycler _recycler;
-
     protected byte[] _outputBuffer;
     protected int _position = 0;
-
-    /**
-     * Configuration setting that governs whether basic 'flush()' should
-     * first complete a block or not.
-     *<p>
-     * Default value is 'true'
-     */
-    protected boolean _cfgFinishBlockOnFlush = true;
 
     /**
      * Flag that indicates if we have already called '_outputStream.close()'
@@ -44,33 +46,35 @@ public class LZFOutputStream extends FilterOutputStream
      */
     protected boolean _outputStreamClosed;
 
+    private BlockManager blockManager;
+    private final ExecutorService compressExecutor;
+    private final ExecutorService writeExecutor;
+
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Construction, configuration
     ///////////////////////////////////////////////////////////////////////
      */
 
-    public LZFOutputStream(final OutputStream outputStream)
-    {
-        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), outputStream);
+    public PLZFOutputStream(final OutputStream outputStream) {
+        this(outputStream, getNThreads());
     }
 
-    public LZFOutputStream(final ChunkEncoder encoder, final OutputStream outputStream)
+    public PLZFOutputStream(final OutputStream outputStream, int nThreads)
     {
         super(outputStream);
-        _encoder = encoder;
-        _recycler = BufferRecycler.instance();
-        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
         _outputStreamClosed = false;
+        compressExecutor = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>()); // unbounded
+        ((ThreadPoolExecutor)compressExecutor).allowCoreThreadTimeOut(true);
+        writeExecutor = Executors.newSingleThreadExecutor(); // unbounded
+        blockManager = new BlockManager(nThreads * 2, OUTPUT_BUFFER_SIZE); // this is where the bounds will be enforced!
+        _outputBuffer = blockManager.getBlockFromPool();
     }
 
-    /**
-     * Method for defining whether call to {@link #flush} will also complete
-     * current block (similar to calling {@link #finishBlock()}) or not.
-     */
-    public LZFOutputStream setFinishBlockOnFlush(boolean b) {
-        _cfgFinishBlockOnFlush = b;
-        return this;
+    protected static int getNThreads() {
+        int nThreads = Runtime.getRuntime().availableProcessors();//TODO take into account the current load average
+        return nThreads;
     }
 
     /*
@@ -79,6 +83,10 @@ public class LZFOutputStream extends FilterOutputStream
     ///////////////////////////////////////////////////////////////////////
      */
 
+    /**
+     * {@inheritDoc}
+     * WARNING: using this method will lead to very poor performance!
+     */
     @Override
     public void write(final int singleByte) throws IOException
     {
@@ -96,13 +104,6 @@ public class LZFOutputStream extends FilterOutputStream
 
         final int BUFFER_LEN = _outputBuffer.length;
 
-        // simple case first: empty _outputBuffer and "big" input buffer: write first full blocks, if any, without copying
-        while (_position == 0 && length >= BUFFER_LEN) {
-            _encoder.encodeAndWriteChunk(buffer, offset, BUFFER_LEN, out);
-            offset += BUFFER_LEN;
-            length -= BUFFER_LEN;
-        }
-
         // simple case first: buffering only (for trivially short writes)
         int free = BUFFER_LEN - _position;
         if (free > length) {
@@ -117,9 +118,11 @@ public class LZFOutputStream extends FilterOutputStream
         _position += free;
         writeCompressedBlock();
 
-        // then write intermediate full blocks, if any, without copying:
+        // then write intermediate full blocks, if any:
         while (length >= BUFFER_LEN) {
-            _encoder.encodeAndWriteChunk(buffer, offset, BUFFER_LEN, out);
+            System.arraycopy(buffer, offset, _outputBuffer, 0, BUFFER_LEN);
+            _position = BUFFER_LEN;
+            writeCompressedBlock();
             offset += BUFFER_LEN;
             length -= BUFFER_LEN;
         }
@@ -131,14 +134,40 @@ public class LZFOutputStream extends FilterOutputStream
         _position = length;
     }
 
+    public void write(final InputStream in) throws IOException {
+        writeCompressedBlock();
+        int read;
+        while ((read = in.read(_outputBuffer)) >= 0) {
+            _position = read;
+            writeCompressedBlock();
+        }
+    }
+
+    public void write(final FileInputStream in) throws IOException {
+        write(in.getChannel());
+    }
+    public void write(final RandomAccessFile in) throws IOException {
+        write(in.getChannel());
+    }
+    public void write(final FileChannel in) throws IOException {
+        writeCompressedBlock();
+        MappedByteBuffer map = in.map(MapMode.READ_ONLY, 0, in.size());
+        while (map.hasRemaining()) {
+            int toRead = Math.min(map.remaining(), _outputBuffer.length);
+            map.get(_outputBuffer, 0, toRead);
+            _position = toRead;
+            writeCompressedBlock();
+        }
+    }
+
+
+    /**
+     * This <code>flush</code> method does nothing.
+     */
     @Override
     public void flush() throws IOException
     {
         checkNotClosed();
-        if (_cfgFinishBlockOnFlush && _position > 0) {
-            writeCompressedBlock();
-        }
-        super.flush();
     }
 
     @Override
@@ -148,13 +177,26 @@ public class LZFOutputStream extends FilterOutputStream
             if (_position > 0) {
                 writeCompressedBlock();
             }
-            super.close(); // will flush beforehand
-            _encoder.close();
-            _outputStreamClosed = true;
             byte[] buf = _outputBuffer;
             if (buf != null) {
+                assert _position == 0;
+                blockManager.releaseBlockToPool(_outputBuffer);
                 _outputBuffer = null;
-                _recycler.releaseOutputBuffer(buf);
+            }
+            compressExecutor.shutdown();
+            writeExecutor.shutdown();
+            try {
+                compressExecutor.awaitTermination(10, TimeUnit.MINUTES);
+                writeExecutor.awaitTermination(1, TimeUnit.HOURS);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            } finally {
+                super.flush();
+                super.close();
+                _outputStreamClosed = true;
+                compressExecutor.shutdownNow();
+                writeExecutor.shutdownNow();
+                blockManager = null;
             }
         }
     }
@@ -177,34 +219,6 @@ public class LZFOutputStream extends FilterOutputStream
         return out;
     }
 
-    /**
-     * Accessor for checking whether call to "flush()" will first finish the
-     * current block or not
-     *
-     * @since 0.8
-     */
-    public boolean getFinishBlockOnFlush() {
-        return _cfgFinishBlockOnFlush;
-    }
-
-    /**
-     * Method that can be used to force completion of the current block,
-     * which means that all buffered data will be compressed into an
-     * LZF block. This typically results in lower compression ratio
-     * as larger blocks compress better; but may be necessary for
-     * network connections to ensure timely sending of data.
-     *
-     * @since 0.8
-     */
-    public LZFOutputStream finishBlock() throws IOException
-    {
-        checkNotClosed();
-        if (_position > 0) {
-            writeCompressedBlock();
-        }
-        return this;
-    }
-
     /*
     ///////////////////////////////////////////////////////////////////////
     // Internal methods
@@ -216,16 +230,13 @@ public class LZFOutputStream extends FilterOutputStream
      */
     protected void writeCompressedBlock() throws IOException
     {
-        int left = _position;
+        if (_position == 0) {
+            return;
+        }
+        Future<LZFChunk> lzfFuture = compressExecutor.submit(new CompressTask(_outputBuffer, 0, _position, blockManager));
+        writeExecutor.execute(new WriteTask(out, lzfFuture));
+        _outputBuffer = blockManager.getBlockFromPool();
         _position = 0;
-        int offset = 0;
-
-        do {
-            int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
-            _encoder.encodeAndWriteChunk(_outputBuffer, offset, chunkLen, out);
-            offset += chunkLen;
-            left -= chunkLen;
-        } while (left > 0);
     }
 
     protected void checkNotClosed() throws IOException
