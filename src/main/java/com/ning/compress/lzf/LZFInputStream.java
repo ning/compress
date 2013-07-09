@@ -69,11 +69,6 @@ public class LZFInputStream extends InputStream
      */
     protected int _bufferLength = 0;
 
-    /**
-     * Number of bytes read from the underlying {@link #_inputStream} 
-     */
-    protected int _readCount = 0;
-    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Construction
@@ -180,7 +175,7 @@ public class LZFInputStream extends InputStream
         _bufferPosition += chunkLength;
 
         if (chunkLength == length || !_cfgFullReads) {
-    	        return chunkLength;
+            return chunkLength;
         }
         // Need more data, then
         int totalRead = chunkLength;
@@ -194,7 +189,6 @@ public class LZFInputStream extends InputStream
             _bufferPosition += chunkLength;
             totalRead += chunkLength;
         } while (totalRead < length);
-
         return totalRead;
     }
     

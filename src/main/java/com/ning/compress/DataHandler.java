@@ -12,8 +12,14 @@ public interface DataHandler
 {
     /**
      * Method called with uncompressed data as it becomes available.
+     *<p>
+     * NOTE: return value was added (from void to boolean) in 0.9.9
+     * 
+     * @return True, if caller should process and feed more data; false if
+     *   caller is not interested in more data and processing should be terminated
+     *   (and {@link #allDataHandled} should be called immediately)
      */
-    public void handleData(byte[] buffer, int offset, int len) throws IOException;
+    public boolean handleData(byte[] buffer, int offset, int len) throws IOException;
 
     /**
      * Method called after last call to {@link #handleData}, for successful

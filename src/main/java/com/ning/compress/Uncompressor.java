@@ -21,8 +21,14 @@ public abstract class Uncompressor
     /**
      * Method called to feed more compressed data to be uncompressed, and
      * sent to possible listeners.
+     *<p>
+     * NOTE: return value was added (from void to boolean) in 0.9.9
+     * 
+     * @return True, if caller should process and feed more data; false if
+     *   caller is not interested in more data and processing should be terminated.
+     *   (and {@link #complete} should be called immediately)
      */
-    public abstract void feedCompressedData(byte[] comp, int offset, int len)
+    public abstract boolean feedCompressedData(byte[] comp, int offset, int len)
         throws IOException;
 
     /**

@@ -1,9 +1,18 @@
 package com.ning.compress.lzf.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 
 import com.ning.compress.BufferRecycler;
-import com.ning.compress.lzf.*;
+import com.ning.compress.lzf.ChunkEncoder;
+import com.ning.compress.lzf.LZFChunk;
+import com.ning.compress.lzf.LZFOutputStream;
 
 /**
  * Helper class that allows use of LZF compression even if a library requires
@@ -15,10 +24,10 @@ import com.ning.compress.lzf.*;
  *<p>
  * Implementation note: much of the code is just copied from {@link LZFOutputStream},
  * so care must be taken to keep implementations in sync if there are fixes.
- * 
+ *
  * @since 0.8
  */
-public class LZFFileOutputStream extends FileOutputStream
+public class LZFFileOutputStream extends FileOutputStream implements WritableByteChannel
 {
     private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
@@ -33,7 +42,7 @@ public class LZFFileOutputStream extends FileOutputStream
      * first complete a block or not.
      *<p>
      * Default value is 'true'
-     * 
+     *
      * @since 0.8
      */
     protected boolean _cfgFinishBlockOnFlush = true;
@@ -49,7 +58,7 @@ public class LZFFileOutputStream extends FileOutputStream
      * stream, without ending in infinite loop...
      */
     private final Wrapper _wrapper;
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Construction, configuration
@@ -75,7 +84,7 @@ public class LZFFileOutputStream extends FileOutputStream
     public LZFFileOutputStream(String name, boolean append) throws FileNotFoundException {
         this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), name, append);
     }
-    
+
     public LZFFileOutputStream(ChunkEncoder encoder, File file) throws FileNotFoundException {
         super(file);
         _encoder = encoder;
@@ -124,12 +133,17 @@ public class LZFFileOutputStream extends FileOutputStream
         _cfgFinishBlockOnFlush = b;
         return this;
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // FileOutputStream overrides
     ///////////////////////////////////////////////////////////////////////
      */
+
+    @Override
+    public boolean isOpen() {
+        return ! _outputStreamClosed;
+    }
 
     @Override
     public void close() throws IOException
@@ -139,14 +153,14 @@ public class LZFFileOutputStream extends FileOutputStream
                 writeCompressedBlock();
             }
             super.flush();
+            super.close();
+            _outputStreamClosed = true;
             _encoder.close();
             byte[] buf = _outputBuffer;
             if (buf != null) {
                 _outputBuffer = null;
                 _recycler.releaseOutputBuffer(buf);
             }
-            _outputStreamClosed = true;
-            super.close();
         }
     }
 
@@ -159,7 +173,7 @@ public class LZFFileOutputStream extends FileOutputStream
         }
         super.flush();
     }
-    
+
     // fine as is: don't override
     // public FileChannel getChannel();
 
@@ -176,12 +190,19 @@ public class LZFFileOutputStream extends FileOutputStream
     public void write(byte[] buffer, int offset, int length)  throws IOException
     {
         checkNotClosed();
-        
+
         final int BUFFER_LEN = _outputBuffer.length;
+
+        // simple case first: empty _outputBuffer and "big" input buffer: write first full blocks, if any, without copying
+        while (_position == 0 && length >= BUFFER_LEN) {
+            _encoder.encodeAndWriteChunk(buffer, offset, BUFFER_LEN, _wrapper);
+            offset += BUFFER_LEN;
+            length -= BUFFER_LEN;
+        }
 
         // simple case first: buffering only (for trivially short writes)
         int free = BUFFER_LEN - _position;
-        if (free >= length) {
+        if (free > length) {
             System.arraycopy(buffer, offset, _outputBuffer, _position, length);
             _position += length;
             return;
@@ -193,7 +214,7 @@ public class LZFFileOutputStream extends FileOutputStream
         _position += free;
         writeCompressedBlock();
 
-        // then write intermediate full block, if any, without copying:
+        // then write intermediate full blocks, if any, without copying:
         while (length >= BUFFER_LEN) {
             _encoder.encodeAndWriteChunk(buffer, offset, BUFFER_LEN, _wrapper);
             offset += BUFFER_LEN;
@@ -215,6 +236,28 @@ public class LZFFileOutputStream extends FileOutputStream
             writeCompressedBlock();
         }
         _outputBuffer[_position++] = (byte) b;
+    }
+
+    @Override
+    public synchronized int write(final ByteBuffer src) throws IOException {
+        int r = src.remaining();
+        if (r <= 0) {
+            return r;
+        }
+        writeCompressedBlock(); // will flush _outputBuffer
+        if (src.hasArray()) {
+            // direct compression from backing array
+            write(src.array(), src.arrayOffset(), src.limit() - src.arrayOffset());
+        } else {
+            // need to copy to heap array first
+            while (src.hasRemaining()) {
+                int toRead = Math.min(src.remaining(), _outputBuffer.length);
+                src.get(_outputBuffer, 0, toRead);
+                _position = toRead;
+                writeCompressedBlock();
+            }
+        }
+        return r;
     }
 
     /*
@@ -246,14 +289,14 @@ public class LZFFileOutputStream extends FileOutputStream
         }
         return this;
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Internal methods
     ///////////////////////////////////////////////////////////////////////
      */
-    
-    /** 
+
+    /**
      * Compress and write the current block to the OutputStream
      */
     protected void writeCompressedBlock() throws IOException
@@ -281,7 +324,7 @@ public class LZFFileOutputStream extends FileOutputStream
             throw new IOException(getClass().getName()+" already closed");
         }
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Helper class(es)

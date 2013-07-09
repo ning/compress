@@ -69,7 +69,7 @@ public abstract class ChunkDecoder
 
     /**
      * Method for decompressing a block of input data encoded in LZF
-     * block structure (compatible with lzf command line utility),
+     * block structure (compatible with LZF command line utility),
      * and can consist of any number of blocks.
      * Note that input MUST consists of a sequence of one or more complete
      * chunks; partial chunks can not be handled.

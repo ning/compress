@@ -15,7 +15,7 @@ public class OptimizedGZIPInputStream
     /**
      * What kinds of chunks do we feed underlying {@link Inflater}?
      */
-    private final static int INPUT_BUFFER_SIZE = 4096;
+    private final static int INPUT_BUFFER_SIZE = 16000;
 
     /**
      * Enumeration used for keeping track of decoding state within
