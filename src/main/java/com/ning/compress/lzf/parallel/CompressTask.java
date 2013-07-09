@@ -1,7 +1,9 @@
-package com.ning.compress.lzf;
+package com.ning.compress.lzf.parallel;
 
 import java.util.concurrent.Callable;
 
+import com.ning.compress.lzf.ChunkEncoder;
+import com.ning.compress.lzf.LZFChunk;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 /**

@@ -1,4 +1,4 @@
-package com.ning.compress.lzf;
+package com.ning.compress.lzf.parallel;
 
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -23,6 +23,7 @@ class BlockManager {
         try {
             block = blockPool.takeFirst();
         } catch (InterruptedException e) {
+        	throw new RuntimeException(e);
         }
         return block;
     }
@@ -32,7 +33,8 @@ class BlockManager {
 //        Arrays.fill(block, (byte)0);
         try {
             blockPool.putLast(block);
-        } catch (InterruptedException ignore) {
+        } catch (InterruptedException e) {
+        	throw new RuntimeException(e);
         }
     }
 

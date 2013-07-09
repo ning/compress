@@ -1,7 +1,9 @@
-package com.ning.compress.lzf;
+package com.ning.compress.lzf.parallel;
 
 import java.io.OutputStream;
 import java.util.concurrent.Future;
+
+import com.ning.compress.lzf.LZFChunk;
 
 /**
  * @author C&eacute;drik LIME
