@@ -1,14 +1,12 @@
 package com.ning.compress.lzf;
 
-import java.io.FileInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
+import java.lang.management.ManagementFactory;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -33,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @see LZFCompressingInputStream
  * @see LZFOutputStream
  */
-public class PLZFOutputStream extends FilterOutputStream
+public class PLZFOutputStream extends FilterOutputStream implements WritableByteChannel
 {
     private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
@@ -61,8 +59,7 @@ public class PLZFOutputStream extends FilterOutputStream
         this(outputStream, getNThreads());
     }
 
-    public PLZFOutputStream(final OutputStream outputStream, int nThreads)
-    {
+    protected PLZFOutputStream(final OutputStream outputStream, int nThreads) {
         super(outputStream);
         _outputStreamClosed = false;
         compressExecutor = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>()); // unbounded
@@ -73,7 +70,12 @@ public class PLZFOutputStream extends FilterOutputStream
     }
 
     protected static int getNThreads() {
-        int nThreads = Runtime.getRuntime().availableProcessors();//TODO take into account the current load average
+    	int nThreads = Runtime.getRuntime().availableProcessors();
+    	double loadAverage = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+    	if (loadAverage >= 0) {
+			nThreads -= (int) loadAverage;
+			nThreads = Math.min(1, nThreads);
+		}
         return nThreads;
     }
 
@@ -143,21 +145,26 @@ public class PLZFOutputStream extends FilterOutputStream
         }
     }
 
-    public void write(final FileInputStream in) throws IOException {
-        write(in.getChannel());
-    }
-    public void write(final RandomAccessFile in) throws IOException {
-        write(in.getChannel());
-    }
-    public void write(final FileChannel in) throws IOException {
-        writeCompressedBlock();
-        MappedByteBuffer map = in.map(MapMode.READ_ONLY, 0, in.size());
-        while (map.hasRemaining()) {
-            int toRead = Math.min(map.remaining(), _outputBuffer.length);
-            map.get(_outputBuffer, 0, toRead);
-            _position = toRead;
-            writeCompressedBlock();
+    @Override
+    public synchronized int write(final ByteBuffer src) throws IOException {
+        int r = src.remaining();
+        if (r <= 0) {
+            return r;
         }
+        writeCompressedBlock(); // will flush _outputBuffer
+        if (src.hasArray()) {
+            // direct compression from backing array
+            write(src.array(), src.arrayOffset(), src.limit() - src.arrayOffset());
+        } else {
+            // need to copy to heap array first
+            while (src.hasRemaining()) {
+                int toRead = Math.min(src.remaining(), _outputBuffer.length);
+                src.get(_outputBuffer, 0, toRead);
+                _position = toRead;
+                writeCompressedBlock();
+            }
+        }
+        return r;
     }
 
 
@@ -168,6 +175,11 @@ public class PLZFOutputStream extends FilterOutputStream
     public void flush() throws IOException
     {
         checkNotClosed();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return ! _outputStreamClosed;
     }
 
     @Override

@@ -3,6 +3,8 @@ package com.ning.compress.lzf;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
@@ -20,7 +22,7 @@ import com.ning.compress.lzf.util.ChunkEncoderFactory;
  * @see LZFInputStream
  * @see LZFCompressingInputStream
  */
-public class LZFOutputStream extends FilterOutputStream
+public class LZFOutputStream extends FilterOutputStream implements WritableByteChannel
 {
     private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
@@ -132,6 +134,28 @@ public class LZFOutputStream extends FilterOutputStream
     }
 
     @Override
+    public synchronized int write(final ByteBuffer src) throws IOException {
+        int r = src.remaining();
+        if (r <= 0) {
+            return r;
+        }
+        writeCompressedBlock(); // will flush _outputBuffer
+        if (src.hasArray()) {
+            // direct compression from backing array
+            write(src.array(), src.arrayOffset(), src.limit() - src.arrayOffset());
+        } else {
+            // need to copy to heap array first
+            while (src.hasRemaining()) {
+                int toRead = Math.min(src.remaining(), _outputBuffer.length);
+                src.get(_outputBuffer, 0, toRead);
+                _position = toRead;
+                writeCompressedBlock();
+            }
+        }
+        return r;
+    }
+
+    @Override
     public void flush() throws IOException
     {
         checkNotClosed();
@@ -139,6 +163,11 @@ public class LZFOutputStream extends FilterOutputStream
             writeCompressedBlock();
         }
         super.flush();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return ! _outputStreamClosed;
     }
 
     @Override

@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.ChunkEncoder;
@@ -25,7 +27,7 @@ import com.ning.compress.lzf.LZFOutputStream;
  *
  * @since 0.8
  */
-public class LZFFileOutputStream extends FileOutputStream
+public class LZFFileOutputStream extends FileOutputStream implements WritableByteChannel
 {
     private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
@@ -139,6 +141,11 @@ public class LZFFileOutputStream extends FileOutputStream
      */
 
     @Override
+    public boolean isOpen() {
+        return ! _outputStreamClosed;
+    }
+
+    @Override
     public void close() throws IOException
     {
         if (!_outputStreamClosed) {
@@ -229,6 +236,28 @@ public class LZFFileOutputStream extends FileOutputStream
             writeCompressedBlock();
         }
         _outputBuffer[_position++] = (byte) b;
+    }
+
+    @Override
+    public synchronized int write(final ByteBuffer src) throws IOException {
+        int r = src.remaining();
+        if (r <= 0) {
+            return r;
+        }
+        writeCompressedBlock(); // will flush _outputBuffer
+        if (src.hasArray()) {
+            // direct compression from backing array
+            write(src.array(), src.arrayOffset(), src.limit() - src.arrayOffset());
+        } else {
+            // need to copy to heap array first
+            while (src.hasRemaining()) {
+                int toRead = Math.min(src.remaining(), _outputBuffer.length);
+                src.get(_outputBuffer, 0, toRead);
+                _position = toRead;
+                writeCompressedBlock();
+            }
+        }
+        return r;
     }
 
     /*
