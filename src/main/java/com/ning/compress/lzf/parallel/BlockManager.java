@@ -1,4 +1,4 @@
-package com.ning.compress.lzf;
+package com.ning.compress.lzf.parallel;
 
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;

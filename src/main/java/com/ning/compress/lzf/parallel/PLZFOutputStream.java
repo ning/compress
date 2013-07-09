@@ -1,4 +1,4 @@
-package com.ning.compress.lzf;
+package com.ning.compress.lzf.parallel;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -14,22 +14,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.ning.compress.lzf.LZFChunk;
+
 /**
  * Decorator {@link OutputStream} implementation that will compress
  * output using LZF compression algorithm, given uncompressed input
- * to write. Its counterpart is {@link LZFInputStream}; although
- * in some ways {@link LZFCompressingInputStream} can be seen
+ * to write. Its counterpart is {@link com.ning.compress.lzf.LZFInputStream}; although
+ * in some ways {@link com.ning.compress.lzf.LZFCompressingInputStream} can be seen
  * as the opposite.
  * <p>
- * This implementation uses a parallel implemenation to make use of all available cores.
+ * This class uses a parallel implementation to make use of all available cores,
+ * modulo system load.
  *
  * @author jon hartlaub
  * @author Tatu Saloranta
  * @author C&eacute;drik Lime
  *
- * @see LZFInputStream
- * @see LZFCompressingInputStream
- * @see LZFOutputStream
+ * @see com.ning.compress.lzf.LZFInputStream
+ * @see com.ning.compress.lzf.LZFCompressingInputStream
+ * @see com.ning.compress.lzf.LZFOutputStream
  */
 public class PLZFOutputStream extends FilterOutputStream implements WritableByteChannel
 {
