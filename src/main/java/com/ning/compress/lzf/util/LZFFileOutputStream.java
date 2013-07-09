@@ -24,7 +24,7 @@ public class LZFFileOutputStream extends FileOutputStream
 
     private final ChunkEncoder _encoder;
     private final BufferRecycler _recycler;
-        
+
     protected byte[] _outputBuffer;
     protected int _position = 0;
 
