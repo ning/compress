@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ExecutorService;
@@ -73,12 +74,15 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
     }
 
     protected static int getNThreads() {
-    	int nThreads = Runtime.getRuntime().availableProcessors();
-    	double loadAverage = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    	if (loadAverage >= 0) {
-			nThreads -= (int) loadAverage;
-			nThreads = Math.min(1, nThreads);
-		}
+        int nThreads = Runtime.getRuntime().availableProcessors();
+        OperatingSystemMXBean jmx = ManagementFactory.getOperatingSystemMXBean();
+        
+        if (jmx != null) {
+            int loadAverage = (int) jmx.getSystemLoadAverage();
+            if (nThreads > 1 && loadAverage >= 1) {
+                nThreads = Math.max(1, nThreads - loadAverage);
+            }
+        }
         return nThreads;
     }
 
