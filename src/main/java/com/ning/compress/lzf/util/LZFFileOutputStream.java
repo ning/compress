@@ -305,12 +305,12 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
         _position = 0;
         int offset = 0;
 
-        do {
+        while (left > 0) {
             int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
             _encoder.encodeAndWriteChunk(_outputBuffer, offset, chunkLen, _wrapper);
             offset += chunkLen;
             left -= chunkLen;
-        } while (left > 0);
+        }
     }
 
     protected void rawWrite(byte[] buffer, int offset, int length)  throws IOException
