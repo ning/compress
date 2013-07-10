@@ -7,6 +7,9 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -146,12 +149,17 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
     }
 
     public void write(final InputStream in) throws IOException {
-        writeCompressedBlock();
+        writeCompressedBlock(); // will flush _outputBuffer
         int read;
         while ((read = in.read(_outputBuffer)) >= 0) {
             _position = read;
             writeCompressedBlock();
         }
+    }
+
+    public void write(final FileChannel in) throws IOException {
+        MappedByteBuffer src = in.map(MapMode.READ_ONLY, 0, in.size());
+        write(src);
     }
 
     @Override
@@ -206,7 +214,7 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
             }
             writeExecutor.shutdown();
             try {
-            	writeExecutor.awaitTermination(1, TimeUnit.HOURS);
+                writeExecutor.awaitTermination(1, TimeUnit.HOURS);
                 // at this point compressExecutor should have no pending tasks: cleanup ThreadLocal's
                 // we don't know how many threads; go to the max for now. This will change once we get a proper configuration bean.
                 int maxThreads = Runtime.getRuntime().availableProcessors();
