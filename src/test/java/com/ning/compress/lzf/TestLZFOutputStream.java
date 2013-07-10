@@ -1,6 +1,8 @@
 package com.ning.compress.lzf;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -13,9 +15,9 @@ public class TestLZFOutputStream extends BaseForTests
     private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
     private byte[] nonEncodableBytesToWrite;
     private byte[] bytesToWrite;
-	
+
     @BeforeTest(alwaysRun = true)
-    public void setUp() throws Exception 
+    public void setUp() throws Exception
     {
         nonEncodableBytesToWrite = constructUncompressable(BUFFER_SIZE);
         String phrase = "all work and no play make Jack a dull boy";
@@ -27,7 +29,7 @@ public class TestLZFOutputStream extends BaseForTests
             cursor += bytes.length;
         }
     }
-	
+
     @Test
     public void testUnencodable() throws Exception
     {
@@ -38,7 +40,7 @@ public class TestLZFOutputStream extends BaseForTests
         Assert.assertTrue(bos.toByteArray().length > nonEncodableBytesToWrite.length);
         verifyOutputStream(bos, nonEncodableBytesToWrite);
     }
-	
+
     @Test
     public void testStreaming() throws Exception
     {
@@ -74,7 +76,7 @@ public class TestLZFOutputStream extends BaseForTests
         }
         verifyOutputStream(bos, bytesToWrite);
     }
-	
+
     @Test
     public void testPartialBuffer() throws Exception
     {
@@ -91,7 +93,22 @@ public class TestLZFOutputStream extends BaseForTests
         System.arraycopy(bytesToWrite, offset, compareBytes, 0, bytesToCopy);
         verifyOutputStream(bos, compareBytes);
     }
-	
+
+    @Test
+    public void testEmptyBuffer() throws Exception
+    {
+        byte[] input = new byte[0];
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        OutputStream os = new LZFOutputStream(bos);
+        os.write(input);
+        os.close();
+        int len = bos.toByteArray().length;
+        if (len != 0) {
+            Assert.fail("Sanity check: should have len == 0; len = "+len);
+        }
+        verifyOutputStream(bos, input);
+    }
+
     private void verifyOutputStream(ByteArrayOutputStream bos, byte[] reference) throws Exception
     {
         ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
