@@ -8,6 +8,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -76,7 +78,7 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
     protected static int getNThreads() {
         int nThreads = Runtime.getRuntime().availableProcessors();
         OperatingSystemMXBean jmx = ManagementFactory.getOperatingSystemMXBean();
-        
+
         if (jmx != null) {
             int loadAverage = (int) jmx.getSystemLoadAverage();
             if (nThreads > 1 && loadAverage >= 1) {
@@ -202,11 +204,19 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
                 blockManager.releaseBlockToPool(_outputBuffer);
                 _outputBuffer = null;
             }
-            compressExecutor.shutdown();
             writeExecutor.shutdown();
             try {
-                compressExecutor.awaitTermination(10, TimeUnit.MINUTES);
-                writeExecutor.awaitTermination(1, TimeUnit.HOURS);
+            	writeExecutor.awaitTermination(1, TimeUnit.HOURS);
+                // at this point compressExecutor should have no pending tasks: cleanup ThreadLocal's
+                // we don't know how many threads; go to the max for now. This will change once we get a proper configuration bean.
+                int maxThreads = Runtime.getRuntime().availableProcessors();
+                Collection<CompressTask> cleanupTasks = new ArrayList<CompressTask>(maxThreads);
+                for (int i = 0; i < maxThreads; ++i) {
+                    cleanupTasks.add(new CompressTask(null, -1, -1, null));
+                }
+                compressExecutor.invokeAll(cleanupTasks);
+                compressExecutor.shutdown();
+                compressExecutor.awaitTermination(1, TimeUnit.MINUTES);
             } catch (InterruptedException e) {
                 throw new IOException(e);
             } finally {
