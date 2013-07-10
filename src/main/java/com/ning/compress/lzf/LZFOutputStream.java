@@ -2,8 +2,12 @@ package com.ning.compress.lzf;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.channels.WritableByteChannel;
 
 import com.ning.compress.BufferRecycler;
@@ -133,6 +137,20 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
         _position = length;
     }
 
+    public void write(final InputStream in) throws IOException {
+        writeCompressedBlock(); // will flush _outputBuffer
+        int read;
+        while ((read = in.read(_outputBuffer)) >= 0) {
+            _position = read;
+            writeCompressedBlock();
+        }
+    }
+
+    public void write(final FileChannel in) throws IOException {
+        MappedByteBuffer src = in.map(MapMode.READ_ONLY, 0, in.size());
+        write(src);
+    }
+
     @Override
     public synchronized int write(final ByteBuffer src) throws IOException {
         int r = src.remaining();
@@ -249,12 +267,12 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
         _position = 0;
         int offset = 0;
 
-        do {
+        while (left > 0) {
             int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
             _encoder.encodeAndWriteChunk(_outputBuffer, offset, chunkLen, out);
             offset += chunkLen;
             left -= chunkLen;
-        } while (left > 0);
+        }
     }
 
     protected void checkNotClosed() throws IOException

@@ -5,8 +5,12 @@ import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.channels.WritableByteChannel;
 
 import com.ning.compress.BufferRecycler;
@@ -238,6 +242,20 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
         _outputBuffer[_position++] = (byte) b;
     }
 
+    public void write(final InputStream in) throws IOException {
+        writeCompressedBlock(); // will flush _outputBuffer
+        int read;
+        while ((read = in.read(_outputBuffer)) >= 0) {
+            _position = read;
+            writeCompressedBlock();
+        }
+    }
+
+    public void write(final FileChannel in) throws IOException {
+        MappedByteBuffer src = in.map(MapMode.READ_ONLY, 0, in.size());
+        write(src);
+    }
+
     @Override
     public synchronized int write(final ByteBuffer src) throws IOException {
         int r = src.remaining();
@@ -305,12 +323,12 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
         _position = 0;
         int offset = 0;
 
-        do {
+        while (left > 0) {
             int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
             _encoder.encodeAndWriteChunk(_outputBuffer, offset, chunkLen, _wrapper);
             offset += chunkLen;
             left -= chunkLen;
-        } while (left > 0);
+        }
     }
 
     protected void rawWrite(byte[] buffer, int offset, int length)  throws IOException

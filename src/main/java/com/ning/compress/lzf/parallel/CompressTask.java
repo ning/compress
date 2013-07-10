@@ -35,10 +35,16 @@ class CompressTask implements Callable<LZFChunk> {
 	/** {@inheritDoc} */
 	@Override
 	public LZFChunk call() throws Exception {
-		LZFChunk lzfChunk = ENCODER.get().encodeChunk(data, offset, length);
-		// input data is fully processed, we can now discard it
-		blockManager.releaseBlockToPool(data);
-		return lzfChunk;
+		if (data != null) {
+			LZFChunk lzfChunk = ENCODER.get().encodeChunk(data, offset, length);
+			// input data is fully processed, we can now discard it
+			blockManager.releaseBlockToPool(data);
+			return lzfChunk;
+		} else {
+			// cleanup time!
+			ENCODER.remove();
+			return null;
+		}
 	}
 
 }
