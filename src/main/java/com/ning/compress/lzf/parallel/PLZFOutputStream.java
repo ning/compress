@@ -56,6 +56,7 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
     private BlockManager blockManager;
     private final ExecutorService compressExecutor;
     private final ExecutorService writeExecutor;
+    volatile Exception writeException = null;
 
 
     /*
@@ -234,6 +235,7 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
                 compressExecutor.shutdownNow();
                 writeExecutor.shutdownNow();
                 blockManager = null;
+                checkWriteException();
             }
         }
     }
@@ -271,9 +273,18 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
             return;
         }
         Future<LZFChunk> lzfFuture = compressExecutor.submit(new CompressTask(_outputBuffer, 0, _position, blockManager));
-        writeExecutor.execute(new WriteTask(out, lzfFuture));
+        writeExecutor.execute(new WriteTask(out, lzfFuture, this));
         _outputBuffer = blockManager.getBlockFromPool();
         _position = 0;
+        checkWriteException();
+    }
+
+    protected void checkWriteException() throws IOException {
+        if (writeException != null) {
+            IOException ioe = (writeException instanceof IOException) ? (IOException) writeException : new IOException(writeException);
+            writeException = null;
+            throw ioe;
+        }
     }
 
     protected void checkNotClosed() throws IOException
