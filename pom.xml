@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>5</version>
+        <version>7</version>
     </parent>
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
@@ -36,13 +36,19 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         <developer>
             <id>tatu</id>
             <name>Tatu Saloranta</name>
-            <email>tatu@ning.com</email>
-        </developer>
-        <developer>
-            <id>jon</id>
-            <name>Jon Hartlaub</name>
+            <email>tatu.saloranta@iki.fi</email>
         </developer>
     </developers>
+    <contributors>
+      <contributor>
+        <name>Jon Hartlaub</name>
+        <email>jhartlaub@gmail.com</email>
+      </contributor>
+      <contributor>
+        <name>C&#233;drik Lime</name>
+        <email>2013@cedrik.fr</email>
+      </contributor>
+    </contributors>
     <licenses>
         <license>
             <name>Apache License 2.0</name>
