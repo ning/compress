@@ -11,11 +11,13 @@ import com.ning.compress.lzf.LZFChunk;
 class WriteTask implements Runnable {
     private final OutputStream output;
     private final Future<LZFChunk> lzfFuture;
+    private final PLZFOutputStream caller;
 
-    public WriteTask(OutputStream output, Future<LZFChunk> lzfFuture) {
+    public WriteTask(OutputStream output, Future<LZFChunk> lzfFuture, PLZFOutputStream caller) {
         super();
         this.output = output;
         this.lzfFuture = lzfFuture;
+        this.caller = caller;
     }
 
     /** {@inheritDoc} */
@@ -28,11 +30,7 @@ class WriteTask implements Runnable {
                 lzfChunk = lzfChunk.next();
             }
         } catch (Exception e) {
-            throwRTE(e);
+            caller.writeException = e;
         }
-    }
-
-    private RuntimeException throwRTE(Exception e) {
-        throw (e instanceof RuntimeException) ? (RuntimeException) e : new RuntimeException(e);
     }
 }
