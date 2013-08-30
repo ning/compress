@@ -65,7 +65,7 @@ public final class BufferRecycler
 
     public void releaseEncodeBuffer(byte[] buffer)
     {
-        if (_encodingBuffer == null || buffer.length > _encodingBuffer.length) {
+        if (_encodingBuffer == null || (buffer != null && buffer.length > _encodingBuffer.length)) {
             _encodingBuffer = buffer;
         }
     }
