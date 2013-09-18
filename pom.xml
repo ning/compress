@@ -134,7 +134,9 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
               <Import-Package />
               <!-- if using high-perf decoder: -->
               <DynamicImport-Package>sun.misc</DynamicImport-Package>
-              <Private-Package />
+              <Private-Package>
+com.ning.compress.lzf.impl
+              </Private-Package>
               <!-- Export-Package default: set of packages in local Java sources, excluding the default package '.' and any packages containing 'impl' or 'internal' -->
               <!--Export-Package>
 com.ning.compress,
