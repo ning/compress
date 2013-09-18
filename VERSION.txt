@@ -1,5 +1,7 @@
 0.9.9 (xx-xxx-2013)
 
+#14: Added parallel LZF compression, contributed by Cedrik
+ (javabean@github)
 #25: Allow early termination of push-style `Uncompressor` operation
 
 0.9.8 (09-Mar-2013)
