@@ -1,8 +1,10 @@
-0.9.9 (xx-xxx-2013)
+0.9.9 (25-Sep-2013)
 
 #14: Added parallel LZF compression, contributed by Cedrik
  (javabean@github)
 #25: Allow early termination of push-style `Uncompressor` operation
+#32: Fix for a rare NPE
+ (suggested by francoisforster@github)
 
 0.9.8 (09-Mar-2013)
 
