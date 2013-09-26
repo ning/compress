@@ -9,7 +9,7 @@
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
     <name>Ning-compress-LZF</name>
-    <version>0.9.9-SNAPSHOT</version>
+    <version>0.9.9</version>
     <packaging>bundle</packaging>
     <description>
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
@@ -45,7 +45,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         <email>jhartlaub@gmail.com</email>
       </contributor>
       <contributor>
-        <name>C&#233;drik Lime</name>
+        <name>Cédrik Lime</name>
         <email>2013@cedrik.fr</email>
       </contributor>
     </contributors>
