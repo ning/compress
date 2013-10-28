@@ -11,7 +11,7 @@
     <name>Ning-compress-LZF</name>
     <version>0.9.10-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    <description>
+    <description> 
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
 Compressor is basic Lempel-Ziv codec, without Huffman (deflate/gzip) or statistical post-encoding.
 See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF package.
