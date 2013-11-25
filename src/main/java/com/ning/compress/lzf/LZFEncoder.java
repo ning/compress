@@ -70,34 +70,39 @@ public class LZFEncoder
     // Encoding methods, blocks
     ///////////////////////////////////////////////////////////////////////
      */
-    
+
+    /**
+     * Method for compressing given input data using LZF encoding and
+     * block structure (compatible with lzf command line utility).
+     * Result consists of a sequence of chunks.
+     *<p>
+     * Note that {@link ChunkEncoder} instance used is one produced by
+     * {@link ChunkEncoderFactory#optimalInstance}, which typically
+     * is "unsafe" instance if one can be used on current JVM.
+     * 
+     * @since 0.8.1
+     */
     public static byte[] encode(byte[] data) {
         return encode(data, 0, data.length);
     }
 
     /**
-     * @since 0.9.7
+     * Method that will use "safe" {@link ChunkEncoder}, as produced by
+     * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
+     * means that it does not use any non-compliant features beyond core JDK.
      */
     public static byte[] safeEncode(byte[] data) {
         return safeEncode(data, 0, data.length);
-    }
-    
-    /**
-     * Method for compressing given input data using LZF encoding and
-     * block structure (compatible with lzf command line utility).
-     * Result consists of a sequence of chunks.
-     * 
-     * @deprecated Use {@link #encode(byte[],int,int)} instead
-     */
-    @Deprecated
-    public static byte[] encode(byte[] data, int length) {
-        return encode(data, 0, length);
     }
 
     /**
      * Method for compressing given input data using LZF encoding and
      * block structure (compatible with lzf command line utility).
      * Result consists of a sequence of chunks.
+     *<p>
+     * Note that {@link ChunkEncoder} instance used is one produced by
+     * {@link ChunkEncoderFactory#optimalInstance}, which typically
+     * is "unsafe" instance if one can be used on current JVM.
      * 
      * @since 0.8.1
      */
@@ -109,6 +114,11 @@ public class LZFEncoder
         return result;
     }
 
+    /**
+     * Method that will use "safe" {@link ChunkEncoder}, as produced by
+     * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
+     * means that it does not use any non-compliant features beyond core JDK.
+     */
     public static byte[] safeEncode(byte[] data, int offset, int length)
     {
         ChunkEncoder enc = ChunkEncoderFactory.safeInstance(length);
@@ -117,6 +127,10 @@ public class LZFEncoder
         return result;
     }    
 
+    /**
+     * Compression method that uses specified {@link ChunkEncoder} for actual
+     * encoding.
+     */
     public static byte[] encode(ChunkEncoder enc, byte[] data, int length) {
         return encode(enc, data, 0, length);
     }
@@ -165,6 +179,10 @@ public class LZFEncoder
 
     /**
      * Alternate version that accepts pre-allocated output buffer.
+     *<p>
+     * Note that {@link ChunkEncoder} instance used is one produced by
+     * {@link ChunkEncoderFactory#optimalNonAllocatingInstance}, which typically
+     * is "unsafe" instance if one can be used on current JVM.
      * 
      * @since 0.9.7
      */
@@ -178,6 +196,10 @@ public class LZFEncoder
 
     /**
      * Alternate version that accepts pre-allocated output buffer.
+     *<p>
+     * Method that will use "safe" {@link ChunkEncoder}, as produced by
+     * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
+     * means that it does not use any non-compliant features beyond core JDK.
      * 
      * @since 0.9.7
      */

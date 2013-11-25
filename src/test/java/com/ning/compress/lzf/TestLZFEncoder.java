@@ -98,4 +98,30 @@ public class TestLZFEncoder extends BaseForTests
         Assert.assertEquals(uncomp.length, source.length);
         Assert.assertEquals(uncomp, source);
     }
+
+    @Test
+    public void testConditionalCompression() throws Exception
+    {
+        _testConditionalCompression(ChunkEncoderFactory.safeInstance());
+        _testConditionalCompression(ChunkEncoderFactory.optimalInstance());
+    }
+
+    private void _testConditionalCompression(ChunkEncoder enc) throws Exception
+    {
+        byte[] input = constructFluff(52000);
+        // double-check expected compression ratio
+        byte[] comp = enc.encodeChunk(input, 0, input.length).getData();
+        int pct = (int) (100.0 * comp.length / input.length);
+        // happens to compress to about 61%, good
+        Assert.assertEquals(pct, 61);
+
+        // should be ok if we only require down to 70% compression
+        byte[] buf = new byte[60000];
+        int offset = enc.appendEncodedIfCompresses(input, 0.70, 0, input.length, buf, 0);
+        Assert.assertEquals(offset, comp.length);
+
+        // but not to 60%
+        offset = enc.appendEncodedIfCompresses(input, 0.60, 0, input.length, buf, 0);
+        Assert.assertEquals(offset, -1);
+    }
 }

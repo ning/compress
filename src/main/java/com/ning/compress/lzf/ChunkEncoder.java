@@ -196,6 +196,38 @@ public abstract class ChunkEncoder
         // Otherwise append as non-compressed chunk instead (length + 5):
         return LZFChunk.appendNonCompressed(input, inputPtr, inputLen, outputBuffer, outputPos);
     }
+
+    /**
+     * Method similar to {@link #appendEncodedChunk}, but that will <b>only</b> append
+     * encoded chunk if it compresses down to specified ratio (also considering header that
+     * will be needed); otherwise will
+     * return <code>-1</code> without appending anything.
+     * 
+     * @param resultRatio Value between 0.05 and 1.10 to indicate maximum relative size of
+     *   the result to use, in order to appen encoded chunk
+     * 
+     * @return Offset after appending compressed chunk, if compression produces compact
+     *    enough chunk; otherwise -1 to indicate that no compression resulted.
+     *    
+     * @since 1.0.0
+     */
+    public int appendEncodedIfCompresses(final byte[] input, double resultRatio,
+            final int inputPtr, final int inputLen,
+            final byte[] outputBuffer, final int outputPos)
+    {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            final int compStart = outputPos + LZFChunk.HEADER_LEN_COMPRESSED;
+            final int end = tryCompress(input, inputPtr, inputPtr+inputLen, outputBuffer, compStart);
+            final int maxSize = (int) (resultRatio * inputLen + LZFChunk.HEADER_LEN_COMPRESSED + 0.5);
+
+            if (end <= (outputPos + maxSize)) { // yes, compressed enough, let's do this!
+                final int compLen = end - compStart;
+                LZFChunk.appendCompressedHeader(inputLen, compLen, outputBuffer, outputPos);
+                return end;
+            }
+        }
+        return -1;
+    }
     
     /**
      * Method for encoding individual chunk, writing it to given output stream.
@@ -231,7 +263,10 @@ public abstract class ChunkEncoder
 
     /**
      * Main workhorse method that will try to compress given chunk, and return
-     * end position (offset to byte after last included byte)
+     * end position (offset to byte after last included byte).
+     * Result will be "raw" encoded contents <b>without</b> chunk header information:
+     * caller is responsible for prepending header, if it chooses to use encoded
+     * data; it may also choose to instead create an uncompressed chunk.
      * 
      * @return Output pointer after handling content, such that <code>result - originalOutPost</code>
      *    is the actual length of compressed chunk (without header)

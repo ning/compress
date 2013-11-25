@@ -1,3 +1,9 @@
+0.9.10 (24-Nov-2013)
+
+#34: Add `ChunkEncoder.appendEncodedIfCompresses()` for conditional compression;
+ useful for building efficient "compress but only if it makes enough difference"
+ processing systems
+
 0.9.9 (25-Sep-2013)
 
 #14: Added parallel LZF compression, contributed by Cedrik
@@ -29,9 +35,6 @@
 
 * Add 'LZFCompressingInputStream' to allow streaming compression
  "in reverse" (compared to LZFOutputStream)
-
-0.9.4 (21-May-2012)
-
 * Add GZIP support functionality:
  * 'OptimizedGZIPInputStream', 'OptimizedGZIPOutputStream' which add buffer
    (and Inflater/Deflater) recycling for improved performance compared to
@@ -49,28 +52,16 @@
  (reported by nodarret@github)
 * Implemented Issue #16: Add LZFInputStream.readAndWrite(...) method for copying
   uncompressed data, avoiding an intermediate copy.
-
-0.9.2:
-
 * Fix for Issue #15: LZFDecoder not passing 'offset', 'length' params
   (reported by T.Effland)
-
-0.9.1:
-
 * Fix for Issue #13: problems with Unsafe decoder on some platforms
 
-0.9.0:
+0.9.0 (and prior)
 
 * Rewrote decoder to allow ChunkDecoder variants, to allow optional use of
   sun.misc.Unsafe (which can boost uncompression speed by up to +50%)
-
-0.8.6:
-
 * #11: Input/OutputStreams not throwing IOException if reading/writing
    after close() called, should be.
   (reported by Dain S)
-
-0.8.5:
-
 * Fix an NPE in BufferRecycler
   (reported by Matt Abrams, abramsm@gmail.com)
