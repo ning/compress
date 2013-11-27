@@ -251,11 +251,15 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
         }
     }
 
-    public void write(final FileChannel in) throws IOException {
-        MappedByteBuffer src = in.map(MapMode.READ_ONLY, 0, in.size());
-        write(src);
-    }
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // WritableByteChannel implementation
+    ///////////////////////////////////////////////////////////////////////
+     */
 
+    /* 26-Nov-2013, tatu: Why is this synchronized? Pretty much nothing else is,
+     *   so why this method?
+     */
     @Override
     public synchronized int write(final ByteBuffer src) throws IOException {
         int r = src.remaining();
@@ -276,6 +280,11 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
             }
         }
         return r;
+    }
+    
+    public void write(final FileChannel in) throws IOException {
+        MappedByteBuffer src = in.map(MapMode.READ_ONLY, 0, in.size());
+        write(src);
     }
 
     /*
