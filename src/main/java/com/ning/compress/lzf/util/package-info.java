@@ -1,8 +1,5 @@
 /**
-Package that contains helper classes that can be used along
-with standard JDK gzip implementation (<code>java.util.zip</code>).
-This is <b>not</b> a separate gzip implementation, but rather set
-of extensions and helpers classes above and beyond JDK implementation.
+Package that contains helper classes uses by LZF codec.
 */
 
 package com.ning.compress.lzf.util;
