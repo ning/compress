@@ -28,7 +28,7 @@ or by block operation:
 
 and you can even use the LZF jar as a command-line tool (it has manifest that points to 'com.ning.compress.lzf.LZF' as the class having main() method to call), like so:
 
-    java -jar compress-lzf-0.9.8.jar
+    java -jar compress-lzf-1.0.0.jar
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
