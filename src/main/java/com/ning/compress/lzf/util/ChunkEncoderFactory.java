@@ -9,8 +9,6 @@ import com.ning.compress.lzf.impl.VanillaChunkEncoder;
  * Simple helper class used for loading
  * {@link ChunkEncoder} implementations, based on criteria
  * such as "fastest available" or "safe to run anywhere".
- *
- * @since 0.9.7
  */
 public class ChunkEncoderFactory
 {

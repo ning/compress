@@ -4,9 +4,7 @@ import java.io.IOException;
 
 /**
  * Base exception used by compression codecs when encountering a problem
- * with underlying data format, usually due to data corruption
- * 
- * @since 0.9.6
+ * with underlying data format, usually due to data corruption.
  */
 public class CompressionFormatException extends IOException
 {

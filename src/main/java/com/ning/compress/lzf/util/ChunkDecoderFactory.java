@@ -11,8 +11,6 @@ import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
  *<p>
  * Yes, it looks butt-ugly, but does the job. Nonetheless, if anyone
  * has lipstick for this pig, let me know.
- * 
- * @since 0.9
  */
 public class ChunkDecoderFactory
 {

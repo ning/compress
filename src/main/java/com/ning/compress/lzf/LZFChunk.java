@@ -112,8 +112,6 @@ public class LZFChunk
     /**
      * Method for appending specific content as non-compressed chunk, in
      * given buffer.
-     * 
-     * @since 0.9.7
      */
     public static int appendNonCompressed(byte[] plainData, int ptr, int len,
             byte[] outputBuffer, int outputPtr)

@@ -13,8 +13,6 @@ import java.io.IOException;
  * typically passed through to constructor of the implementation.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
- *
- * @since 0.9.4
  */
 public abstract class Uncompressor
 {

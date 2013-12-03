@@ -1,5 +1,6 @@
 package com.ning.compress.lzf;
 
+import java.io.*;
 import java.util.Arrays;
 
 import org.testng.Assert;
@@ -102,13 +103,14 @@ public class TestLZFEncoder extends BaseForTests
     @Test
     public void testConditionalCompression() throws Exception
     {
-        _testConditionalCompression(ChunkEncoderFactory.safeInstance());
-        _testConditionalCompression(ChunkEncoderFactory.optimalInstance());
+        final byte[] input = constructFluff(52000);
+        
+        _testConditionalCompression(ChunkEncoderFactory.safeInstance(), input);
+        _testConditionalCompression(ChunkEncoderFactory.optimalInstance(), input);
     }
 
-    private void _testConditionalCompression(ChunkEncoder enc) throws Exception
+    private void _testConditionalCompression(ChunkEncoder enc, final byte[] input) throws IOException
     {
-        byte[] input = constructFluff(52000);
         // double-check expected compression ratio
         byte[] comp = enc.encodeChunk(input, 0, input.length).getData();
         int pct = (int) (100.0 * comp.length / input.length);
@@ -123,5 +125,27 @@ public class TestLZFEncoder extends BaseForTests
         // but not to 60%
         offset = enc.appendEncodedIfCompresses(input, 0.60, 0, input.length, buf, 0);
         Assert.assertEquals(offset, -1);
+
+        // // // Second part: OutputStream alternatives
+        
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(60000);
+        Assert.assertTrue(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.70));
+        Assert.assertEquals(comp.length, bytes.size());
+        byte[] output = bytes.toByteArray();
+        Assert.assertEquals(output, comp);
+
+        bytes = new ByteArrayOutputStream(60000);
+        Assert.assertFalse(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.60));
+        Assert.assertEquals(0, bytes.size());
+
+        // // // Third part: chunk creation
+
+        LZFChunk chunk = enc.encodeChunkIfCompresses(input, 0, input.length, 0.70);
+        Assert.assertNotNull(chunk);
+        Assert.assertEquals(chunk.length(), comp.length);
+        Assert.assertEquals(chunk.getData(), comp);
+
+        chunk = enc.encodeChunkIfCompresses(input, 0, input.length, 0.60);
+        Assert.assertNull(chunk);
     }
 }

@@ -166,6 +166,29 @@ public abstract class ChunkEncoder
     }
 
     /**
+     * Method for compressing individual chunk, if (and only if) it compresses down
+     * to specified ratio or less.
+     * 
+     * @param maxResultRatio Value between 0.05 and 1.10 to indicate maximum relative size of
+     *   the result to use, in order to append encoded chunk
+     *   
+     * @return Encoded chunk if (and only if) input compresses down to specified ratio or less;
+     *    otherwise returns null
+     */
+    public LZFChunk encodeChunkIfCompresses(byte[] data, int offset, int inputLen,
+            double maxResultRatio)
+    {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            final int maxSize = (int) (maxResultRatio * inputLen + LZFChunk.HEADER_LEN_COMPRESSED + 0.5);
+            int compLen = tryCompress(data, offset, offset+inputLen, _encodeBuffer, 0);
+            if (compLen <= maxSize) {
+                return LZFChunk.createCompressed(inputLen, _encodeBuffer, 0, compLen);
+            }
+        }
+        return null;
+    }
+    
+    /**
      * Alternate chunk compression method that will append encoded chunk in
      * pre-allocated buffer. Note that caller must ensure that the buffer is
      * large enough to hold not just encoded result but also intermediate
@@ -174,8 +197,6 @@ public abstract class ChunkEncoder
      * necessary buffer size.
      * 
      * @return Offset in output buffer after appending the encoded chunk
-     * 
-     * @since 0.9.7
      */
     public int appendEncodedChunk(final byte[] input, final int inputPtr, final int inputLen,
             final byte[] outputBuffer, final int outputPos)
@@ -203,22 +224,20 @@ public abstract class ChunkEncoder
      * will be needed); otherwise will
      * return <code>-1</code> without appending anything.
      * 
-     * @param resultRatio Value between 0.05 and 1.10 to indicate maximum relative size of
-     *   the result to use, in order to appen encoded chunk
+     * @param maxResultRatio Value between 0.05 and 1.10 to indicate maximum relative size of
+     *   the result to use, in order to append encoded chunk
      * 
      * @return Offset after appending compressed chunk, if compression produces compact
      *    enough chunk; otherwise -1 to indicate that no compression resulted.
-     *    
-     * @since 1.0.0
      */
-    public int appendEncodedIfCompresses(final byte[] input, double resultRatio,
+    public int appendEncodedIfCompresses(final byte[] input, double maxResultRatio,
             final int inputPtr, final int inputLen,
             final byte[] outputBuffer, final int outputPos)
     {
         if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
             final int compStart = outputPos + LZFChunk.HEADER_LEN_COMPRESSED;
             final int end = tryCompress(input, inputPtr, inputPtr+inputLen, outputBuffer, compStart);
-            final int maxSize = (int) (resultRatio * inputLen + LZFChunk.HEADER_LEN_COMPRESSED + 0.5);
+            final int maxSize = (int) (maxResultRatio * inputLen + LZFChunk.HEADER_LEN_COMPRESSED + 0.5);
 
             if (end <= (outputPos + maxSize)) { // yes, compressed enough, let's do this!
                 final int compLen = end - compStart;
@@ -228,7 +247,7 @@ public abstract class ChunkEncoder
         }
         return -1;
     }
-    
+
     /**
      * Method for encoding individual chunk, writing it to given output stream.
      */
@@ -255,6 +274,29 @@ public abstract class ChunkEncoder
         out.write(data, offset, len);
     }
 
+    /**
+     * Method for encoding individual chunk, writing it to given output stream,
+     * if (and only if!) it compresses enough.
+     *
+     * @return True if compression occurred and chunk was written; false if not.
+     */
+    public boolean encodeAndWriteChunkIfCompresses(byte[] data, int offset, int inputLen,
+            OutputStream out, double resultRatio)
+        throws IOException
+    {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            int compEnd = tryCompress(data, offset, offset+inputLen, _encodeBuffer, LZFChunk.HEADER_LEN_COMPRESSED);
+            final int maxSize = (int) (resultRatio * inputLen + LZFChunk.HEADER_LEN_COMPRESSED + 0.5);
+            if (compEnd <= maxSize) { // yes, down to small enough
+                LZFChunk.appendCompressedHeader(inputLen, compEnd-LZFChunk.HEADER_LEN_COMPRESSED,
+                        _encodeBuffer, 0);
+                out.write(_encodeBuffer, 0, compEnd);
+                return true;
+            }
+        }
+        return false;
+    }
+    
     /*
     ///////////////////////////////////////////////////////////////////////
     // Abstract methods for sub-classes

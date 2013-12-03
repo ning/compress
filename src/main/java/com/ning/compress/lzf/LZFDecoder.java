@@ -18,7 +18,7 @@ import com.ning.compress.lzf.util.ChunkDecoderFactory;
 /**
  * Decoder that handles decoding of sequence of encoded LZF chunks,
  * combining them into a single contiguous result byte array.
- * As of version 0.9, this class has been mostly replaced by
+ * This class has been mostly replaced by
  * {@link ChunkDecoder}, although static methods are left here
  * and may still be used for convenience.
  * All static methods use {@link ChunkDecoderFactory#optimalInstance}
@@ -52,8 +52,6 @@ public class LZFDecoder
      * Accessor method that can be used to obtain {@link ChunkDecoder}
      * that uses all possible optimization methods available, including
      * <code>sun.misc.Unsafe</code> for memory access.
-     * 
-     * @since 0.9.7
      */
     public static ChunkDecoder fastDecoder() {
         // race conditions are ok here, we don't really mind
@@ -69,8 +67,6 @@ public class LZFDecoder
      * Accessor method that can be used to obtain {@link ChunkDecoder}
      * that only uses standard JDK access methods, and should work on
      * all Java platforms and JVMs.
-     * 
-     * @since 0.9.7
      */
     public static ChunkDecoder safeDecoder() {
         // race conditions are ok here, we don't really mind
@@ -124,31 +120,19 @@ public class LZFDecoder
     // Basic API, "safe" decode methods
     ///////////////////////////////////////////////////////////////////////
      */
-    
-    /**
-     * @since 0.9.7
-     */
+
     public static byte[] safeDecode(final byte[] inputBuffer) throws LZFException {
         return safeDecoder().decode(inputBuffer, 0, inputBuffer.length);
     }
-    
-    /**
-     * @since 0.9.7
-     */
+
     public static byte[] safeDecode(final byte[] inputBuffer, int offset, int length) throws LZFException {
         return safeDecoder().decode(inputBuffer, offset, length);
     }
-    
-    /**
-     * @since 0.9.7
-     */
+
     public static int safeDecode(final byte[] inputBuffer, final byte[] targetBuffer) throws LZFException {
         return safeDecoder().decode(inputBuffer, 0, inputBuffer.length, targetBuffer);
     }
 
-    /**
-     * @since 0.9.7
-     */
     public static int safeDecode(final byte[] sourceBuffer, int offset, int length, final byte[] targetBuffer)
             throws LZFException {
         return safeDecoder().decode(sourceBuffer, offset, length, targetBuffer);        

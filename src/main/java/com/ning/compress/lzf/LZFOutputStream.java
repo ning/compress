@@ -217,8 +217,6 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
      * we write encoded LZF encoded data into, after compressing it.
      * Will never return null; although underlying stream may be closed
      * (if this stream has been closed).
-     *
-     * @since 0.8
      */
     public OutputStream getUnderlyingOutputStream() {
         return out;
@@ -226,9 +224,7 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
 
     /**
      * Accessor for checking whether call to "flush()" will first finish the
-     * current block or not
-     *
-     * @since 0.8
+     * current block or not.
      */
     public boolean getFinishBlockOnFlush() {
         return _cfgFinishBlockOnFlush;
@@ -240,8 +236,6 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
      * LZF block. This typically results in lower compression ratio
      * as larger blocks compress better; but may be necessary for
      * network connections to ensure timely sending of data.
-     *
-     * @since 0.8
      */
     public LZFOutputStream finishBlock() throws IOException
     {

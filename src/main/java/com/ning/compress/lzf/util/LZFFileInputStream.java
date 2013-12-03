@@ -16,8 +16,6 @@ import com.ning.compress.lzf.*;
  *<p>
  * Implementation note: much of the code is just copied from {@link LZFInputStream},
  * so care must be taken to keep implementations in sync if there are fixes.
- * 
- * @since 0.8
  */
 public class LZFFileInputStream
     extends FileInputStream
@@ -309,8 +307,6 @@ public class LZFFileInputStream
      * @param out OutputStream to use for writing content
      * 
      * @return Number of bytes written (uncompressed)
-     * 
-     * @since 0.9.3
      */
     public int readAndWrite(OutputStream out) throws IOException
     {

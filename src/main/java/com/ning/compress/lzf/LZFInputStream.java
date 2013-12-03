@@ -275,8 +275,6 @@ public class LZFInputStream extends InputStream
      * we read from to get LZF encoded data to decode.
      * Will never return null; although underlying stream may be closed
      * (if this stream has been closed).
-     * 
-     * @since 0.8
      */
     public InputStream getUnderlyingInputStream() {
         return _inputStream;
@@ -287,8 +285,6 @@ public class LZFInputStream extends InputStream
      * from input source.
      * Specialized method that only makes sense if the underlying {@link InputStream}
      * can be repositioned reliably.
-     * 
-     * @since 0.9
      */
     public void discardBuffered()
     {
@@ -304,8 +300,6 @@ public class LZFInputStream extends InputStream
      * @param out OutputStream to use for writing content
      * 
      * @return Number of bytes written (uncompressed)
-     * 
-     * @since 0.9.3
      */
     public int readAndWrite(OutputStream out) throws IOException
     {

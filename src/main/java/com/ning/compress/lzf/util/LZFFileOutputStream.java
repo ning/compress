@@ -28,8 +28,6 @@ import com.ning.compress.lzf.LZFOutputStream;
  *<p>
  * Implementation note: much of the code is just copied from {@link LZFOutputStream},
  * so care must be taken to keep implementations in sync if there are fixes.
- *
- * @since 0.8
  */
 public class LZFFileOutputStream extends FileOutputStream implements WritableByteChannel
 {
@@ -45,9 +43,7 @@ public class LZFFileOutputStream extends FileOutputStream implements WritableByt
      * Configuration setting that governs whether basic 'flush()' should
      * first complete a block or not.
      *<p>
-     * Default value is 'true'
-     *
-     * @since 0.8
+     * Default value is 'true'.
      */
     protected boolean _cfgFinishBlockOnFlush = true;
 

@@ -1,4 +1,4 @@
-0.9.10 (24-Nov-2013)
+1.0.0 (02-Dec-2013)
 
 #34: Add `ChunkEncoder.appendEncodedIfCompresses()` for conditional compression;
  useful for building efficient "compress but only if it makes enough difference"

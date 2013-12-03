@@ -16,8 +16,6 @@ import com.ning.compress.lzf.util.ChunkEncoderFactory;
  * @author Tatu Saloranta
  * 
  * @see com.ning.compress.lzf.LZFInputStream
- * 
- * @since 0.9.5
  */
 public class LZFCompressingInputStream extends InputStream
 {
@@ -81,9 +79,6 @@ public class LZFCompressingInputStream extends InputStream
         this(null, in);
     }
 
-    /**
-     * @since 0.9.8
-     */
     public LZFCompressingInputStream(final ChunkEncoder encoder, InputStream in)
     {
         // may be passed by caller, or could be null

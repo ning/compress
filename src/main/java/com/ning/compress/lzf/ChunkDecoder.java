@@ -11,8 +11,6 @@ import java.io.InputStream;
  * <b>fully thread-safe</b> and reusable.
  * 
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
- * 
- * @since 0.9
  */
 public abstract class ChunkDecoder
 {
@@ -135,8 +133,6 @@ public abstract class ChunkDecoder
      * @return If positive number, number of bytes skipped; if -1, end-of-stream was
      *   reached; otherwise, amount of content
      *   decoded (using formula of <code>returnValue = -(decodedAmount + 2)</code>)
-     * 
-     * @since 0.9.6
      */
     public abstract int skipOrDecodeChunk(final InputStream is, final byte[] inputBuffer,
             final byte[] outputBuffer, final long maxToSkip)

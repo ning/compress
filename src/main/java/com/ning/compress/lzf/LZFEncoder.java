@@ -46,8 +46,6 @@ public class LZFEncoder
      * (1 indicator for every 31 bytes of uncompressed data)
      * is more than what eventual expansion would be (5 bytes header per
      * each uncompressed chunk, usually 0.01%).
-     * 
-     * @since 0.9.7
      */
     public static int estimateMaxWorkspaceSize(int inputSize)
     {
@@ -79,8 +77,6 @@ public class LZFEncoder
      * Note that {@link ChunkEncoder} instance used is one produced by
      * {@link ChunkEncoderFactory#optimalInstance}, which typically
      * is "unsafe" instance if one can be used on current JVM.
-     * 
-     * @since 0.8.1
      */
     public static byte[] encode(byte[] data) {
         return encode(data, 0, data.length);
@@ -103,8 +99,6 @@ public class LZFEncoder
      * Note that {@link ChunkEncoder} instance used is one produced by
      * {@link ChunkEncoderFactory#optimalInstance}, which typically
      * is "unsafe" instance if one can be used on current JVM.
-     * 
-     * @since 0.8.1
      */
     public static byte[] encode(byte[] data, int offset, int length)
     {
@@ -136,7 +130,11 @@ public class LZFEncoder
     }
 
     /**
-     * @since 0.8.1
+     * Method that encodes given input using provided {@link ChunkEncoder},
+     * and aggregating it into a single byte array and returning that.
+     *<p>
+     * NOTE: method does NOT call {@link ChunkEncoder#close}; caller is responsible
+     * for doing that after it is done using the encoder.
      */
     public static byte[] encode(ChunkEncoder enc, byte[] data, int offset, int length)
     {
@@ -183,8 +181,6 @@ public class LZFEncoder
      * Note that {@link ChunkEncoder} instance used is one produced by
      * {@link ChunkEncoderFactory#optimalNonAllocatingInstance}, which typically
      * is "unsafe" instance if one can be used on current JVM.
-     * 
-     * @since 0.9.7
      */
     public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
@@ -200,8 +196,6 @@ public class LZFEncoder
      * Method that will use "safe" {@link ChunkEncoder}, as produced by
      * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
      * means that it does not use any non-compliant features beyond core JDK.
-     * 
-     * @since 0.9.7
      */
     public static int safeAppendEncoded(byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr) {
@@ -213,8 +207,6 @@ public class LZFEncoder
     
     /**
      * Alternate version that accepts pre-allocated output buffer.
-     * 
-     * @since 0.9.7
      */
     public static int appendEncoded(ChunkEncoder enc, byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr)

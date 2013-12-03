@@ -32,7 +32,6 @@ import com.ning.compress.lzf.LZFChunk;
  * This class uses a parallel implementation to make use of all available cores,
  * modulo system load.
  *
- * @author jon hartlaub
  * @author Tatu Saloranta
  * @author C&eacute;drik Lime
  *
@@ -251,8 +250,6 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
      * we write encoded LZF encoded data into, after compressing it.
      * Will never return null; although underlying stream may be closed
      * (if this stream has been closed).
-     *
-     * @since 0.8
      */
     public OutputStream getUnderlyingOutputStream() {
         return out;
