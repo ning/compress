@@ -301,7 +301,7 @@ public class ManualCompressComparison
         }
         return System.currentTimeMillis() - mainStart;
     }
-    
+
     public static void main(String[] args) throws Exception
     {
         if (args.length < 1) {
