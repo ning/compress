@@ -32,6 +32,17 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
+## Interoperability
+
+Besides Java support, LZF codecs / bindings exist for non-JVM languages as well:
+
+* C: [liblzf](http://oldhome.schmorp.de/marc/liblzf.html) (the original LZF package!)
+* Go: [Golly](https://github.com/tav/golly)
+* Javascript(!): [http://freecode.com/projects/lzf](freecode LZF) (or via [SourceForge](http://sourceforge.net/projects/lzf/)
+* Perl: [Compress::LZF](http://search.cpan.org/dist/Compress-LZF/LZF.pm)
+* Python: [Python-LZF](https://github.com/teepark/python-lzf)
+* Ruby: [glebtv/lzf](https://github.com/glebtv/lzf), [LZF/Ruby](https://rubyforge.org/projects/lzfruby/))
+
 ## Related
 
 Check out [jvm-compress-benchmark](https://github.com/ning/jvm-compressor-benchmark) for comparison of space- and time-efficiency of this LZF implementation, relative other available Java-accessible compression libraries.
