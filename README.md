@@ -41,7 +41,7 @@ Besides Java support, LZF codecs / bindings exist for non-JVM languages as well:
 * Javascript(!): [http://freecode.com/projects/lzf](freecode LZF) (or via [SourceForge](http://sourceforge.net/projects/lzf/))
 * Perl: [Compress::LZF](http://search.cpan.org/dist/Compress-LZF/LZF.pm)
 * Python: [Python-LZF](https://github.com/teepark/python-lzf)
-* Ruby: [glebtv/lzf](https://github.com/glebtv/lzf), [LZF/Ruby](https://rubyforge.org/projects/lzfruby/))
+* Ruby: [glebtv/lzf](https://github.com/glebtv/lzf), [LZF/Ruby](https://rubyforge.org/projects/lzfruby/)
 
 ## Related
 
