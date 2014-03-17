@@ -92,6 +92,7 @@ public class OptimizedGZIPOutputStream
     public void close() throws IOException
     {
         _deflaterOut.finish();
+        _deflaterOut = null;
         _writeTrailer(_rawOut);
         _rawOut.close();
         Deflater d = _deflater;
