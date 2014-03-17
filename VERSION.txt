@@ -1,3 +1,9 @@
+1.0.1 (xx-xxx-2014)
+
+#35: Fix a problem with closing of `DeflaterOutputStream` (for gzip output)
+ that could cause corrupt state for reusable `Deflater`
+ (contribyted by thmd@github)
+
 1.0.0 (02-Dec-2013)
 
 #34: Add `ChunkEncoder.appendEncodedIfCompresses()` for conditional compression;
