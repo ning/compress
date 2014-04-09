@@ -107,12 +107,14 @@ public class ManualUnsafePerf
         char[] result = new char[100];
 
         while (--reps >= 0) {
-            long inBase = BYTE_ARRAY_OFFSET + offset;
+//            long inBase = BYTE_ARRAY_OFFSET + offset;
 //            long outBase = CHAR_ARRAY_OFFSET;
 
 //            final long inEnd = inBase + len;
-            int i = 0;
-            for (; i < len; ) {
+            for (int i = 0; i < len; ) {
+                result[i++] = (char) input[offset+1];
+                
+                /*
                 int quad = unsafe.getInt(input, inBase);
                 inBase += 4;
 
@@ -120,6 +122,7 @@ public class ManualUnsafePerf
                 result[i++] = (char) ((quad >> 16) & 0xFF);
                 result[i++] = (char) ((quad >> 8) & 0xFF);
                 result[i++] = (char) (quad & 0xFF);
+                */
 
                 /*
                 int q1 = ((quad >>> 24) << 16) + ((quad >> 16) & 0xFF);
@@ -142,8 +145,10 @@ public class ManualUnsafePerf
             }
         }
         long time = System.currentTimeMillis() - mainStart;
+        /*
         String str = new String(result, 0, len);
         System.out.println("("+str.length()+") '"+str+"'");
+        */
         return time;
     }
     
