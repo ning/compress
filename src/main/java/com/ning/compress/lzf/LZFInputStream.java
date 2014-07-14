@@ -83,7 +83,7 @@ public class LZFInputStream extends InputStream
     public LZFInputStream(final ChunkDecoder decoder, final InputStream in)
         throws IOException
     {
-        this(decoder, in, false);
+        this(decoder, in, BufferRecycler.instance(), false);
     }
     
     /**
@@ -94,21 +94,45 @@ public class LZFInputStream extends InputStream
      */
     public LZFInputStream(final InputStream in, boolean fullReads) throws IOException
     {
-        this(ChunkDecoderFactory.optimalInstance(), in, fullReads);
+        this(ChunkDecoderFactory.optimalInstance(), in, BufferRecycler.instance(), fullReads);
     }
 
     public LZFInputStream(final ChunkDecoder decoder, final InputStream in, boolean fullReads)
         throws IOException
     {
+        this(decoder, in, BufferRecycler.instance(), fullReads);
+    }
+
+    public LZFInputStream(final InputStream inputStream, final BufferRecycler bufferRecycler) throws IOException
+    {
+        this(inputStream, bufferRecycler, false);
+    }
+
+    /**
+     * @param in Underlying input stream to use
+     * @param fullReads Whether {@link #read(byte[])} should try to read exactly
+     *   as many bytes as requested (true); or just however many happen to be
+     *   available (false)
+	 * @param bufferRecycler Buffer recycler instance, for usages where the
+	 *   caller manages the recycler instances
+     */
+    public LZFInputStream(final InputStream in, final BufferRecycler bufferRecycler, boolean fullReads) throws IOException
+    {
+        this(ChunkDecoderFactory.optimalInstance(), in, bufferRecycler, fullReads);
+    }
+
+	public LZFInputStream(final ChunkDecoder decoder, final InputStream in, final BufferRecycler bufferRecycler, boolean fullReads)
+        throws IOException
+    {
         super();
         _decoder = decoder;
-        _recycler = BufferRecycler.instance();
+        _recycler = bufferRecycler;
         _inputStream = in;
         _inputStreamClosed = false;
         _cfgFullReads = fullReads;
 
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _inputBuffer = bufferRecycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _decodedBytes = bufferRecycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
     }
 
     /**

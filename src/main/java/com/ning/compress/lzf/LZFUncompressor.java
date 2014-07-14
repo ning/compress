@@ -109,14 +109,23 @@ public class LZFUncompressor extends Uncompressor
      */
     
     public LZFUncompressor(DataHandler handler) {
-        this(handler, ChunkDecoderFactory.optimalInstance());
+        this(handler, ChunkDecoderFactory.optimalInstance(), BufferRecycler.instance());
+    }
+    
+    public LZFUncompressor(DataHandler handler, BufferRecycler bufferRecycler) {
+        this(handler, ChunkDecoderFactory.optimalInstance(), bufferRecycler);
     }
     
     public LZFUncompressor(DataHandler handler, ChunkDecoder dec)
     {
+        this(handler, dec, BufferRecycler.instance());
+    }
+
+    public LZFUncompressor(DataHandler handler, ChunkDecoder dec, BufferRecycler bufferRecycler)
+    {
         _handler = handler;
         _decoder = dec;
-        _recycler = BufferRecycler.instance();
+        _recycler = bufferRecycler;
     }
 
     /*

@@ -171,17 +171,22 @@ public class GZIPUncompressor extends Uncompressor
     
     public GZIPUncompressor(DataHandler h)
     {
-        this(h, DEFAULT_CHUNK_SIZE);
+        this(h, DEFAULT_CHUNK_SIZE, BufferRecycler.instance(), GZIPRecycler.instance());
     }
     
     public GZIPUncompressor(DataHandler h, int inputChunkLength)
     {
+        this(h, inputChunkLength, BufferRecycler.instance(), GZIPRecycler.instance());
+    }
+
+    public GZIPUncompressor(DataHandler h, int inputChunkLength, BufferRecycler bufferRecycler, GZIPRecycler gzipRecycler)
+    {
         _inputChunkLength = inputChunkLength;
         _handler = h;
-        _recycler = BufferRecycler.instance();
-        _decodeBuffer = _recycler.allocDecodeBuffer(DECODE_BUFFER_SIZE);
-        _gzipRecycler = GZIPRecycler.instance();
-        _inflater = _gzipRecycler.allocInflater();
+        _recycler = bufferRecycler;
+        _decodeBuffer = bufferRecycler.allocDecodeBuffer(DECODE_BUFFER_SIZE);
+        _gzipRecycler = gzipRecycler;
+        _inflater = gzipRecycler.allocInflater();
         _crc = new CRC32();
     }
 

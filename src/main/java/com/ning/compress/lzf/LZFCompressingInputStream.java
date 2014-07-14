@@ -76,16 +76,24 @@ public class LZFCompressingInputStream extends InputStream
     
     public LZFCompressingInputStream(InputStream in)
     {
-        this(null, in);
+        this(null, in, BufferRecycler.instance());
     }
 
     public LZFCompressingInputStream(final ChunkEncoder encoder, InputStream in)
     {
+        this(encoder, in, null);
+    }
+
+    public LZFCompressingInputStream(final ChunkEncoder encoder, InputStream in, BufferRecycler bufferRecycler)
+    {
         // may be passed by caller, or could be null
         _encoder = encoder;
         _inputStream = in;
-        _recycler = BufferRecycler.instance();
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+		if (bufferRecycler==null) {
+			bufferRecycler = (encoder!=null) ? _encoder._recycler : BufferRecycler.instance();
+		}
+        _recycler = bufferRecycler;
+        _inputBuffer = bufferRecycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
         // let's not yet allocate encoding buffer; don't know optimal size
     }
 
@@ -259,7 +267,7 @@ public class LZFCompressingInputStream extends InputStream
         if (_encoder == null) {
             // need 7 byte header, plus regular max buffer size:
             int bufferLen = chunkLength + ((chunkLength + 31) >> 5) + 7;
-            _encoder = ChunkEncoderFactory.optimalNonAllocatingInstance(bufferLen);
+            _encoder = ChunkEncoderFactory.optimalNonAllocatingInstance(bufferLen, _recycler);
         }
         if (_encodedBytes == null) {
             int bufferLen = chunkLength + ((chunkLength + 31) >> 5) + 7;

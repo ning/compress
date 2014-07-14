@@ -1,5 +1,6 @@
 package com.ning.compress.lzf.impl;
 
+import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.LZFChunk;
 
 /**
@@ -17,7 +18,15 @@ public class UnsafeChunkEncoderLE
         super(totalLength, bogus);
     }
 
-    @Override
+    public UnsafeChunkEncoderLE(int totalLength, BufferRecycler bufferRecycler) {
+        super(totalLength, bufferRecycler);
+    }
+
+    public UnsafeChunkEncoderLE(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
+        super(totalLength, bufferRecycler, bogus);
+    }
+
+	@Override
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         final int[] hashTable = _hashTable;
