@@ -41,7 +41,7 @@ import com.ning.compress.lzf.LZFChunk;
  */
 public class PLZFOutputStream extends FilterOutputStream implements WritableByteChannel
 {
-    private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
+    private static final int DEFAULT_OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
     protected byte[] _outputBuffer;
     protected int _position = 0;
@@ -65,16 +65,20 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
      */
 
     public PLZFOutputStream(final OutputStream outputStream) {
-        this(outputStream, getNThreads());
+        this(outputStream, DEFAULT_OUTPUT_BUFFER_SIZE, getNThreads());
     }
 
     protected PLZFOutputStream(final OutputStream outputStream, int nThreads) {
+        this(outputStream, DEFAULT_OUTPUT_BUFFER_SIZE, nThreads);
+    }
+
+    protected PLZFOutputStream(final OutputStream outputStream, final int bufferSize, int nThreads) {
         super(outputStream);
         _outputStreamClosed = false;
         compressExecutor = new ThreadPoolExecutor(nThreads, nThreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>()); // unbounded
         ((ThreadPoolExecutor)compressExecutor).allowCoreThreadTimeOut(true);
         writeExecutor = Executors.newSingleThreadExecutor(); // unbounded
-        blockManager = new BlockManager(nThreads * 2, OUTPUT_BUFFER_SIZE); // this is where the bounds will be enforced!
+        blockManager = new BlockManager(nThreads * 2, bufferSize); // this is where the bounds will be enforced!
         _outputBuffer = blockManager.getBlockFromPool();
     }
 

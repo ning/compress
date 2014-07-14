@@ -11,6 +11,7 @@
 
 package com.ning.compress.lzf;
 
+import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 /**
@@ -122,6 +123,36 @@ public class LZFEncoder
     }    
 
     /**
+     * Method for compressing given input data using LZF encoding and
+     * block structure (compatible with lzf command line utility).
+     * Result consists of a sequence of chunks.
+     *<p>
+     * Note that {@link ChunkEncoder} instance used is one produced by
+     * {@link ChunkEncoderFactory#optimalInstance}, which typically
+     * is "unsafe" instance if one can be used on current JVM.
+     */
+    public static byte[] encode(byte[] data, int offset, int length, BufferRecycler bufferRecycler)
+    {
+        ChunkEncoder enc = ChunkEncoderFactory.optimalInstance(length, bufferRecycler);
+        byte[] result = encode(enc, data, offset, length);
+        enc.close(); // important for buffer reuse!
+        return result;
+    }
+
+    /**
+     * Method that will use "safe" {@link ChunkEncoder}, as produced by
+     * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
+     * means that it does not use any non-compliant features beyond core JDK.
+     */
+    public static byte[] safeEncode(byte[] data, int offset, int length, BufferRecycler bufferRecycler)
+    {
+        ChunkEncoder enc = ChunkEncoderFactory.safeInstance(length, bufferRecycler);
+        byte[] result = encode(enc, data, offset, length);
+        enc.close();
+        return result;
+    }    
+
+    /**
      * Compression method that uses specified {@link ChunkEncoder} for actual
      * encoding.
      */
@@ -206,6 +237,36 @@ public class LZFEncoder
     }
     
     /**
+     * Alternate version that accepts pre-allocated output buffer.
+     *<p>
+     * Note that {@link ChunkEncoder} instance used is one produced by
+     * {@link ChunkEncoderFactory#optimalNonAllocatingInstance}, which typically
+     * is "unsafe" instance if one can be used on current JVM.
+     */
+    public static int appendEncoded(byte[] input, int inputPtr, int inputLength,
+            byte[] outputBuffer, int outputPtr, BufferRecycler bufferRecycler) {
+        ChunkEncoder enc = ChunkEncoderFactory.optimalNonAllocatingInstance(inputLength, bufferRecycler);
+        int len = appendEncoded(enc, input, inputPtr, inputLength, outputBuffer, outputPtr);
+        enc.close();
+        return len;
+    }
+
+    /**
+     * Alternate version that accepts pre-allocated output buffer.
+     *<p>
+     * Method that will use "safe" {@link ChunkEncoder}, as produced by
+     * {@link ChunkEncoderFactory#safeInstance}, for encoding. Safe here
+     * means that it does not use any non-compliant features beyond core JDK.
+     */
+    public static int safeAppendEncoded(byte[] input, int inputPtr, int inputLength,
+            byte[] outputBuffer, int outputPtr, BufferRecycler bufferRecycler) {
+        ChunkEncoder enc = ChunkEncoderFactory.safeNonAllocatingInstance(inputLength, bufferRecycler);
+        int len = appendEncoded(enc, input, inputPtr, inputLength, outputBuffer, outputPtr);
+        enc.close();
+        return len;
+    }
+
+	/**
      * Alternate version that accepts pre-allocated output buffer.
      */
     public static int appendEncoded(ChunkEncoder enc, byte[] input, int inputPtr, int inputLength,

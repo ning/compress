@@ -77,47 +77,62 @@ public class LZFFileInputStream
      */
 
     public LZFFileInputStream(File file) throws FileNotFoundException {
-        this(file, ChunkDecoderFactory.optimalInstance());
+        this(file, ChunkDecoderFactory.optimalInstance(), BufferRecycler.instance());
     }
 
     public LZFFileInputStream(FileDescriptor fdObj) {
-        this(fdObj, ChunkDecoderFactory.optimalInstance());
+        this(fdObj, ChunkDecoderFactory.optimalInstance(), BufferRecycler.instance());
     }
 
     public LZFFileInputStream(String name) throws FileNotFoundException {
-        this(name, ChunkDecoderFactory.optimalInstance());
+        this(name, ChunkDecoderFactory.optimalInstance(), BufferRecycler.instance());
     }
     
     public LZFFileInputStream(File file, ChunkDecoder decompressor) throws FileNotFoundException
     {
-        super(file);
-        _decompressor = decompressor;
-        _recycler = BufferRecycler.instance();
-        _inputStreamClosed = false;
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _wrapper = new Wrapper();
+        this(file, decompressor, BufferRecycler.instance());
     }
 
     public LZFFileInputStream(FileDescriptor fdObj, ChunkDecoder decompressor)
     {
-        super(fdObj);
-        _decompressor = decompressor;
-        _recycler = BufferRecycler.instance();
-        _inputStreamClosed = false;
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _wrapper = new Wrapper();
+        this(fdObj, decompressor, BufferRecycler.instance());
     }
 
     public LZFFileInputStream(String name, ChunkDecoder decompressor) throws FileNotFoundException
     {
+        this(name, decompressor, BufferRecycler.instance());
+    }
+
+    public LZFFileInputStream(File file, ChunkDecoder decompressor, BufferRecycler bufferRecycler) throws FileNotFoundException
+    {
+        super(file);
+        _decompressor = decompressor;
+        _recycler = bufferRecycler;
+        _inputStreamClosed = false;
+        _inputBuffer = bufferRecycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _decodedBytes = bufferRecycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileInputStream(FileDescriptor fdObj, ChunkDecoder decompressor, BufferRecycler bufferRecycler)
+    {
+        super(fdObj);
+        _decompressor = decompressor;
+        _recycler = bufferRecycler;
+        _inputStreamClosed = false;
+        _inputBuffer = bufferRecycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _decodedBytes = bufferRecycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _wrapper = new Wrapper();
+    }
+
+    public LZFFileInputStream(String name, ChunkDecoder decompressor, BufferRecycler bufferRecycler) throws FileNotFoundException
+    {
         super(name);
         _decompressor = decompressor;
-        _recycler = BufferRecycler.instance();
+        _recycler = bufferRecycler;
         _inputStreamClosed = false;
-        _inputBuffer = _recycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
-        _decodedBytes = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _inputBuffer = bufferRecycler.allocInputBuffer(LZFChunk.MAX_CHUNK_LEN);
+        _decodedBytes = bufferRecycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
         _wrapper = new Wrapper();
     }
 

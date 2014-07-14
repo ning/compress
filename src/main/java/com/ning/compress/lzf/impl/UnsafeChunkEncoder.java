@@ -1,5 +1,6 @@
 package com.ning.compress.lzf.impl;
 
+import com.ning.compress.BufferRecycler;
 import java.lang.reflect.Field;
 
 import sun.misc.Unsafe;
@@ -42,6 +43,14 @@ public abstract class UnsafeChunkEncoder
 
     public UnsafeChunkEncoder(int totalLength, boolean bogus) {
         super(totalLength, bogus);
+    }
+
+    public UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler) {
+        super(totalLength, bufferRecycler);
+    }
+
+    public UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
+        super(totalLength, bufferRecycler, bogus);
     }
 
     /*

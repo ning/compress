@@ -1,5 +1,6 @@
 package com.ning.compress.lzf.impl;
 
+import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.ChunkEncoder;
 import com.ning.compress.lzf.LZFChunk;
 
@@ -22,8 +23,29 @@ public class VanillaChunkEncoder
         super(totalLength, bogus);
     }
 
+    /**
+     * @param totalLength Total encoded length; used for calculating size
+     *   of hash table to use
+	 * @param bufferRecycler The BufferRecycler instance
+     */
+    public VanillaChunkEncoder(int totalLength, BufferRecycler bufferRecycler) {
+        super(totalLength, bufferRecycler);
+    }
+
+    /**
+     * Alternate constructor used when we want to avoid allocation encoding
+     * buffer, in cases where caller wants full control over allocations.
+     */
+    protected VanillaChunkEncoder(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
+        super(totalLength, bufferRecycler, bogus);
+    }
+
     public static VanillaChunkEncoder nonAllocatingEncoder(int totalLength) {
         return new VanillaChunkEncoder(totalLength, true);
+    }
+    
+    public static VanillaChunkEncoder nonAllocatingEncoder(int totalLength, BufferRecycler bufferRecycler) {
+        return new VanillaChunkEncoder(totalLength, bufferRecycler, true);
     }
     
     /*

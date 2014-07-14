@@ -75,34 +75,56 @@ public abstract class ChunkEncoder
     protected byte[] _headerBuffer;
 
     /**
+	 * Uses a ThreadLocal soft-referenced BufferRecycler instance.
+	 * 
      * @param totalLength Total encoded length; used for calculating size
      *   of hash table to use
      */
     protected ChunkEncoder(int totalLength)
     {
+        this(totalLength, BufferRecycler.instance());
+    }
+
+    /**
+     * @param totalLength Total encoded length; used for calculating size
+     *   of hash table to use
+	 * @param bufferRecycler Buffer recycler instance, for usages where the
+	 *   caller manages the recycler instances
+     */
+    protected ChunkEncoder(int totalLength, BufferRecycler bufferRecycler)
+    {
         // Need room for at most a single full chunk
         int largestChunkLen = Math.min(totalLength, LZFChunk.MAX_CHUNK_LEN);       
         int suggestedHashLen = calcHashLen(largestChunkLen);
-        _recycler = BufferRecycler.instance();
-        _hashTable = _recycler.allocEncodingHash(suggestedHashLen);
+        _recycler = bufferRecycler;
+        _hashTable = bufferRecycler.allocEncodingHash(suggestedHashLen);
         _hashModulo = _hashTable.length - 1;
         // Ok, then, what's the worst case output buffer length?
         // length indicator for each 32 literals, so:
         // 21-Feb-2013, tatu: Plus we want to prepend chunk header in place:
         int bufferLen = largestChunkLen + ((largestChunkLen + 31) >> 5) + LZFChunk.MAX_HEADER_LEN;
-        _encodeBuffer = _recycler.allocEncodingBuffer(bufferLen);
+        _encodeBuffer = bufferRecycler.allocEncodingBuffer(bufferLen);
     }
-
+	
     /**
      * Alternate constructor used when we want to avoid allocation encoding
      * buffer, in cases where caller wants full control over allocations.
      */
     protected ChunkEncoder(int totalLength, boolean bogus)
     {
+        this(totalLength, BufferRecycler.instance(), bogus);
+    }
+
+    /**
+     * Alternate constructor used when we want to avoid allocation encoding
+     * buffer, in cases where caller wants full control over allocations.
+     */
+    protected ChunkEncoder(int totalLength, BufferRecycler bufferRecycler, boolean bogus)
+    {
         int largestChunkLen = Math.max(totalLength, LZFChunk.MAX_CHUNK_LEN);
         int suggestedHashLen = calcHashLen(largestChunkLen);
-        _recycler = BufferRecycler.instance();
-        _hashTable = _recycler.allocEncodingHash(suggestedHashLen);
+        _recycler = bufferRecycler;
+        _hashTable = bufferRecycler.allocEncodingHash(suggestedHashLen);
         _hashModulo = _hashTable.length - 1;
         _encodeBuffer = null;
     }
@@ -297,6 +319,10 @@ public abstract class ChunkEncoder
         return false;
     }
     
+	public BufferRecycler getBufferRecycler() {
+		return _recycler;
+	}
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Abstract methods for sub-classes

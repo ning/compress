@@ -78,14 +78,19 @@ public class OptimizedGZIPInputStream
     
     public OptimizedGZIPInputStream(InputStream in) throws IOException
     {
+        this(in, BufferRecycler.instance(), GZIPRecycler.instance());
+    }
+
+    public OptimizedGZIPInputStream(InputStream in, BufferRecycler bufferRecycler, GZIPRecycler gzipRecycler) throws IOException
+    {
         super();
-        _bufferRecycler = BufferRecycler.instance();
-        _gzipRecycler = GZIPRecycler.instance();
+        _bufferRecycler = bufferRecycler;
+        _gzipRecycler = gzipRecycler;
         _rawInput = in;
-        _buffer = _bufferRecycler.allocInputBuffer(INPUT_BUFFER_SIZE);
+        _buffer = bufferRecycler.allocInputBuffer(INPUT_BUFFER_SIZE);
 
         _bufferPtr = _bufferEnd = 0;
-        _inflater = _gzipRecycler.allocInflater();
+        _inflater = gzipRecycler.allocInflater();
         _crc = new CRC32();
 
         // And then need to process header...

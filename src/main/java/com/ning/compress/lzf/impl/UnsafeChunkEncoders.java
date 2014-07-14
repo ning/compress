@@ -11,6 +11,7 @@
 
 package com.ning.compress.lzf.impl;
 
+import com.ning.compress.BufferRecycler;
 import java.nio.ByteOrder;
 
 
@@ -38,5 +39,19 @@ public final class UnsafeChunkEncoders
             return new UnsafeChunkEncoderLE(totalLength, false);
         }
         return new UnsafeChunkEncoderBE(totalLength, false);
+    }
+
+    public static UnsafeChunkEncoder createEncoder(int totalLength, BufferRecycler bufferRecycler) {
+        if (LITTLE_ENDIAN) {
+            return new UnsafeChunkEncoderLE(totalLength, bufferRecycler);
+        }
+        return new UnsafeChunkEncoderBE(totalLength, bufferRecycler);
+    }
+
+    public static UnsafeChunkEncoder createNonAllocatingEncoder(int totalLength, BufferRecycler bufferRecycler) {
+        if (LITTLE_ENDIAN) {
+            return new UnsafeChunkEncoderLE(totalLength, bufferRecycler, false);
+        }
+        return new UnsafeChunkEncoderBE(totalLength, bufferRecycler, false);
     }
 }

@@ -28,7 +28,7 @@ import com.ning.compress.lzf.util.ChunkEncoderFactory;
  */
 public class LZFOutputStream extends FilterOutputStream implements WritableByteChannel
 {
-    private static final int OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
+    private static final int DEFAULT_OUTPUT_BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN;
 
     private final ChunkEncoder _encoder;
     private final BufferRecycler _recycler;
@@ -58,15 +58,34 @@ public class LZFOutputStream extends FilterOutputStream implements WritableByteC
 
     public LZFOutputStream(final OutputStream outputStream)
     {
-        this(ChunkEncoderFactory.optimalInstance(OUTPUT_BUFFER_SIZE), outputStream);
+        this(ChunkEncoderFactory.optimalInstance(DEFAULT_OUTPUT_BUFFER_SIZE), outputStream);
     }
 
     public LZFOutputStream(final ChunkEncoder encoder, final OutputStream outputStream)
     {
+        this(encoder, outputStream, DEFAULT_OUTPUT_BUFFER_SIZE, encoder._recycler);
+    }
+
+    public LZFOutputStream(final OutputStream outputStream, final BufferRecycler bufferRecycler)
+    {
+        this(ChunkEncoderFactory.optimalInstance(bufferRecycler), outputStream, bufferRecycler);
+    }
+
+    public LZFOutputStream(final ChunkEncoder encoder, final OutputStream outputStream, final BufferRecycler bufferRecycler)
+    {
+        this(encoder, outputStream, DEFAULT_OUTPUT_BUFFER_SIZE, bufferRecycler);
+    }
+
+    public LZFOutputStream(final ChunkEncoder encoder, final OutputStream outputStream,
+			               final int bufferSize, BufferRecycler bufferRecycler)
+    {
         super(outputStream);
         _encoder = encoder;
-        _recycler = BufferRecycler.instance();
-        _outputBuffer = _recycler.allocOutputBuffer(OUTPUT_BUFFER_SIZE);
+		if (bufferRecycler==null) {
+			bufferRecycler = _encoder._recycler;
+		}
+        _recycler = bufferRecycler;
+        _outputBuffer = bufferRecycler.allocOutputBuffer(bufferSize);
         _outputStreamClosed = false;
     }
 
