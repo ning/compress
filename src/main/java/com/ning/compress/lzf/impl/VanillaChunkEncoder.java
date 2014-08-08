@@ -66,7 +66,7 @@ public class VanillaChunkEncoder
     {
         final int[] hashTable = _hashTable;
         ++outPos; // To leave one byte for literal-length indicator
-        int seen = first(in, 0); // past 4 bytes we have seen... (last one is LSB)
+        int seen = first(in, inPos); // past 4 bytes we have seen... (last one is LSB)
         int literals = 0;
         inEnd -= TAIL_LENGTH;
         final int firstPos = inPos; // so that we won't have back references across block boundary

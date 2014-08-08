@@ -1,12 +1,16 @@
 package com.ning.compress.lzf;
 
 import java.io.*;
+import java.util.Arrays;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.ning.compress.BaseForTests;
+import com.ning.compress.lzf.LZFChunk;
 import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
 import com.ning.compress.lzf.impl.VanillaChunkDecoder;
+import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 public class TestLZFRoundTrip
 {
@@ -86,6 +90,43 @@ public class TestLZFRoundTrip
         in.close();
         compressedIn.close();
     }
+
+    @Test
+    public void testHashCollision() throws IOException
+    {
+        // this test generates a hash collision: [0,1,153,64] hashes the same as [1,153,64,64]
+        // and then leverages the bug s/inPos/0/ to corrupt the array
+        // the first array is used to insert a reference from this hash to offset 6
+        // and then the hash table is reused and still thinks that there is such a hash at position 6
+        // and at position 7, it finds a sequence with the same hash
+        // so it inserts a buggy reference
+        final byte[] b1 = new byte[] {0,1,2,3,4,(byte)153,64,64,64,9,9,9,9,9,9,9,9,9,9};
+        final byte[] b2 = new byte[] {1,(byte)153,0,0,0,0,(byte)153,64,64,64,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        final int off = 6;
+
+        ChunkEncoder encoder = ChunkEncoderFactory.safeInstance();
+        ChunkDecoder decoder = new VanillaChunkDecoder();
+        _testCollision(encoder, decoder, b1, 0, b1.length);
+        _testCollision(encoder, decoder, b2, off, b2.length - off);       
+
+        encoder = ChunkEncoderFactory.optimalInstance();
+        decoder = new UnsafeChunkDecoder();
+        _testCollision(encoder, decoder, b1, 0, b1.length);
+        _testCollision(encoder, decoder, b2, off, b2.length - off);       
+   }
+
+   private void _testCollision(ChunkEncoder encoder, ChunkDecoder decoder, byte[] bytes, int offset, int length) throws IOException
+   {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] expected = new byte[length];
+        byte[] buffer = new byte[LZFChunk.MAX_CHUNK_LEN];
+        byte[] output = new byte[length];
+        System.arraycopy(bytes, offset, expected, 0, length);
+        encoder.encodeAndWriteChunk(bytes, offset, length, outputStream);
+        InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+        Assert.assertEquals(decoder.decodeChunk(inputStream, buffer, output), length);
+        Assert.assertEquals(expected, output); 
+   }
     
     /*
     ///////////////////////////////////////////////////////////////////////
