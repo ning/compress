@@ -1,8 +1,11 @@
-1.0.2 (xx-xxx-2014)
+1.0.2 (09-Aug-2014)
 
 #38: Overload of factory methods and constructors in Encoders and Streams
  to allow specifying custom `BufferRecycler` instance
  (contributed by `serverperformance@github`)
+#39: VanillaChunkEncoder.tryCompress() not using 'inPos' as it should, potentially
+ causing corruption in rare cases
+ (contributed by Ryan E, rjerns@github)
 
 1.0.1 (08-Apr-2014)
 
