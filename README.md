@@ -50,3 +50,20 @@ Check out [jvm-compress-benchmark](https://github.com/ning/jvm-compressor-benchm
 ## More
 
 [Project Wiki](https://github.com/ning/compress/wiki).
+
+## Alternative High-Speed Lempel-Ziv Compressors
+
+LZF belongs to a family of compression codecs called "simple Lempel-Ziv" codecs.
+Since LZ compression is also the first part of `deflate` compression (which is used,
+along with simple framing, for `gzip`), it can be viewed as "first-part of gzip"
+(second part being Huffman-encoding of compressed content).
+
+There are many other codecs in this category, most notable (and competitive being)
+
+* [Snappy](http://en.wikipedia.org/wiki/Snappy_%28software%29)
+* [LZ4](http://en.wikipedia.org/wiki/LZ4_%28compression_algorithm%29)
+
+all of which have very similar compression ratios (due to same underlying algorithm,
+differences coming from slight encoding variations, and efficiency differences in
+back-reference matching), and similar performance profiles regarding ratio of
+compression vs uncompression speeds.
