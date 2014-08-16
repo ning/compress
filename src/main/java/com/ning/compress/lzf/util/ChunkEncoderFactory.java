@@ -53,8 +53,8 @@ public class ChunkEncoderFactory
     /**
      * Factory method for constructing encoder that is always passed buffer
      * externally, so that it will not (nor need) allocate encoding buffer.
-     *
-	 * <p/>Uses a ThreadLocal soft-referenced BufferRecycler instance.
+     * <p>
+     * Uses a ThreadLocal soft-referenced BufferRecycler instance.
      */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength) {
         try {
@@ -77,8 +77,8 @@ public class ChunkEncoderFactory
     /**
      * Method that can be used to ensure that a "safe" compressor instance is loaded.
      * Safe here means that it should work on any and all Java platforms.
-     *
-	 * <p/>Uses a ThreadLocal soft-referenced BufferRecycler instance.
+     * <p>
+     * Uses a ThreadLocal soft-referenced BufferRecycler instance.
      *
      * @param totalLength Expected total length of content to compress; only matters
      *    for content that is smaller than maximum chunk size (64k), to optimize
@@ -91,8 +91,7 @@ public class ChunkEncoderFactory
     /**
      * Factory method for constructing encoder that is always passed buffer
      * externally, so that it will not (nor need) allocate encoding buffer.
-     *
-	 * <p/>Uses a ThreadLocal soft-referenced BufferRecycler instance.
+	*<p>Uses a ThreadLocal soft-referenced BufferRecycler instance.
      */
     public static ChunkEncoder safeNonAllocatingInstance(int totalLength) {
         return VanillaChunkEncoder.nonAllocatingEncoder(totalLength);
