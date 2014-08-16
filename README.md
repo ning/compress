@@ -17,18 +17,22 @@ See [Wiki](https://github.com/ning/compress/wiki) for more details; here's a "TL
 
 Both compression and decompression can be done either by streaming approach:
 
-    InputStream in = new LZFInputStream(new FileInputStream("data.lzf"));
-    OutputStream out = new LZFOutputStream(new FileOutputStream("results.lzf"));
-    InputStream compIn = new LZFCompressingInputStream(new FileInputStream("stuff.txt"));
+```java
+InputStream in = new LZFInputStream(new FileInputStream("data.lzf"));
+OutputStream out = new LZFOutputStream(new FileOutputStream("results.lzf"));
+InputStream compIn = new LZFCompressingInputStream(new FileInputStream("stuff.txt"));
+```
 
 or by block operation:
 
-    byte[] compressed = LZFEncoder.encode(uncompressedData);
-    byte[] uncompressed = LZFDecoder.decode(compressedData);
+```java
+byte[] compressed = LZFEncoder.encode(uncompressedData);
+byte[] uncompressed = LZFDecoder.decode(compressedData);
+```
 
 and you can even use the LZF jar as a command-line tool (it has manifest that points to 'com.ning.compress.lzf.LZF' as the class having main() method to call), like so:
 
-    java -jar compress-lzf-1.0.2.jar
+    java -jar compress-lzf-1.0.3.jar
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
