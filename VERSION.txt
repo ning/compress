@@ -1,3 +1,8 @@
+1.0.3 (15-Aug-2014)
+
+#37: Incorrect de-serialization on Big Endian systems, due to incorrect usage of #numberOfTrailingZeroes
+ (pointed out by Gireesh P, gireeshpunathil@github)
+
 1.0.2 (09-Aug-2014)
 
 #38: Overload of factory methods and constructors in Encoders and Streams
