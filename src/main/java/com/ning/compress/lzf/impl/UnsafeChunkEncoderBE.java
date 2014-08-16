@@ -107,7 +107,7 @@ public final class UnsafeChunkEncoderBE
         int i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
         int i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
         if (i1 != i2) {
-            return 1 + _leadingBytes(Integer.reverseBytes(i1), Integer.reverseBytes(i2));
+            return 1 + _leadingBytes(i1, i2);
         }
         ptr1 += 4;
         ptr2 += 4;
@@ -115,7 +115,7 @@ public final class UnsafeChunkEncoderBE
         i1 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr1);
         i2 = unsafe.getInt(in, BYTE_ARRAY_OFFSET + ptr2);
         if (i1 != i2) {
-            return 5 + _leadingBytes(Integer.reverseBytes(i1), Integer.reverseBytes(i2));
+            return 5 + _leadingBytes(i1, i2);
         }
         return _findLongMatchLength(in, ptr1+4, ptr2+4, maxPtr1);
     }
@@ -129,7 +129,7 @@ public final class UnsafeChunkEncoderBE
             long l1 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr1);
             long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
             if (l1 != l2) {
-                return ptr1 - base + (Long.numberOfTrailingZeros(Long.reverseBytes(l1) ^ Long.reverseBytes(l2)) >> 3);
+                return ptr1 - base + _leadingBytes(l1, l2);
             }
             ptr1 += 8;
             ptr2 += 8;
@@ -142,7 +142,15 @@ public final class UnsafeChunkEncoderBE
         return ptr1 - base; // i.e. 
     }
 
+    /* With Big-Endian, in-memory layout is "natural", so what we consider
+     * leading is also leading for in-register.
+     */
+    
     private final static int _leadingBytes(int i1, int i2) {
-        return (Long.numberOfTrailingZeros(i1 ^ i2) >> 3);
+        return Integer.numberOfLeadingZeros(i1 ^ i2) >> 3;
+    }
+    
+    private final static int _leadingBytes(long l1, long l2) {
+        return Long.numberOfLeadingZeros(l1 ^ l2) >> 3;
     }
 }

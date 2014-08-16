@@ -131,7 +131,7 @@ public class UnsafeChunkEncoderLE
             long l1 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr1);
             long l2 = unsafe.getLong(in, BYTE_ARRAY_OFFSET + ptr2);
             if (l1 != l2) {
-                return ptr1 - base + (Long.numberOfTrailingZeros(l1 ^ l2) >> 3);
+                return ptr1 - base + _leadingBytes(l1, l2);
             }
             ptr1 += 8;
             ptr2 += 8;
@@ -144,7 +144,16 @@ public class UnsafeChunkEncoderLE
         return ptr1 - base; // i.e. 
     }
 
+    /* With Little-Endian, in-memory layout is reverse of what we expect for
+     * in-register, so we either have to reverse bytes, or, simpler,
+     * calculate trailing zeroes instead.
+     */
+    
     private final static int _leadingBytes(int i1, int i2) {
-        return (Long.numberOfTrailingZeros(i1 ^ i2) >> 3);
+        return Integer.numberOfTrailingZeros(i1 ^ i2) >> 3;
+    }
+
+    private final static int _leadingBytes(long l1, long l2) {
+        return Long.numberOfTrailingZeros(l1 ^ l2) >> 3;
     }
 }
