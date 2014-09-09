@@ -15,10 +15,7 @@
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
 Compressor is basic Lempel-Ziv codec, without Huffman (deflate/gzip) or statistical post-encoding.
 See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF package.
-    </description>    
-    <prerequisites>
-        <maven>2.2.1</maven>
-    </prerequisites>
+    </description>
     <url>http://github.com/ning/compress</url>
     <scm>
         <connection>scm:git:git@github.com:ning/compress.git</connection>
@@ -71,7 +68,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-	            <version>2.3.2</version>
+	        <version>3.1</version>
                 <!-- 1.6 since 0.9.7 -->
                 <configuration>
                     <source>1.6</source>
@@ -82,7 +79,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-		        <version>2.1.2</version>
+		<version>2.1.2</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -117,16 +114,16 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.1</version>
+                <version>2.4.2</version>
                 <configuration>
                   <mavenExecutorId>forked-path</mavenExecutorId>
                 </configuration>
             </plugin>
             <!-- Plus, let's make jars OSGi bundles as well  -->
-        <plugin>
+            <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>2.3.7</version>
+          <version>2.5.3</version>
           <extensions>true</extensions>
           <configuration>
             <instructions><!--  note: artifact id, name, version and description use defaults (which are fine) -->
@@ -148,7 +145,28 @@ com.ning.compress.lzf.util
               <Main-Class>com.ning.compress.lzf.LZF</Main-Class>
             </instructions>
           </configuration>
-       </plugin>
+           </plugin>
+           <!-- EVEN BETTER; make executable! -->
+      <plugin>
+        <groupId>org.skife.maven</groupId>
+        <artifactId>really-executable-jar-maven-plugin</artifactId>
+        <version>1.3.0</version>
+        <configuration>
+          <!-- value of flags will be interpolated into the java invocation -->
+          <!-- as "java $flags -jar ..." -->
+          <programFile>lzf</programFile>
+          <flags>-Xmx200m</flags>
+        </configuration>
+     
+        <executions>
+          <execution>
+           <phase>package</phase>
+           <goals>
+             <goal>really-executable-jar</goal>
+           </goals>
+          </execution>
+        </executions>
+      </plugin>
 
         </plugins>
     </build>
