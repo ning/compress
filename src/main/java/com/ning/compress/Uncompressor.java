@@ -4,7 +4,7 @@ import java.io.IOException;
 
 /**
  * Abstract class that defines "push" style API for various uncompressors
- * (aka decompressors or decoders). Implements are alternatives to stream
+ * (aka decompressors or decoders). Implementations are alternatives to stream
  * based uncompressors (such as {@link com.ning.compress.lzf.LZFInputStream})
  * in cases where "push" operation is important and/or blocking is not allowed;
  * for example, when handling asynchronous HTTP responses.
