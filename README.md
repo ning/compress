@@ -41,6 +41,7 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
 Besides Java support, LZF codecs / bindings exist for non-JVM languages as well:
 
 * C: [liblzf](http://oldhome.schmorp.de/marc/liblzf.html) (the original LZF package!)
+* C#: [C# LZF](https://csharplzfcompression.codeplex.com/)
 * Go: [Golly](https://github.com/tav/golly)
 * Javascript(!): [freecode LZF](http://freecode.com/projects/lzf) (or via [SourceForge](http://sourceforge.net/projects/lzf/))
 * Perl: [Compress::LZF](http://search.cpan.org/dist/Compress-LZF/LZF.pm)
