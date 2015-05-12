@@ -1,15 +1,22 @@
-# Ning-Compress
+# LZF Compressor
 
 ## Overview
 
-Ning-compress is a Java library for encoding and decoding data in LZF format, written by Tatu Saloranta (tatu.saloranta@iki.fi)
+LZF-compress is a Java library for encoding and decoding data in LZF format,
+written by Tatu Saloranta (tatu.saloranta@iki.fi)
 
-Data format and algorithm based on original [LZF library](http://freshmeat.net/projects/liblzf) by Marc A Lehmann. See [LZF Format](https://github.com/ning/compress/wiki/LZFFormat) for full description.
+Data format and algorithm based on original [LZF library](http://freshmeat.net/projects/liblzf) by Marc A Lehmann.
+See [LZF Format](https://github.com/ning/compress/wiki/LZFFormat) for full description.
 
-Format differs slightly from some other adaptations, such as one used by [H2 database project](http://www.h2database.com) (by Thomas Mueller); although internal block compression structure is the same, block identifiers differ.
-This package uses the original LZF identifiers to be 100% compatible with existing command-line lzf tool(s).
+Format differs slightly from some other adaptations, such as the one used
+by [H2 database project](http://www.h2database.com) (by Thomas Mueller);
+although internal block compression structure is the same, block identifiers differ.
+This package uses the original LZF identifiers to be 100% compatible with existing command-line `lzf` tool(s).
 
-LZF alfgorithm itself is optimized for speed, with somewhat more modest compression: compared to Deflate (algorithm gzip uses) LZF can be 5-6 times as fast to compress, and twice as fast to decompress.
+LZF alfgorithm itself is optimized for speed, with somewhat more modest compression.
+Compared to the standard `Deflate` (algorithm gzip uses) LZF can be 5-6 times as fast to compress,
+and twice as fast to decompress. Compression rate is lower since no Huffman-encoding is used
+after lempel-ziv substring elimintation.
 
 ## Usage
 
