@@ -43,6 +43,10 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
+### Parallel processing
+
+(TO BE WRITTEN)
+
 ## Interoperability
 
 Besides Java support, LZF codecs / bindings exist for non-JVM languages as well:
