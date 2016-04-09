@@ -45,7 +45,22 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
 
 ### Parallel processing
 
-(TO BE WRITTEN)
+Since the compression is more CPU-heavy than decompression, it could benefit from concurrent operation.
+This works well with LZF because of its block-oriented nature, so that although there is need for
+sequential processing within block (of up to 64kB), encoding of separate blocks can be done completely
+independently: there are no dependencies to earlier blocks.
+
+The main abstraction to use is `PLZFOutputStream` which a `FilterOutputStream` and implements
+`java.nio.channels.WritableByteChannel` as well. It use is like that of any `OutputStream`:
+
+```java
+PLZFOutputStream output = new PLZFOutputStream(new FileOutputStream("stuff.lzf"));
+// then write contents:
+output.write(buffer);
+// ...
+output.close();
+
+```
 
 ## Interoperability
 
