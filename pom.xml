@@ -55,11 +55,11 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
     </licenses>
     <dependencies>
     	<dependency>
-    		<groupId>org.testng</groupId>
-    		<artifactId>testng</artifactId>
-    		<version>6.5.2</version>
-    		<type>jar</type>
-    		<scope>test</scope>
+    	  <groupId>org.testng</groupId>
+    	  <artifactId>testng</artifactId>
+    	  <version>6.8.21</version>
+    	  <type>jar</type>
+    	  <scope>test</scope>
     	</dependency>
     </dependencies>
     <build>

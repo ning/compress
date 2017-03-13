@@ -23,15 +23,23 @@ import com.ning.compress.lzf.util.ChunkEncoderFactory;
  */
 public class LZFEncoder
 {
-    /* Approximate maximum size for a full chunk, in case where it does not compress
-     * at all. Such chunks are converted to uncompressed chunks, but during compression
-     * process this amount of space is still needed.
+    /* Approximate maximum size for a full chunk DURING PROCESSING, in case where it does
+     * not compress at all. Such chunks are converted to uncompressed chunks,
+     * but during compression process this amount of space is still needed.
+     *<p> 
+     * NOTE: eventual maximum size is different, see below
      */
-    public final static int MAX_CHUNK_RESULT_SIZE = LZFChunk.MAX_HEADER_LEN + LZFChunk.MAX_CHUNK_LEN + (LZFChunk.MAX_CHUNK_LEN * 32 / 31);
+    public final static int MAX_CHUNK_RESULT_SIZE = LZFChunk.MAX_HEADER_LEN + LZFChunk.MAX_CHUNK_LEN + ((LZFChunk.MAX_CHUNK_LEN + 30) / 31);
+
+    // since 1.0.4 (better name that MAX_CHUNK_RESULT_SIZE, same value)
+    private final static int MAX_CHUNK_WORKSPACE_SIZE = LZFChunk.MAX_HEADER_LEN + LZFChunk.MAX_CHUNK_LEN + ((LZFChunk.MAX_CHUNK_LEN + 30) / 31);
+
+    // since 1.0.4
+    private final static int FULL_UNCOMP_ENCODED_CHUNK = LZFChunk.MAX_HEADER_LEN + LZFChunk.MAX_CHUNK_LEN;
 
     // Static methods only, no point in instantiating
     private LZFEncoder() { }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Helper methods
@@ -50,20 +58,27 @@ public class LZFEncoder
      */
     public static int estimateMaxWorkspaceSize(int inputSize)
     {
-        // single chunk; give a rough estimate with +5% (1 + 1/32 + 1/64)
+        // single chunk; give a rough estimate with +4.6% (1 + 1/32 + 1/64)
+        // 12-Mar-2017, tatu: as per [compress-lzf#43], rounding down would mess this
+        //   up for small sizes; but effect should go away after sizes of 64 and more,
+        //   before which we may need up to 2 markers
         if (inputSize <= LZFChunk.MAX_CHUNK_LEN) {
-            return LZFChunk.MAX_HEADER_LEN + inputSize + (inputSize >> 5) + (inputSize >> 6);
+            return LZFChunk.MAX_HEADER_LEN + 2 + inputSize + (inputSize >> 5) + (inputSize >> 6);
         }
         // one more special case, 2 chunks
         inputSize -= LZFChunk.MAX_CHUNK_LEN;
         if (inputSize <= LZFChunk.MAX_CHUNK_LEN) { // uncompressed chunk actually has 5 byte header but
-            return MAX_CHUNK_RESULT_SIZE + inputSize + LZFChunk.MAX_HEADER_LEN;
+            return MAX_CHUNK_WORKSPACE_SIZE + (LZFChunk.MAX_HEADER_LEN + inputSize);
         }
-        // check number of chunks we should be creating (assuming use of full chunks)
-        int chunkCount = 1 + ((inputSize + (LZFChunk.MAX_CHUNK_LEN-1)) / LZFChunk.MAX_CHUNK_LEN);
-        return MAX_CHUNK_RESULT_SIZE + chunkCount * (LZFChunk.MAX_CHUNK_LEN + LZFChunk.MAX_HEADER_LEN);
+        // check number of full chunks we should be creating:
+        int chunkCount = inputSize / LZFChunk.MAX_CHUNK_LEN;
+        inputSize -= chunkCount * LZFChunk.MAX_CHUNK_LEN; // will now be remainders
+        // So: first chunk has type marker, rest not, but for simplicity assume as if they all
+        // could. But take into account that last chunk is smaller
+        return MAX_CHUNK_WORKSPACE_SIZE + (chunkCount * FULL_UNCOMP_ENCODED_CHUNK)
+                + (LZFChunk.MAX_HEADER_LEN + inputSize);
     }
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Encoding methods, blocks

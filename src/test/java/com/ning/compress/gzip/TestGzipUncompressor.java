@@ -3,7 +3,7 @@ package com.ning.compress.gzip;
 import java.io.*;
 import java.util.Random;
 
-import org.junit.Assert;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.ning.compress.BaseForTests;
@@ -26,7 +26,7 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertArrayEquals(fluff, result);
+        Assert.assertEquals(fluff, result);
     }
 
     @Test 
@@ -41,7 +41,7 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.feedCompressedData(comp, 0, comp.length);
         uncomp.complete();
         byte[] result = co.getBytes();
-        Assert.assertArrayEquals(fluff, result);
+        Assert.assertEquals(fluff, result);
     }
     
     @Test 
@@ -62,7 +62,7 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertArrayEquals(fluff, result);
+        Assert.assertEquals(fluff, result);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertArrayEquals(fluff, result);
+        Assert.assertEquals(fluff, result);
     }
 
     @Test
@@ -92,7 +92,7 @@ public class TestGzipUncompressor extends BaseForTests
         out.close();
         byte[] result = co.getBytes();
         
-        Assert.assertArrayEquals(fluff, result);
+        Assert.assertEquals(fluff, result);
     }
 
     /*

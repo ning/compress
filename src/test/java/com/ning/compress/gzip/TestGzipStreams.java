@@ -3,7 +3,7 @@ package com.ning.compress.gzip;
 import java.io.*;
 import java.util.zip.*;
 
-import org.junit.Assert;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.ning.compress.BaseForTests;
@@ -19,7 +19,7 @@ public class TestGzipStreams extends BaseForTests
             throw new RuntimeException(e);
         }
     }
-    
+
     @Test
     public void testReusableInputStreams() throws IOException
     {
@@ -33,7 +33,8 @@ public class TestGzipStreams extends BaseForTests
         byte[] raw = bytes.toByteArray();
         OptimizedGZIPInputStream re = new OptimizedGZIPInputStream(new ByteArrayInputStream(raw));
         byte[] b = _readAll(re);
-        Assert.assertArrayEquals(INPUT_BYTES, b);
+        Assert.assertEquals(INPUT_BYTES, b);
+        re.close();
     }
 
     @Test
@@ -47,7 +48,7 @@ public class TestGzipStreams extends BaseForTests
         
         byte[] raw = bytes.toByteArray();
         byte[] b = _readAll(new GZIPInputStream(new ByteArrayInputStream(raw)));
-        Assert.assertArrayEquals(INPUT_BYTES, b);
+        Assert.assertEquals(INPUT_BYTES, b);
     }
 
     private byte[] _readAll(InputStream in) throws IOException

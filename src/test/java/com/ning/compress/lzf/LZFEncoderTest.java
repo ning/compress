@@ -9,16 +9,37 @@ import org.testng.annotations.Test;
 import com.ning.compress.BaseForTests;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
-public class TestLZFEncoder extends BaseForTests
+public class LZFEncoderTest extends BaseForTests
 {
     @Test
-    public void testSizeEstimate()
+    public void testBigSizeEstimate()
     {
-        int max = LZFEncoder.estimateMaxWorkspaceSize(10000);
-        // somewhere between 103 and 105%
-        if (max < 10300 || max > 10500) {
-            Assert.fail("Expected ratio to be 1010 <= x <= 1050, was: "+max);
+        for (int amt : new int[] {
+                100, 250, 600,
+                10000, 50000, 65000, 120000, 130000,
+                3 * 0x10000 + 4,
+                15 * 0x10000 + 4,
+                1000 * 0x10000 + 4,
+        }) {
+            int estimate = LZFEncoder.estimateMaxWorkspaceSize(amt);
+            int chunks = ((amt + 0xFFFE) / 0xFFFF);
+            int expMin = 2 + amt + (chunks * 5); // 5-byte header for uncompressed; however, not enough workspace
+            int expMax = ((int) (0.05 * 0xFFFF)) + amt + (chunks * 7);
+            if (estimate < expMin || estimate > expMax) {
+                Assert.fail("Expected ratio for "+amt+" to be "+expMin+" <= x <= "+expMax+", was: "+estimate);
+            }
+//System.err.printf("%d < %d < %d\n", expMin, estimate, expMax);
         }
+    }
+
+    // as per [compress-lzf#43]
+    @Test
+    public void testSmallSizeEstimate()
+    {
+        // and here we ensure that specific uncompressable case won't fail
+        byte[] in = new byte[] {0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0};
+        int outSize = LZFEncoder.estimateMaxWorkspaceSize(in.length);
+        LZFEncoder.appendEncoded(in, 0, in.length, new byte[outSize], 0);
     }
 
     @Test
