@@ -12,7 +12,7 @@
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
     <name>Compress-LZF</name>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <description> 
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
@@ -24,7 +24,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         <connection>scm:git:git@github.com:ning/compress.git</connection>
         <developerConnection>scm:git:git@github.com:ning/compress.git</developerConnection>
         <url>http://github.com/ning/compress</url>
-	<tag>compress-lzf-1.0.4</tag>
+	<tag>HEAD</tag>
     </scm>
     <issueManagement>
         <url>http://github.com/ning/compress/issues</url>
