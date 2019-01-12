@@ -13,10 +13,10 @@ by [H2 database project](http://www.h2database.com) (by Thomas Mueller);
 although internal block compression structure is the same, block identifiers differ.
 This package uses the original LZF identifiers to be 100% compatible with existing command-line `lzf` tool(s).
 
-LZF alfgorithm itself is optimized for speed, with somewhat more modest compression.
+LZF algorithm itself is optimized for speed, with somewhat more modest compression.
 Compared to the standard `Deflate` (algorithm gzip uses) LZF can be 5-6 times as fast to compress,
 and twice as fast to decompress. Compression rate is lower since no Huffman-encoding is used
-after lempel-ziv substring elimintation.
+after lempel-ziv substring elimination.
 
 ## Usage
 
