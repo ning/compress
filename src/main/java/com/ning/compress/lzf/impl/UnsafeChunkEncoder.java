@@ -1,18 +1,19 @@
 package com.ning.compress.lzf.impl;
 
 import com.ning.compress.BufferRecycler;
-import java.lang.reflect.Field;
-
-import sun.misc.Unsafe;
-
 import com.ning.compress.lzf.ChunkEncoder;
 import com.ning.compress.lzf.LZFChunk;
+import com.ning.compress.lzf.util.ByteBufferUtil;
+import sun.misc.Unsafe;
+
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 
 /**
  * {@link ChunkEncoder} implementation that handles actual encoding of individual chunks,
  * using Sun's <code>sun.misc.Unsafe</code> functionality, which gives
  * nice extra boost for speed.
- * 
+ *
  * @author Tatu Saloranta (tatu.saloranta@iki.fi)
  */
 @SuppressWarnings("restriction")
@@ -36,7 +37,7 @@ public abstract class UnsafeChunkEncoder
     protected static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
 
     protected static final long BYTE_ARRAY_OFFSET_PLUS2 = BYTE_ARRAY_OFFSET + 2;
-    
+
     public UnsafeChunkEncoder(int totalLength) {
         super(totalLength);
     }
@@ -63,9 +64,6 @@ public abstract class UnsafeChunkEncoder
             int literals)
     {
         out[outPos++] = (byte) (literals-1);
-
-        // Here use of Unsafe is clear win:
-//        System.arraycopy(in, inPos-literals, out, outPos, literals);
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - literals;
         long rawOutPtr= BYTE_ARRAY_OFFSET + outPos;
@@ -94,6 +92,80 @@ public abstract class UnsafeChunkEncoder
         return outPos+literals;
     }
 
+    protected final static int _copyPartialLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos,
+                                                    int literals)
+    {
+        out.put(outPos++, (byte) (literals - 1));
+
+        int rawInPtr = inPos - literals;
+
+        switch (literals >> 3) {
+            case 3:
+
+                out.putLong(outPos, in.getLong(rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+            case 2:
+
+                out.putLong(outPos, in.getLong(rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+            case 1:
+
+                out.putLong(outPos, in.getLong(rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+        }
+        int left = (literals & 7);
+        if (left > 4) {
+            out.putLong(outPos, in.getLong(rawInPtr));
+        } else {
+            out.putInt(outPos, in.getInt(rawInPtr));
+        }
+
+        return outPos + literals;
+    }
+
+    protected final static int _copyPartialLiterals(byte[] in, int inPos, ByteBuffer out, int outPos,
+                                                    int literals)
+    {
+        out.put(outPos++, (byte) (literals - 1));
+
+        long rawInPtr = BYTE_ARRAY_OFFSET + inPos - literals;
+
+        switch (literals >> 3) {
+            case 3:
+
+                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+            case 2:
+
+                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+            case 1:
+
+                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+                rawInPtr += 8;
+                outPos += 8;
+        }
+        int left = (literals & 7);
+        if (left > 4) {
+            out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+        } else {
+            out.putInt(outPos, unsafe.getInt(in, rawInPtr));
+        }
+
+        return outPos + literals;
+    }
+
     protected final static int _copyLongLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
@@ -101,7 +173,7 @@ public abstract class UnsafeChunkEncoder
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos;
         long rawOutPtr = BYTE_ARRAY_OFFSET + outPos;
-        
+
         while (literals >= LZFChunk.MAX_LITERAL) {
             out[outPos++] = (byte) 31;
             ++rawOutPtr;
@@ -118,7 +190,7 @@ public abstract class UnsafeChunkEncoder
             unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
             rawInPtr += 8;
             rawOutPtr += 8;
-            
+
             inPos += LZFChunk.MAX_LITERAL;
             outPos += LZFChunk.MAX_LITERAL;
             literals -= LZFChunk.MAX_LITERAL;
@@ -128,7 +200,7 @@ public abstract class UnsafeChunkEncoder
         }
         return outPos;
     }
-    
+
     protected final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
     {
         // literals == 32
@@ -136,7 +208,7 @@ public abstract class UnsafeChunkEncoder
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
         long rawOutPtr = BYTE_ARRAY_OFFSET + outPos;
-    
+
         unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
         rawInPtr += 8;
         rawOutPtr += 8;
@@ -151,8 +223,63 @@ public abstract class UnsafeChunkEncoder
         return (outPos + 32);
     }
 
-    protected final static int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
-            int literals)
+    protected final static int _copyFullLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos)
+    {
+        // literals == 32
+        out.put(outPos++, (byte) 31);
+
+        int rawInPtr = inPos - 32;
+        int rawOutPtr = outPos;
+
+        out.putLong(rawOutPtr, in.getLong(rawInPtr));
+
+        rawInPtr += 8;
+        rawOutPtr += 8;
+
+        out.putLong(rawOutPtr, in.getLong(rawInPtr));
+
+        rawInPtr += 8;
+        rawOutPtr += 8;
+
+        out.putLong(rawOutPtr, in.getLong(rawInPtr));
+
+        rawInPtr += 8;
+        rawOutPtr += 8;
+
+        out.putLong(rawOutPtr, in.getLong(rawInPtr));
+
+        return (outPos + 32);
+    }
+
+    protected static int _copyFullLiterals(byte[] in, int inPos, ByteBuffer out, int outPos)
+    {
+        // literals == 32
+        out.put(outPos++, (byte) 31);
+
+        long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
+
+        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+        rawInPtr += 8;
+        outPos += 8;
+
+        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+        rawInPtr += 8;
+        outPos += 8;
+
+        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+        rawInPtr += 8;
+        outPos += 8;
+
+        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+
+        return (outPos + 32);
+    }
+
+    protected static int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+                                     int literals)
     {
         while (inPos < inEnd) {
             ++inPos;
@@ -172,7 +299,49 @@ public abstract class UnsafeChunkEncoder
         return outPos;
     }
 
-    protected final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    protected static int _handleTail(byte[] in, int inPos, int inEnd, ByteBuffer out, int outPos,
+                                     int literals)
+    {
+        while (inPos < inEnd) {
+            ++inPos;
+            ++literals;
+            if (literals == LZFChunk.MAX_LITERAL) {
+                out.put(outPos++, (byte) (literals - 1)); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                ByteBufferUtil.dataCopy(in, inPos - literals, out, outPos, literals);
+                outPos += literals;
+                literals = 0;
+            }
+        }
+        if (literals > 0) {
+            out.put(outPos++, (byte) (literals - 1));
+            ByteBufferUtil.dataCopy(in, inPos - literals, out, outPos, literals);
+            outPos += literals;
+        }
+        return outPos;
+    }
+
+    protected static int _handleTail(ByteBuffer in, int inPos, int inEnd, ByteBuffer out, int outPos,
+                                     int literals)
+    {
+        while (inPos < inEnd) {
+            ++inPos;
+            ++literals;
+            if (literals == LZFChunk.MAX_LITERAL) {
+                out.put(outPos++, (byte) (literals - 1)); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                ByteBufferUtil.dataCopy(in, inPos - literals, out, outPos, literals);
+                outPos += literals;
+                literals = 0;
+            }
+        }
+        if (literals > 0) {
+            out.put(outPos++, (byte) (literals - 1));
+            ByteBufferUtil.dataCopy(in, inPos - literals, out, outPos, literals);
+            outPos += literals;
+        }
+        return outPos;
+    }
+
+    protected static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
     {
         final int start1 = ptr1;
         while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
@@ -180,5 +349,15 @@ public abstract class UnsafeChunkEncoder
             ++ptr2;
         }
         return ptr1 - start1 + 1; // i.e. 
+    }
+
+    protected static int _findTailMatchLength(final ByteBuffer in, int ptr1, int ptr2, final int maxPtr1)
+    {
+        final int start1 = ptr1;
+        while (ptr1 < maxPtr1 && in.get(ptr1) == in.get(ptr2)) {
+            ++ptr1;
+            ++ptr2;
+        }
+        return ptr1 - start1 + 1; // i.e.
     }
 }

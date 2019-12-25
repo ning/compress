@@ -14,6 +14,8 @@ package com.ning.compress.lzf;
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
+import java.nio.ByteBuffer;
+
 /**
  * Encoder that handles splitting of input into chunks to encode,
  * calls {@link ChunkEncoder} to compress individual chunks and
@@ -286,6 +288,32 @@ public class LZFEncoder
      */
     public static int appendEncoded(ChunkEncoder enc, byte[] input, int inputPtr, int inputLength,
             byte[] outputBuffer, int outputPtr)
+    {
+        int left = inputLength;
+        int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
+
+        outputPtr = enc.appendEncodedChunk(input, inputPtr, chunkLen, outputBuffer, outputPtr);
+        left -= chunkLen;
+        // shortcut: if it all fit in, no need to coalesce:
+        if (left < 1) {
+            return outputPtr;
+        }
+        // otherwise need to keep on encoding...
+        inputPtr += chunkLen;
+        do {
+            chunkLen = Math.min(left, LZFChunk.MAX_CHUNK_LEN);
+            outputPtr = enc.appendEncodedChunk(input, inputPtr, chunkLen, outputBuffer, outputPtr);
+            inputPtr += chunkLen;
+            left -= chunkLen;
+        } while (left > 0);
+        return outputPtr;
+    }
+
+    /**
+     * Alternate version that accepts pre-allocated output buffer.
+     */
+    public static int appendEncoded(ChunkEncoder enc, byte[] input, int inputPtr, int inputLength,
+                                    ByteBuffer outputBuffer, int outputPtr)
     {
         int left = inputLength;
         int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);

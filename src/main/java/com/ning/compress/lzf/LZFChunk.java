@@ -11,7 +11,11 @@
 
 package com.ning.compress.lzf;
 
-import java.io.*;
+import com.ning.compress.lzf.util.ByteBufferUtil;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Helper class used to store LZF encoded segments (compressed and non-compressed)
@@ -80,6 +84,18 @@ public class LZFChunk
         headerBuffer[offset++] = (byte) origLen;
         return offset;
     }
+
+    public static int appendCompressedHeader(int origLen, int encLen, ByteBuffer headerBuffer, int offset)
+    {
+        headerBuffer.put(offset++, BYTE_Z);
+        headerBuffer.put(offset++, BYTE_V);
+        headerBuffer.put(offset++, (byte) BLOCK_TYPE_COMPRESSED);
+        headerBuffer.put(offset++, (byte) (encLen >> 8));
+        headerBuffer.put(offset++, (byte) encLen);
+        headerBuffer.put(offset++, (byte) (origLen >> 8));
+        headerBuffer.put(offset++, (byte) origLen);
+        return offset;
+    }
     
     public static void writeCompressedHeader(int origLen, int encLen, OutputStream out, byte[] headerBuffer)
         throws IOException
@@ -124,6 +140,30 @@ public class LZFChunk
         System.arraycopy(plainData, ptr, outputBuffer, outputPtr, len);
         return outputPtr + len;
     }
+
+    public static int appendNonCompressed(byte[] plainData, int ptr, int len,
+                                          ByteBuffer outputBuffer, int outputPtr)
+    {
+        outputBuffer.put(outputPtr++, BYTE_Z);
+        outputBuffer.put(outputPtr++, BYTE_V);
+        outputBuffer.put(outputPtr++, (byte) BLOCK_TYPE_NON_COMPRESSED);
+        outputBuffer.put(outputPtr++, (byte) (len >> 8));
+        outputBuffer.put(outputPtr++, (byte) len);
+        ByteBufferUtil.dataCopy(plainData, ptr, outputBuffer, outputPtr, len);
+        return outputPtr + len;
+    }
+
+    public static int appendNonCompressed(ByteBuffer plainData, int ptr, int len,
+                                          ByteBuffer outputBuffer, int outputPtr)
+    {
+        outputBuffer.put(outputPtr++, BYTE_Z);
+        outputBuffer.put(outputPtr++, BYTE_V);
+        outputBuffer.put(outputPtr++, (byte) BLOCK_TYPE_NON_COMPRESSED);
+        outputBuffer.put(outputPtr++, (byte) (len >> 8));
+        outputBuffer.put(outputPtr++, (byte) len);
+        ByteBufferUtil.dataCopy(plainData, ptr, outputBuffer, outputPtr, len);
+        return outputPtr + len;
+    }
     
     public static int appendNonCompressedHeader(int len, byte[] headerBuffer, int offset)
     {
@@ -145,7 +185,7 @@ public class LZFChunk
         headerBuffer[4] = (byte) len;
         out.write(headerBuffer, 0, HEADER_LEN_NOT_COMPRESSED);
     }
-    
+
     public void setNext(LZFChunk next) { _next = next; }
 
     public LZFChunk next() { return _next; }

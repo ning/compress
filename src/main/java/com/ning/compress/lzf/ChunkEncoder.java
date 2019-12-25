@@ -14,6 +14,7 @@ package com.ning.compress.lzf;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 import com.ning.compress.BufferRecycler;
 
@@ -240,6 +241,44 @@ public abstract class ChunkEncoder
         return LZFChunk.appendNonCompressed(input, inputPtr, inputLen, outputBuffer, outputPos);
     }
 
+    public int appendEncodedChunk(final ByteBuffer input, final int inputPtr, final int inputLen,
+                                  final ByteBuffer outputBuffer, final int outputPos) {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            /* If we have non-trivial block, and can compress it by at least
+             * 2 bytes (since header is 2 bytes longer), use as-is
+             */
+            final int compStart = outputPos + LZFChunk.HEADER_LEN_COMPRESSED;
+            final int end = tryCompress(input, inputPtr, inputPtr + inputLen, outputBuffer, compStart);
+            final int uncompEnd = (outputPos + LZFChunk.HEADER_LEN_NOT_COMPRESSED) + inputLen;
+            if (end < uncompEnd) { // yes, compressed by at least one byte
+                final int compLen = end - compStart;
+                LZFChunk.appendCompressedHeader(inputLen, compLen, outputBuffer, outputPos);
+                return end;
+            }
+        }
+        // Otherwise append as non-compressed chunk instead (length + 5):
+        return LZFChunk.appendNonCompressed(input, inputPtr, inputLen, outputBuffer, outputPos);
+    }
+
+    public int appendEncodedChunk(final byte[] input, final int inputPtr, final int inputLen,
+                                  final ByteBuffer outputBuffer, final int outputPos) {
+        if (inputLen >= MIN_BLOCK_TO_COMPRESS) {
+            /* If we have non-trivial block, and can compress it by at least
+             * 2 bytes (since header is 2 bytes longer), use as-is
+             */
+            final int compStart = outputPos + LZFChunk.HEADER_LEN_COMPRESSED;
+            final int end = tryCompress(input, inputPtr, inputPtr + inputLen, outputBuffer, compStart);
+            final int uncompEnd = (outputPos + LZFChunk.HEADER_LEN_NOT_COMPRESSED) + inputLen;
+            if (end < uncompEnd) { // yes, compressed by at least one byte
+                final int compLen = end - compStart;
+                LZFChunk.appendCompressedHeader(inputLen, compLen, outputBuffer, outputPos);
+                return end;
+            }
+        }
+        // Otherwise append as non-compressed chunk instead (length + 5):
+        return LZFChunk.appendNonCompressed(input, inputPtr, inputLen, outputBuffer, outputPos);
+    }
+
     /**
      * Method similar to {@link #appendEncodedChunk}, but that will <b>only</b> append
      * encoded chunk if it compresses down to specified ratio (also considering header that
@@ -340,6 +379,10 @@ public abstract class ChunkEncoder
      *    is the actual length of compressed chunk (without header)
      */
     protected abstract int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos);
+
+    protected abstract int tryCompress(byte[] in, int inPos, int inEnd, ByteBuffer out, int outPos);
+
+    protected abstract int tryCompress(ByteBuffer in, int inPos, int inEnd, ByteBuffer out, int outPos);
 
     /*
     ///////////////////////////////////////////////////////////////////////
