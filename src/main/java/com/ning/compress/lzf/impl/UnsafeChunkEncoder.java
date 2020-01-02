@@ -92,38 +92,32 @@ public abstract class UnsafeChunkEncoder
         return outPos+literals;
     }
 
-    protected final static int _copyPartialLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos,
-                                                    int literals)
-    {
+    protected static int _copyPartialLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos,
+                                              int literals) {
         out.put(outPos++, (byte) (literals - 1));
 
         int rawInPtr = inPos - literals;
+        int rawOutPtr = outPos;
 
         switch (literals >> 3) {
             case 3:
-
-                out.putLong(outPos, in.getLong(rawInPtr));
-
+                out.putLong(rawOutPtr, in.getLong(rawInPtr));
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
             case 2:
-
-                out.putLong(outPos, in.getLong(rawInPtr));
-
+                out.putLong(rawOutPtr, in.getLong(rawInPtr));
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
             case 1:
-
-                out.putLong(outPos, in.getLong(rawInPtr));
-
+                out.putLong(rawOutPtr, in.getLong(rawInPtr));
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
         }
         int left = (literals & 7);
         if (left > 4) {
-            out.putLong(outPos, in.getLong(rawInPtr));
+            out.putLong(rawOutPtr, in.getLong(rawInPtr));
         } else {
-            out.putInt(outPos, in.getInt(rawInPtr));
+            out.putInt(rawOutPtr, in.getInt(rawInPtr));
         }
 
         return outPos + literals;
@@ -135,32 +129,33 @@ public abstract class UnsafeChunkEncoder
         out.put(outPos++, (byte) (literals - 1));
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - literals;
+        int rawOutPtr = outPos;
 
         switch (literals >> 3) {
             case 3:
 
-                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+                out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
             case 2:
 
-                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+                out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
             case 1:
 
-                out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+                out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
                 rawInPtr += 8;
-                outPos += 8;
+                rawOutPtr += 8;
         }
         int left = (literals & 7);
         if (left > 4) {
-            out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+            out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
         } else {
-            out.putInt(outPos, unsafe.getInt(in, rawInPtr));
+            out.putInt(rawOutPtr, unsafe.getInt(in, rawInPtr));
         }
 
         return outPos + literals;
@@ -223,7 +218,7 @@ public abstract class UnsafeChunkEncoder
         return (outPos + 32);
     }
 
-    protected final static int _copyFullLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos)
+    protected static int _copyFullLiterals(ByteBuffer in, int inPos, ByteBuffer out, int outPos)
     {
         // literals == 32
         out.put(outPos++, (byte) 31);
@@ -257,23 +252,24 @@ public abstract class UnsafeChunkEncoder
         out.put(outPos++, (byte) 31);
 
         long rawInPtr = BYTE_ARRAY_OFFSET + inPos - 32;
+        int rawOutPtr = outPos;
 
-        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
-
-        rawInPtr += 8;
-        outPos += 8;
-
-        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+        out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
         rawInPtr += 8;
-        outPos += 8;
+        rawOutPtr += 8;
 
-        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+        out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
         rawInPtr += 8;
-        outPos += 8;
+        rawOutPtr += 8;
 
-        out.putLong(outPos, unsafe.getLong(in, rawInPtr));
+        out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
+
+        rawInPtr += 8;
+        rawOutPtr += 8;
+
+        out.putLong(rawOutPtr, unsafe.getLong(in, rawInPtr));
 
         return (outPos + 32);
     }

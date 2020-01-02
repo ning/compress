@@ -171,7 +171,7 @@ public class UnsafeChunkEncoderLE
             if ((ref >= inPos) // can't refer forward (i.e. leftovers)
                     || (ref < firstPos) // or to previous block
                     || (off = inPos - ref) > MAX_OFF
-                    || ((seen << 8) != (_getInt(in, ref-1) << 8))) {
+                    || ref - 1 < 0 ? false : ((seen << 8) != (_getInt(in, ref-1) << 8))) {
                 ++inPos;
                 ++literals;
                 if (literals == LZFChunk.MAX_LITERAL) {

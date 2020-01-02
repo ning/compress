@@ -334,4 +334,27 @@ public class LZFEncoder
         } while (left > 0);
         return outputPtr;
     }
+
+    public static int appendEncoded(ChunkEncoder enc, ByteBuffer input, int inputPtr, int inputLength,
+                                    ByteBuffer outputBuffer, int outputPtr)
+    {
+        int left = inputLength;
+        int chunkLen = Math.min(LZFChunk.MAX_CHUNK_LEN, left);
+
+        outputPtr = enc.appendEncodedChunk(input, inputPtr, chunkLen, outputBuffer, outputPtr);
+        left -= chunkLen;
+        // shortcut: if it all fit in, no need to coalesce:
+        if (left < 1) {
+            return outputPtr;
+        }
+        // otherwise need to keep on encoding...
+        inputPtr += chunkLen;
+        do {
+            chunkLen = Math.min(left, LZFChunk.MAX_CHUNK_LEN);
+            outputPtr = enc.appendEncodedChunk(input, inputPtr, chunkLen, outputBuffer, outputPtr);
+            inputPtr += chunkLen;
+            left -= chunkLen;
+        } while (left > 0);
+        return outputPtr;
+    }
 }

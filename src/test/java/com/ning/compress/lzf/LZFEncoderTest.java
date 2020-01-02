@@ -1,13 +1,14 @@
 package com.ning.compress.lzf;
 
-import java.io.*;
-import java.util.Arrays;
-
+import com.ning.compress.BaseForTests;
+import com.ning.compress.lzf.util.ChunkEncoderFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.ning.compress.BaseForTests;
-import com.ning.compress.lzf.util.ChunkEncoderFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class LZFEncoderTest extends BaseForTests
 {
@@ -48,6 +49,19 @@ public class LZFEncoderTest extends BaseForTests
         byte[] source = constructFluff(55000);
         _testCompressableChunksSingle(source, ChunkEncoderFactory.safeInstance());
         _testCompressableChunksSingle(source, ChunkEncoderFactory.optimalInstance());
+    }
+
+    @Test
+    public void testCompressableChunksWithByteBufferSingle() throws Exception {
+        ByteBuffer source = constructByteBuffer(55000);
+        _testCompressableChunksSingle(source, ChunkEncoderFactory.safeInstance());
+        _testCompressableChunksSingle(source, ChunkEncoderFactory.optimalInstance());
+    }
+
+    private void _testCompressableChunksSingle(ByteBuffer source, ChunkEncoder encoder) throws Exception
+    {
+        ByteBuffer buffer = ByteBuffer.allocate(LZFEncoder.estimateMaxWorkspaceSize(source.position()));
+        int compLen = LZFEncoder.appendEncoded(encoder, source, 0, source.position(), buffer, 0);
     }
 
     private void _testCompressableChunksSingle(byte[] source, ChunkEncoder encoder) throws Exception
