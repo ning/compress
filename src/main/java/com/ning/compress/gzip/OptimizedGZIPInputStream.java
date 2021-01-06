@@ -146,7 +146,7 @@ public class OptimizedGZIPInputStream
     }
 
     @Override
-    public void mark(int limit) {
+    public synchronized void mark(int limit) {
         // not supported... but not lethal to call
     }
 
@@ -209,7 +209,7 @@ public class OptimizedGZIPInputStream
     }
 
     @Override
-    public void reset() throws IOException {
+    public synchronized void reset() throws IOException {
         throw new IOException("mark/reset not supported");
     }
 

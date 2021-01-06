@@ -158,7 +158,9 @@ public abstract class ChunkDecoder
 
         while (ptr < end) {
             // can use optional end marker
-            if (ptr == (data.length + 1) && data[ptr] == BYTE_NULL) {
+            // 05-Jan-2020, tatu: Bug fixed here based on lgtm.com; was checking against
+            //   `data.length + 1` which made no sense
+            if (ptr == (end - 1) && data[ptr] == BYTE_NULL) {
                 ++ptr; // so that we'll be at end
                 break;
             }

@@ -24,6 +24,8 @@ public class ChunkEncoderFactory
      *<code>
      *   return optimalInstance(LZFChunk.MAX_CHUNK_LEN);
      *</code>
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance() {
         return optimalInstance(LZFChunk.MAX_CHUNK_LEN);
@@ -35,12 +37,14 @@ public class ChunkEncoderFactory
      * this method as implementations are dynamically loaded; however, on some
      * non-standard platforms it may be necessary to either directly load
      * instances, or use {@link #safeInstance}.
-     *
-	 * <p/>Uses a ThreadLocal soft-referenced BufferRecycler instance.
-	 * 
+     *<p>
+     *Uses a ThreadLocal soft-referenced BufferRecycler instance.
+     * 
      * @param totalLength Expected total length of content to compress; only matters
      *    for content that is smaller than maximum chunk size (64k), to optimize
      *    encoding hash tables
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance(int totalLength) {
         try {
@@ -55,6 +59,8 @@ public class ChunkEncoderFactory
      * externally, so that it will not (nor need) allocate encoding buffer.
      * <p>
      * Uses a ThreadLocal soft-referenced BufferRecycler instance.
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength) {
         try {
@@ -69,6 +75,8 @@ public class ChunkEncoderFactory
      *<code>
      *   return safeInstance(LZFChunk.MAX_CHUNK_LEN);
      *</code>
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder safeInstance() {
         return safeInstance(LZFChunk.MAX_CHUNK_LEN);
@@ -83,6 +91,8 @@ public class ChunkEncoderFactory
      * @param totalLength Expected total length of content to compress; only matters
      *    for content that is smaller than maximum chunk size (64k), to optimize
      *    encoding hash tables
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder safeInstance(int totalLength) {
         return new VanillaChunkEncoder(totalLength);
@@ -92,6 +102,8 @@ public class ChunkEncoderFactory
      * Factory method for constructing encoder that is always passed buffer
      * externally, so that it will not (nor need) allocate encoding buffer.
 	*<p>Uses a ThreadLocal soft-referenced BufferRecycler instance.
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder safeNonAllocatingInstance(int totalLength) {
         return VanillaChunkEncoder.nonAllocatingEncoder(totalLength);
@@ -102,6 +114,8 @@ public class ChunkEncoderFactory
      *<code>
      *   return optimalInstance(LZFChunk.MAX_CHUNK_LEN, bufferRecycler);
      *</code>
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance(BufferRecycler bufferRecycler) {
         return optimalInstance(LZFChunk.MAX_CHUNK_LEN, bufferRecycler);
@@ -113,11 +127,13 @@ public class ChunkEncoderFactory
      * this method as implementations are dynamically loaded; however, on some
      * non-standard platforms it may be necessary to either directly load
      * instances, or use {@link #safeInstance}.
-	 * 
+     *
      * @param totalLength Expected total length of content to compress; only matters
      *    for content that is smaller than maximum chunk size (64k), to optimize
      *    encoding hash tables
-	 * @param bufferRecycler The BufferRecycler instance
+     * @param bufferRecycler The BufferRecycler instance
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance(int totalLength, BufferRecycler bufferRecycler) {
         try {
@@ -130,6 +146,8 @@ public class ChunkEncoderFactory
     /**
      * Factory method for constructing encoder that is always passed buffer
      * externally, so that it will not (nor need) allocate encoding buffer.
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength, BufferRecycler bufferRecycler) {
         try {
@@ -144,6 +162,8 @@ public class ChunkEncoderFactory
      *<code>
      *   return safeInstance(LZFChunk.MAX_CHUNK_LEN, bufferRecycler);
      *</code>
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder safeInstance(BufferRecycler bufferRecycler) {
         return safeInstance(LZFChunk.MAX_CHUNK_LEN, bufferRecycler);
@@ -155,7 +175,9 @@ public class ChunkEncoderFactory
      * @param totalLength Expected total length of content to compress; only matters
      *    for content that is smaller than maximum chunk size (64k), to optimize
      *    encoding hash tables
-	 * @param bufferRecycler The BufferRecycler instance
+     * @param bufferRecycler The BufferRecycler instance
+     *
+     * @return ChunkEncoder constructed
      */
     public static ChunkEncoder safeInstance(int totalLength, BufferRecycler bufferRecycler) {
         return new VanillaChunkEncoder(totalLength, bufferRecycler);
