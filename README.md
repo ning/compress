@@ -18,6 +18,14 @@ Compared to the standard `Deflate` (algorithm gzip uses) LZF can be 5-6 times as
 and twice as fast to decompress. Compression rate is lower since no Huffman-encoding is used
 after lempel-ziv substring elimination.
 
+## License
+
+[Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+## Requirements
+
+Version up to 1.0.4 require JDK 6; version 1.1 requires JDK 8.
+
 ## Usage
 
 See [Wiki](https://github.com/ning/compress/wiki) for more details; here's a "TL;DNR" version.
