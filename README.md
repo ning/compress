@@ -26,6 +26,8 @@ after lempel-ziv substring elimination.
 
 Version up to 1.0.4 require JDK 6; version 1.1 requires JDK 8.
 
+Library has no external dependencies.
+
 ## Usage
 
 See [Wiki](https://github.com/ning/compress/wiki) for more details; here's a "TL;DNR" version.
