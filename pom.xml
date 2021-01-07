@@ -12,7 +12,7 @@
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
     <name>Compress-LZF</name>
-    <version>1.1</version>
+    <version>1.1.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <description> 
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
