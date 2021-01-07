@@ -43,6 +43,24 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
+### Adding as Dependency
+
+#### Maven
+
+```xml
+<dependency>
+  <groupId>com.ning</groupId>
+  <artifactId>compress-lzf</artifactId>
+  <version>1.1</version>
+</dependency>
+```
+
+#### Module info (JPMS)
+
+Starting with version 1.1, `module-info.class` is included; module name is `com.ning.compress.lzf` so you will need to use:
+
+    requires com.ning.compress.lzf
+
 ### Parallel processing
 
 Since the compression is more CPU-heavy than decompression, it could benefit from concurrent operation.
