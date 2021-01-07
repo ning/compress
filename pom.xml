@@ -7,27 +7,30 @@
     <parent>
       <groupId>com.fasterxml</groupId>
       <artifactId>oss-parent</artifactId>
+      <!--
       <version>41</version>
+      -->
+      <version>42-SNAPSHOT</version>
     </parent>
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
     <name>Compress-LZF</name>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <description> 
 Compression codec for LZF encoding for particularly encoding/decoding, with reasonable compression.
 Compressor is basic Lempel-Ziv codec, without Huffman (deflate/gzip) or statistical post-encoding.
 See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF package.
     </description>
-    <url>http://github.com/ning/compress</url>
+    <url>https://github.com/ning/compress</url>
     <scm>
         <connection>scm:git:git@github.com:ning/compress.git</connection>
         <developerConnection>scm:git:git@github.com:ning/compress.git</developerConnection>
-        <url>http://github.com/ning/compress</url>
+        <url>https://github.com/ning/compress</url>
 	<tag>HEAD</tag>
     </scm>
     <issueManagement>
-        <url>http://github.com/ning/compress/issues</url>
+        <url>https://github.com/ning/compress/issues</url>
     </issueManagement>
 
     <properties>
@@ -74,35 +77,22 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
                 <artifactId>maven-compiler-plugin</artifactId>
 	        <version>3.1</version>
                 <!-- 1.6 since 0.9.7 -->
+                <!-- 1.8 since 1.1 (to use Moditect plugin) -->
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-		<version>2.1.2</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${version.plugin.javadoc}</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                     <links>
-                        <link>http://docs.oracle.com/javase/7/docs/api/</link>
+                        <link>https://docs.oracle.com/javase/8/docs/api/</link>
                     </links>
                 </configuration>
                 <executions>
@@ -126,7 +116,6 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
             <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>2.5.3</version>
           <extensions>true</extensions>
           <configuration>
             <instructions><!--  note: artifact id, name, version and description use defaults (which are fine) -->
@@ -138,6 +127,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
 com.ning.compress.lzf.impl
               </Private-Package>
               <!-- Export-Package default: set of packages in local Java sources, excluding the default package '.' and any packages containing 'impl' or 'internal' -->
+              <!--  06-Jan-2021, tatu: Commented out, I think, since bundle plugin can figure it out? -->
               <!--Export-Package>
 com.ning.compress,
 com.ning.compress.gzip,
@@ -149,6 +139,30 @@ com.ning.compress.lzf.util
             </instructions>
           </configuration>
           </plugin>
+
+	    <!--  06-Jan-2021, tatu: Add rudimentary JDK9+ module info. To build with JDK 8
+		  will have to use `moduleInfoFile` which isn't great but will have to do
+              -->
+         <plugin>
+              <groupId>org.moditect</groupId>
+              <artifactId>moditect-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>add-module-infos</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>add-module-info</goal>
+                  </goals>
+                  <configuration>
+                    <overwriteExistingFiles>true</overwriteExistingFiles>
+                    <module>
+                      <moduleInfoFile>src/moditect/module-info.java</moduleInfoFile>
+                    </module>
+                  </configuration>
+                </execution>
+              </executions>
+         </plugin>
+
            <!-- EVEN BETTER; make executable! -->
 
 <!-- 08-Sep-2014, tatu: except, doesn't quite work yet. Sigh.

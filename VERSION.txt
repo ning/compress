@@ -1,6 +1,8 @@
-1.0.5 (not yet released)
+1.1 (07-Jan-2021)
 
 #48: Fix issues outlined by "lgtm.com"'s static analysis
+#49: Add Java 9+ module info using Moditect
+- Now requires Java 8
 
 1.0.4 (12-Mar-2017)
 
