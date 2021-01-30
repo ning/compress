@@ -4,6 +4,8 @@ import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.ChunkEncoder;
 import com.ning.compress.lzf.LZFChunk;
 
+import java.nio.ByteBuffer;
+
 public class VanillaChunkEncoder
     extends ChunkEncoder
 {
@@ -134,8 +136,188 @@ public class VanillaChunkEncoder
         return _handleTail(in, inPos, inEnd+4, out, outPos, literals);
     }
 
-    private final int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
-            int literals)
+    @Override
+    protected int tryCompress(byte[] in, int inPos, int inEnd, ByteBuffer out, int outPos) {
+        final int[] hashTable = _hashTable;
+        ++outPos; // To leave one byte for literal-length indicator
+        int seen = first(in, inPos); // past 4 bytes we have seen... (last one is LSB)
+        int literals = 0;
+        inEnd -= TAIL_LENGTH;
+        final int firstPos = inPos; // so that we won't have back references across block boundary
+
+        while (inPos < inEnd) {
+            byte p2 = in[inPos + 2];
+            // next
+            seen = (seen << 8) + (p2 & 255);
+            int off = hash(seen);
+            int ref = hashTable[off];
+            hashTable[off] = inPos;
+
+            // First expected common case: no back-ref (for whatever reason)
+            if (ref >= inPos // can't refer forward (i.e. leftovers)
+                    || (ref < firstPos) // or to previous block
+                    || (off = inPos - ref) > MAX_OFF
+                    || in[ref + 2] != p2 // must match hash
+                    || in[ref + 1] != (byte) (seen >> 8)
+                    || in[ref] != (byte) (seen >> 16)) {
+
+                out.put(outPos, in[inPos++]);
+                outPos++;
+
+                literals++;
+                if (literals == LZFChunk.MAX_LITERAL) {
+
+                    out.put(outPos - 33, (byte) 31); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                    literals = 0;
+                    outPos++; // To leave one byte for literal-length indicator
+                }
+                continue;
+            }
+            // match
+            int maxLen = inEnd - inPos + 2;
+            if (maxLen > MAX_REF) {
+                maxLen = MAX_REF;
+            }
+            if (literals == 0) {
+                outPos--; // We do not need literal length indicator, go back
+            } else {
+                out.put(outPos - literals - 1, (byte) (literals - 1));
+                literals = 0;
+            }
+            int len = 3;
+            // find match length
+            while (len < maxLen && in[ref + len] == in[inPos + len]) {
+                len++;
+            }
+            len -= 2;
+            --off; // was off by one earlier
+            if (len < 7) {
+                out.put(outPos, (byte) ((off >> 8) + (len << 5)));
+                outPos++;
+            } else {
+                out.put(outPos, (byte) ((off >> 8) + (7 << 5)));
+                outPos++;
+                out.put(outPos, (byte) (len - 7));
+                outPos++;
+            }
+            out.put(outPos, (byte) off);
+            outPos += 2;
+            inPos += len;
+            seen = first(in, inPos);
+            seen = (seen << 8) + (in[inPos + 2] & 255);
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
+            seen = (seen << 8) + (in[inPos + 2] & 255); // hash = next(hash, in, inPos);
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
+        }
+        // try offlining the tail
+        return _handleTail(in, inPos, inEnd + 4, out, outPos, literals);
+    }
+
+    @Override
+    protected int tryCompress(ByteBuffer in, int inPos, int inEnd, ByteBuffer out, int outPos) {
+        final int[] hashTable = _hashTable;
+        ++outPos; // To leave one byte for literal-length indicator
+        int seen = first(in, inPos); // past 4 bytes we have seen... (last one is LSB)
+        int literals = 0;
+        inEnd -= TAIL_LENGTH;
+        final int firstPos = inPos; // so that we won't have back references across block boundary
+
+        while (inPos < inEnd) {
+            byte p2 = in.get(inPos + 2);
+            // next
+            seen = (seen << 8) + (p2 & 255);
+            int off = hash(seen);
+            int ref = hashTable[off];
+            hashTable[off] = inPos;
+
+            // First expected common case: no back-ref (for whatever reason)
+            if (ref >= inPos // can't refer forward (i.e. leftovers)
+                    || (ref < firstPos) // or to previous block
+                    || (off = inPos - ref) > MAX_OFF
+                    || in.get(ref + 2) != p2 // must match hash
+                    || in.get(ref + 1) != (byte) (seen >> 8)
+                    || in.get(ref) != (byte) (seen >> 16)) {
+                out.put(outPos, in.get(inPos++));
+                outPos++;
+                literals++;
+                if (literals == LZFChunk.MAX_LITERAL) {
+                    out.put(outPos - 33, (byte) 31); // <= out[outPos - literals - 1] = MAX_LITERAL_MINUS_1;
+                    literals = 0;
+                    outPos++; // To leave one byte for literal-length indicator
+                }
+                continue;
+            }
+            // match
+            int maxLen = inEnd - inPos + 2;
+            if (maxLen > MAX_REF) {
+                maxLen = MAX_REF;
+            }
+            if (literals == 0) {
+                outPos--; // We do not need literal length indicator, go back
+            } else {
+                out.put(outPos - literals - 1, (byte) (literals - 1));
+                literals = 0;
+            }
+            int len = 3;
+            // find match length
+            while (len < maxLen && in.get(ref + len) == in.get(inPos + len)) {
+                len++;
+            }
+            len -= 2;
+            --off; // was off by one earlier
+            if (len < 7) {
+                out.put(outPos, (byte) ((off >> 8) + (len << 5)));
+                outPos++;
+            } else {
+                out.put(outPos, (byte) ((off >> 8) + (7 << 5)));
+                outPos++;
+                out.put(outPos, (byte) (len - 7));
+                outPos++;
+            }
+            out.put(outPos, (byte) off);
+            outPos += 2;
+            inPos += len;
+            seen = first(in, inPos);
+            seen = (seen << 8) + (in.get(inPos + 2) & 255);
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
+            seen = (seen << 8) + (in.get(inPos + 2) & 255); // hash = next(hash, in, inPos);
+            hashTable[hash(seen)] = inPos;
+            ++inPos;
+        }
+        // try offlining the tail
+        return _handleTail(in, inPos, inEnd + 4, out, outPos, literals);
+    }
+
+    /*
+    ///////////////////////////////////////////////////////////////////////
+    // Internal methods
+    ///////////////////////////////////////////////////////////////////////
+     */
+
+    private int _handleTail(ByteBuffer in, int inPos, int inEnd, ByteBuffer out, int outPos,
+                            int literals) {
+        while (inPos < inEnd) {
+            out.put(outPos, in.get(inPos++));
+            outPos++;
+            literals++;
+            if (literals == LZFChunk.MAX_LITERAL) {
+                out.put(outPos - literals - 1, (byte) (literals - 1));
+                literals = 0;
+                outPos++;
+            }
+        }
+        out.put(outPos - literals - 1, (byte) (literals - 1));
+        if (literals == 0) {
+            outPos--;
+        }
+        return outPos;
+    }
+
+    private int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+                            int literals)
     {
         while (inPos < inEnd) {
             out[outPos++] = in[inPos++];
@@ -153,13 +335,30 @@ public class VanillaChunkEncoder
         return outPos;
     }
 
-    /*
-    ///////////////////////////////////////////////////////////////////////
-    // Internal methods
-    ///////////////////////////////////////////////////////////////////////
-     */
+    private int _handleTail(byte[] in, int inPos, int inEnd, ByteBuffer out, int outPos,
+                            int literals) {
+        while (inPos < inEnd) {
+            out.put(outPos, in[inPos++]);
+            outPos++;
+            literals++;
+            if (literals == LZFChunk.MAX_LITERAL) {
+                out.put(outPos - literals - 1, (byte) (literals - 1));
+                literals = 0;
+                outPos++;
+            }
+        }
+        out.put(outPos - literals - 1, (byte) (literals - 1));
+        if (literals == 0) {
+            outPos--;
+        }
+        return outPos;
+    }
 
-    private final int first(byte[] in, int inPos) {
+    private int first(byte[] in, int inPos) {
         return (in[inPos] << 8) + (in[inPos + 1] & 0xFF);
+    }
+
+    private int first(ByteBuffer in, int inPos) {
+        return (in.get(inPos) << 8) + (in.get(inPos + 1) & 0xFF);
     }
 }

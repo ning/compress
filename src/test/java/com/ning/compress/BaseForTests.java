@@ -1,13 +1,14 @@
 package com.ning.compress;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Random;
-
 import com.ning.compress.lzf.LZFDecoder;
 import com.ning.compress.lzf.LZFEncoder;
 import com.ning.compress.lzf.LZFException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.Random;
 
 public class BaseForTests
 {
@@ -36,6 +37,26 @@ public class BaseForTests
             }
         }
         return bytes.toByteArray();
+    }
+
+    protected ByteBuffer constructByteBuffer(int length) {
+        Random rnd = new Random(length);
+        ByteBuffer b = ByteBuffer.allocate(length + 100);
+        while (b.position() < length) {
+            int num = rnd.nextInt();
+            switch (num & 3) {
+                case 0:
+                    b.put(ABCD);
+                    break;
+                case 1:
+                    b.put((byte) num);
+                    break;
+                default:
+                    b.put((byte) ((num >> 3) & 0x7));
+                    break;
+            }
+        }
+        return b;
     }
 
     protected byte[] constructUncompressable(int length)
