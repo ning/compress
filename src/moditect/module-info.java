@@ -1,6 +1,7 @@
 // Hand-crafted 06-Jan-2021 by tatu.saloranta@iki.fi
 module com.ning.compress.lzf {
     requires transitive java.xml;
+    requires jdk.unsupported;
 
     exports com.ning.compress;
     exports com.ning.compress.gzip;
