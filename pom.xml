@@ -117,9 +117,10 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
           <configuration>
             <instructions><!--  note: artifact id, name, version and description use defaults (which are fine) -->
               <Bundle-Vendor>http://ning.com</Bundle-Vendor>
-              <Import-Package />
-              <!-- if using high-perf decoder: -->
-              <DynamicImport-Package>sun.misc</DynamicImport-Package>
+<!-- if using high-perf decoder: -->
+              <Import-Package>
+sun.misc;resolution:=optional, *
+              <Import-Package/>
               <Private-Package>
 com.ning.compress.lzf.impl
               </Private-Package>
