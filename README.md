@@ -24,7 +24,7 @@ after lempel-ziv substring elimination.
 
 ## Requirements
 
-Version up to 1.0.4 require JDK 6; version 1.1 requires JDK 8.
+Versions up to 1.0.4 require JDK 6; versions from 1.1 on require JDK 8.
 
 Library has no external dependencies.
 
@@ -61,7 +61,7 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
 <dependency>
   <groupId>com.ning</groupId>
   <artifactId>compress-lzf</artifactId>
-  <version>1.1</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 
