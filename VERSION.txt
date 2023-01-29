@@ -1,4 +1,9 @@
-Unreleased
+1.1.2 (29-Jan-2023)
+
+#53: Treat `sun.misc` as an optional OSGi dependency
+ (contributed by @Mailaender)
+
+1.1.1 (25-Jan-2023)
 
 #50: `Unsafe` needs support in `module-info.java`
  (contributed by @robertvazan)
