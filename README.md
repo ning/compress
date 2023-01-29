@@ -49,7 +49,7 @@ byte[] uncompressed = LZFDecoder.decode(compressedData);
 
 and you can even use the LZF jar as a command-line tool (it has manifest that points to 'com.ning.compress.lzf.LZF' as the class having main() method to call), like so:
 
-    java -jar compress-lzf-1.1.1.jar
+    java -jar compress-lzf-1.1.2.jar
   
 (which will display necessary usage arguments for `-c`(ompressing) or `-d`(ecompressing) files.
 
@@ -61,7 +61,7 @@ and you can even use the LZF jar as a command-line tool (it has manifest that po
 <dependency>
   <groupId>com.ning</groupId>
   <artifactId>compress-lzf</artifactId>
-  <version>1.1.1</version>
+  <version>1.1.2</version>
 </dependency>
 ```
 
