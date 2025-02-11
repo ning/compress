@@ -61,7 +61,7 @@ See "http://oldhome.schmorp.de/marc/liblzf.html" for more on original LZF packag
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>6.14.3</version>
+            <version>7.5.1</version>
             <type>jar</type>
             <scope>test</scope>
         </dependency>
