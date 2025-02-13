@@ -7,6 +7,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.ning.compress.BaseForTests;
+import com.ning.compress.lzf.impl.UnsafeChunkEncoder;
+import com.ning.compress.lzf.impl.UnsafeChunkEncoderBE;
+import com.ning.compress.lzf.impl.UnsafeChunkEncoderLE;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
 
 public class LZFEncoderTest extends BaseForTests
@@ -168,5 +171,27 @@ public class LZFEncoderTest extends BaseForTests
 
         chunk = enc.encodeChunkIfCompresses(input, 0, input.length, 0.60);
         Assert.assertNull(chunk);
+    }
+
+    @Test
+    public void testUnsafeValidation() {
+        _testUnsafeValidation(new UnsafeChunkEncoderBE(10));
+        _testUnsafeValidation(new UnsafeChunkEncoderLE(10));
+
+    }
+
+    private void _testUnsafeValidation(UnsafeChunkEncoder encoder) {
+        byte[] array = new byte[10];
+        int goodStart = 2;
+        int goodEnd = 5;
+
+        Assert.assertThrows(NullPointerException.class, () -> encoder.tryCompress(null, goodStart, goodEnd, array, goodStart));
+        Assert.assertThrows(NullPointerException.class, () -> encoder.tryCompress(array, goodStart, goodEnd, null, goodStart));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, -1, goodEnd, array, goodStart));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, 12, goodEnd, array, goodStart));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, goodStart, 1, array, goodStart));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, goodStart, 12, array, goodStart));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, goodStart, goodEnd, array, -1));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> encoder.tryCompress(array, goodStart, goodEnd, array, 12));
     }
 }
