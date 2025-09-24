@@ -1,12 +1,13 @@
 package com.ning.compress.gzip;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.*;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class TestGzipStreams extends BaseForTests
 {
@@ -14,7 +15,7 @@ public class TestGzipStreams extends BaseForTests
     private final static byte[] INPUT_BYTES;
     static {
         try {
-            INPUT_BYTES = INPUT_STR.getBytes("UTF-8");
+            INPUT_BYTES = INPUT_STR.getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -33,7 +34,7 @@ public class TestGzipStreams extends BaseForTests
         byte[] raw = bytes.toByteArray();
         OptimizedGZIPInputStream re = new OptimizedGZIPInputStream(new ByteArrayInputStream(raw));
         byte[] b = _readAll(re);
-        Assert.assertEquals(INPUT_BYTES, b);
+        assertArrayEquals(INPUT_BYTES, b);
         re.close();
     }
 
@@ -48,7 +49,7 @@ public class TestGzipStreams extends BaseForTests
         
         byte[] raw = bytes.toByteArray();
         byte[] b = _readAll(new GZIPInputStream(new ByteArrayInputStream(raw)));
-        Assert.assertEquals(INPUT_BYTES, b);
+        assertArrayEquals(INPUT_BYTES, b);
     }
 
     private byte[] _readAll(InputStream in) throws IOException

@@ -3,16 +3,16 @@ package com.ning.compress.lzf;
 import java.io.*;
 import java.util.Random;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
 import com.ning.compress.DataHandler;
 import com.ning.compress.UncompressorOutputStream;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class TestLZFUncompressor extends BaseForTests
 {
-    @Test 
+    @Test
     public void testSimpleSmall1by1() throws IOException
     {
         byte[] fluff = constructFluff(4000);
@@ -26,7 +26,7 @@ public class TestLZFUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
 
     @Test 
@@ -41,7 +41,7 @@ public class TestLZFUncompressor extends BaseForTests
         uncomp.feedCompressedData(comp, 0, comp.length);
         uncomp.complete();
         byte[] result = co.getBytes();
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
     
     @Test 
@@ -62,7 +62,7 @@ public class TestLZFUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class TestLZFUncompressor extends BaseForTests
         uncomp.complete();
         byte[] result = co.getBytes();
         
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
 
     
@@ -93,7 +93,7 @@ public class TestLZFUncompressor extends BaseForTests
         out.close();
         byte[] result = co.getBytes();
         
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
 
     private final static class Collector implements DataHandler

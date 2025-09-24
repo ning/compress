@@ -9,27 +9,27 @@
  * governing permissions and limitations under the License.
  */
 
-package lzf;
+package com.ning.compress.lzf;
 
 import java.io.*;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /** 
  * Semi-automatic non-unit test: will use all files on current working
  * directory (and its subdirs) for testing that LZF encode+decode
  * will correctly round-trip content.
  */
-public class TestLZF
+public class ManualTestLZF
 {
-    public void testWithFiles() throws Exception
+    public static void main(String... args) throws Exception
     {
         File currDir = new File("").getAbsoluteFile();
         int count = _handleFiles(currDir);
         System.out.println("OK: tested with "+count+" files.");
     }
 
-    private int _handleFiles(File dir) throws IOException
+    private static int _handleFiles(File dir) throws IOException
     {
         System.out.println("Testing files from dir '"+dir.getAbsolutePath()+"'...");
         int count = 0;
@@ -40,7 +40,7 @@ public class TestLZF
                 byte[] data = _readData(f);
                 byte[] enc = LZFEncoder.encode(data);
                 byte[] dec = LZFDecoder.decode(enc);
-                assertArrayEquals("File '"+f.getAbsolutePath()+"'", data, dec);
+                assertArrayEquals(data, dec, "File '"+f.getAbsolutePath()+"'");
                 ++count;
             }
         }

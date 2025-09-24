@@ -1,30 +1,31 @@
 package com.ning.compress.lzf;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.security.SecureRandom;
 
-import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestLZFInputStream extends BaseForTests
 {
-    private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
-    private byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
-    private byte[] bytesToWrite = new byte[BUFFER_SIZE];
+    private static final int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
+    private final byte[] nonEncodableBytesToWrite = new byte[BUFFER_SIZE];
+    private final byte[] bytesToWrite = new byte[BUFFER_SIZE];
     private byte[] nonCompressableBytes;
-    private int compressableInputLength = BUFFER_SIZE;
+    private final int compressableInputLength = BUFFER_SIZE;
     private byte[] compressedBytes;
 	
-    @BeforeTest(alwaysRun = true)
+    @BeforeEach
     public void setUp() throws Exception 
     {
 		SecureRandom.getInstance("SHA1PRNG").nextBytes(nonEncodableBytesToWrite);
 		String phrase = "all work and no play make Jack a dull boy";
-		byte[] bytes = phrase.getBytes();
+		byte[] bytes = phrase.getBytes(StandardCharsets.UTF_8);
 		int cursor = 0;
 		while(cursor <= bytesToWrite.length) {
 			System.arraycopy(bytes, 0, bytesToWrite, cursor, (bytes.length+cursor < bytesToWrite.length)?bytes.length:bytesToWrite.length-cursor);
@@ -68,13 +69,13 @@ public class TestLZFInputStream extends BaseForTests
     {
 		ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
 		InputStream is = new LZFInputStream(bis);
-		Assert.assertEquals(0, is.available());
+		assertEquals(0, is.available());
 		byte[] buffer = new byte[65536+23];
 		int val = is.read(buffer, 0, 0);
 		// read of 0 or less should return a 0-byte read.
-		Assert.assertEquals(0, val);
+		assertEquals(0, val);
 		val = is.read(buffer, 0, -1);
-		Assert.assertEquals(0, val);
+		assertEquals(0, val);
 		// close should work.
 		is.close();
     }
@@ -84,25 +85,25 @@ public class TestLZFInputStream extends BaseForTests
     {
         ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
         LZFInputStream is = new LZFInputStream(bis);
-        Assert.assertSame(is.getUnderlyingInputStream(), bis);
-        Assert.assertEquals(0, is.available());
+        assertSame(bis, is.getUnderlyingInputStream());
+        assertEquals(0, is.available());
         // read one byte; should decode bunch more, make available
         is.read();
         int total = 1; // since we read one byte already
-        Assert.assertEquals(is.available(), 65534);
+        assertEquals(65534, is.available());
         // and after we skip through all of it, end with -1 for EOF
         long count;
         while ((count = is.skip(16384L)) > 0L) {
             total += (int) count;
         }
         // nothing more available; but we haven't yet closed so:
-        Assert.assertEquals(is.available(), 0);
+        assertEquals(0, is.available());
         // and then we close it:
         is.close();
-        Assert.assertEquals(is.available(), 0);
-        Assert.assertEquals(total, compressableInputLength);
+        assertEquals(0, is.available());
+        assertEquals(compressableInputLength, total);
     }
-	
+
     @Test void testIncrementalWithFullReads() throws IOException {
         doTestIncremental(true);
     }
@@ -121,8 +122,7 @@ public class TestLZFInputStream extends BaseForTests
         in.readAndWrite(bytes);
         in.close();
         byte[] actual = bytes.toByteArray();
-        Assert.assertEquals(actual.length, fluff.length);
-        Assert.assertEquals(actual, fluff);
+        assertArrayEquals(fluff, actual);
     }
 
     // Mostly for [Issue#19]
@@ -138,13 +138,13 @@ public class TestLZFInputStream extends BaseForTests
         
         LZFInputStream in = new LZFInputStream(new ByteArrayInputStream(comp));
         // read one byte for fun
-        Assert.assertEquals(in.read(), fluff[0] & 0xFF);
+        assertEquals(fluff[0] & 0xFF, in.read());
         // then skip all but one
         long amt = in.skip(LENGTH-2);
-        Assert.assertEquals(amt, (long) (LENGTH-2));
-        Assert.assertEquals(in.read(), fluff[LENGTH-1] & 0xFF);
+        assertEquals(LENGTH-2, amt);
+        assertEquals(fluff[LENGTH-1] & 0xFF, in.read());
         
-        Assert.assertEquals(in.read(), -1);
+        assertEquals(-1, in.read());
         in.close();
     }
     
@@ -172,7 +172,7 @@ public class TestLZFInputStream extends BaseForTests
 	            sb.append(i);
 	        }
 	    }
-	    byte[] uncomp = sb.toString().getBytes("UTF-8");
+	    byte[] uncomp = sb.toString().getBytes(StandardCharsets.UTF_8);
 	    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 	    LZFOutputStream lzOut = new LZFOutputStream(bytes);
 	    lzOut.write(uncomp);
@@ -194,7 +194,7 @@ public class TestLZFInputStream extends BaseForTests
                     break;
                 }
                 if (count > len) {
-                    Assert.fail("Requested "+len+" bytes (offset "+offset+", array length "+buffer.length+"), got "+count);
+                    fail("Requested "+len+" bytes (offset "+offset+", array length "+buffer.length+"), got "+count);
                 }
                 pos += count;
                 // with full reads, ought to get full results
@@ -202,15 +202,14 @@ public class TestLZFInputStream extends BaseForTests
                     if (fullReads) {
                         // Except at the end, with last incomplete chunk
                         if (pos != uncomp.length) {
-                            Assert.fail("Got partial read (when requested full read!), position "+pos+" (of full "+uncomp.length+")");
+                            fail("Got partial read (when requested full read!), position "+pos+" (of full "+uncomp.length+")");
                         }
                     }
                 }
                 bytes.write(buffer, offset, count);
             }
             byte[] result = bytes.toByteArray();
-            Assert.assertEquals(result.length, uncomp.length);
-            Assert.assertEquals(result, uncomp);
+            assertArrayEquals(uncomp, result);
             lzIn.close();
     }
 
@@ -219,10 +218,10 @@ public class TestLZFInputStream extends BaseForTests
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         InputStream is = new LZFInputStream(bis);
         int i = 0;
-        int testVal = 0;
+        int testVal;
         while((testVal=is.read()) != -1) {
             int rVal = ((int)reference[i]) & 255;
-            Assert.assertEquals(rVal, testVal);
+            assertEquals(rVal, testVal);
             ++i;
         }
         is.close();
@@ -238,11 +237,11 @@ public class TestLZFInputStream extends BaseForTests
         while((val=is.read(buffer)) != -1) {
             for(int i = 0; i < val; i++) {
                 byte testVal = buffer[i];
-                Assert.assertTrue(testVal == reference[outputBytes]);
+                assertEquals(reference[outputBytes], testVal);
                 ++outputBytes;
             }
         }
-        Assert.assertTrue(outputBytes == reference.length);
+        assertEquals(reference.length, outputBytes);
         is.close();
     }
 }

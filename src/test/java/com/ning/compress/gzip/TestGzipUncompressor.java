@@ -3,16 +3,16 @@ package com.ning.compress.gzip;
 import java.io.*;
 import java.util.Random;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
 import com.ning.compress.DataHandler;
 import com.ning.compress.UncompressorOutputStream;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class TestGzipUncompressor extends BaseForTests
 {
-    @Test 
+    @Test
     public void testSimpleSmall1by1() throws IOException
     {
         byte[] fluff = constructFluff(4000);
@@ -25,8 +25,8 @@ public class TestGzipUncompressor extends BaseForTests
         }
         uncomp.complete();
         byte[] result = co.getBytes();
-        
-        Assert.assertEquals(fluff, result);
+
+        assertArrayEquals(fluff, result);
     }
 
     @Test 
@@ -41,7 +41,7 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.feedCompressedData(comp, 0, comp.length);
         uncomp.complete();
         byte[] result = co.getBytes();
-        Assert.assertEquals(fluff, result);
+        assertArrayEquals(fluff, result);
     }
     
     @Test 
@@ -61,8 +61,8 @@ public class TestGzipUncompressor extends BaseForTests
         }
         uncomp.complete();
         byte[] result = co.getBytes();
-        
-        Assert.assertEquals(fluff, result);
+
+        assertArrayEquals(fluff, result);
     }
 
     @Test
@@ -77,8 +77,8 @@ public class TestGzipUncompressor extends BaseForTests
         uncomp.feedCompressedData(comp, 0, comp.length);
         uncomp.complete();
         byte[] result = co.getBytes();
-        
-        Assert.assertEquals(fluff, result);
+
+        assertArrayEquals(fluff, result);
     }
 
     @Test
@@ -91,8 +91,8 @@ public class TestGzipUncompressor extends BaseForTests
         out.write(comp, 0, comp.length);
         out.close();
         byte[] result = co.getBytes();
-        
-        Assert.assertEquals(fluff, result);
+
+        assertArrayEquals(fluff, result);
     }
 
     /*
