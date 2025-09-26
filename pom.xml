@@ -7,7 +7,7 @@
     <parent>
       <groupId>com.fasterxml</groupId>
       <artifactId>oss-parent</artifactId>
-      <version>41</version>
+      <version>68</version>
     </parent>
     <groupId>com.ning</groupId>
     <artifactId>compress-lzf</artifactId>
