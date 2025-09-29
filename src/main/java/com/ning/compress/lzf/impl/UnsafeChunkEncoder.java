@@ -21,7 +21,7 @@ public abstract class UnsafeChunkEncoder
 {
     // // Our Nitro Booster, mr. Unsafe!
 
-    protected static final Unsafe unsafe;
+    static final Unsafe unsafe;
     static {
         try {
             Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
@@ -33,23 +33,26 @@ public abstract class UnsafeChunkEncoder
         }
     }
 
-    protected static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
+    // All members here (fields, constructors, methods) are at most package-private; users are
+    // not supposed to subclass this class
 
-    protected static final long BYTE_ARRAY_OFFSET_PLUS2 = BYTE_ARRAY_OFFSET + 2;
-    
-    public UnsafeChunkEncoder(int totalLength) {
+    static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
+
+    static final long BYTE_ARRAY_OFFSET_PLUS2 = BYTE_ARRAY_OFFSET + 2;
+
+    UnsafeChunkEncoder(int totalLength) {
         super(totalLength);
     }
 
-    public UnsafeChunkEncoder(int totalLength, boolean bogus) {
+    UnsafeChunkEncoder(int totalLength, boolean bogus) {
         super(totalLength, bogus);
     }
 
-    public UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler) {
+    UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler) {
         super(totalLength, bufferRecycler);
     }
 
-    public UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
+    UnsafeChunkEncoder(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
         super(totalLength, bufferRecycler, bogus);
     }
 
@@ -59,7 +62,7 @@ public abstract class UnsafeChunkEncoder
     ///////////////////////////////////////////////////////////////////////
      */
 
-    protected final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
+    final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
         out[outPos++] = (byte) (literals-1);
@@ -94,7 +97,7 @@ public abstract class UnsafeChunkEncoder
         return outPos+literals;
     }
 
-    protected final static int _copyLongLiterals(byte[] in, int inPos, byte[] out, int outPos,
+    final static int _copyLongLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
         inPos -= literals;
@@ -129,7 +132,7 @@ public abstract class UnsafeChunkEncoder
         return outPos;
     }
     
-    protected final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
+    final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
     {
         // literals == 32
         out[outPos++] = (byte) 31;
@@ -151,7 +154,7 @@ public abstract class UnsafeChunkEncoder
         return (outPos + 32);
     }
 
-    protected final static int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
+    final static int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,
             int literals)
     {
         while (inPos < inEnd) {
@@ -172,7 +175,7 @@ public abstract class UnsafeChunkEncoder
         return outPos;
     }
 
-    protected final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
+    final static int _findTailMatchLength(final byte[] in, int ptr1, int ptr2, final int maxPtr1)
     {
         final int start1 = ptr1;
         while (ptr1 < maxPtr1 && in[ptr1] == in[ptr2]) {
