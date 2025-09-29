@@ -62,6 +62,16 @@ public abstract class UnsafeChunkEncoder
     ///////////////////////////////////////////////////////////////////////
      */
 
+    /**
+     * @param start start index, inclusive
+     * @param end end index, exclusive
+     */
+    static void _checkArrayIndices(byte[] array, int start, int end) {
+        if (start < 0 || end < start || end > array.length) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+    }
+
     final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
