@@ -1,22 +1,28 @@
 package com.ning.compress.lzf.util;
 
 import java.io.*;
-
-import org.testng.annotations.Test;
-import org.testng.Assert;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 import com.ning.compress.BaseForTests;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFileStreams extends BaseForTests
 {
-    @Test 
+    @TempDir
+    Path tempDir;
+
+    @Test
     public void testStreams() throws Exception
     {
-        File f = File.createTempFile("lzf-test", ".lzf");
-        f.deleteOnExit();
+        File f = tempDir.resolve("lzf-test.lzf").toFile();
 
         // First, write encoded stuff (won't compress, but produces something)
-        byte[] input = "Whatever stuff...".getBytes("UTF-8");
+        byte[] input = "Whatever stuff...".getBytes(StandardCharsets.UTF_8);
 
         LZFFileOutputStream out = new LZFFileOutputStream(f);
         out.write(input);
@@ -24,21 +30,20 @@ public class TestFileStreams extends BaseForTests
 
         long len = f.length();
         // happens to be 22; 17 bytes uncompressed, with 5 byte header
-        Assert.assertEquals(len, 22L);
+        assertEquals(22L, len);
 
         LZFFileInputStream in = new LZFFileInputStream(f);
-        for (int i = 0; i < input.length; ++i) {
-            Assert.assertEquals(in.read(), input[i] & 0xFF);
+        for (byte b : input) {
+            assertEquals(b & 0xFF, in.read());
         }
-        Assert.assertEquals(in.read(), -1);
+        assertEquals(-1, in.read());
         in.close();
     }
 
     @Test 
     public void testReadAndWrite() throws Exception
     {
-        File f = File.createTempFile("lzf-test", ".lzf");
-        f.deleteOnExit();
+        File f = tempDir.resolve("lzf-test.lzf").toFile();
 
         byte[] fluff = constructFluff(132000);
         LZFFileOutputStream fout = new LZFFileOutputStream(f);
@@ -50,7 +55,6 @@ public class TestFileStreams extends BaseForTests
         in.readAndWrite(bytes);
         in.close();
         byte[] actual = bytes.toByteArray();
-        Assert.assertEquals(actual.length, fluff.length);
-        Assert.assertEquals(actual, fluff);
+        assertArrayEquals(fluff, actual);
     }
 }

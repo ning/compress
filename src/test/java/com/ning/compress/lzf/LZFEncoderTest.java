@@ -3,11 +3,11 @@ package com.ning.compress.lzf;
 import java.io.*;
 import java.util.Arrays;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LZFEncoderTest extends BaseForTests
 {
@@ -26,7 +26,7 @@ public class LZFEncoderTest extends BaseForTests
             int expMin = 2 + amt + (chunks * 5); // 5-byte header for uncompressed; however, not enough workspace
             int expMax = ((int) (0.05 * 0xFFFF)) + amt + (chunks * 7);
             if (estimate < expMin || estimate > expMax) {
-                Assert.fail("Expected ratio for "+amt+" to be "+expMin+" <= x <= "+expMax+", was: "+estimate);
+                fail("Expected ratio for "+amt+" to be "+expMin+" <= x <= "+expMax+", was: "+estimate);
             }
 //System.err.printf("%d < %d < %d\n", expMin, estimate, expMax);
         }
@@ -58,14 +58,12 @@ public class LZFEncoderTest extends BaseForTests
         // and make sure we get identical compression
         byte[] bufferAsBlock = Arrays.copyOf(buffer, compLen);
         byte[] asBlockStd = LZFEncoder.encode(source);
-        Assert.assertEquals(compLen, asBlockStd.length);
-        Assert.assertEquals(bufferAsBlock, asBlockStd);
+        assertArrayEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
         byte[] uncomp = uncompress(buffer, 0, compLen);
 
-        Assert.assertEquals(uncomp.length, source.length);
-        Assert.assertEquals(uncomp, source);
+        assertArrayEquals(source, uncomp);
     }
 
     @Test
@@ -85,14 +83,12 @@ public class LZFEncoderTest extends BaseForTests
         // and make sure we get identical compression
         byte[] bufferAsBlock = Arrays.copyOf(buffer, compLen);
         byte[] asBlockStd = LZFEncoder.encode(encoder, source, 0, source.length);
-        Assert.assertEquals(compLen, asBlockStd.length);
-        Assert.assertEquals(bufferAsBlock, asBlockStd);
+        assertArrayEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
         byte[] uncomp = uncompress(buffer, 0, compLen);
 
-        Assert.assertEquals(uncomp.length, source.length);
-        Assert.assertEquals(uncomp, source);
+        assertArrayEquals(source, uncomp);
     }
 
     @Test
@@ -111,14 +107,12 @@ public class LZFEncoderTest extends BaseForTests
         // and make sure we get identical compression
         byte[] bufferAsBlock = Arrays.copyOf(buffer, compLen);
         byte[] asBlockStd = LZFEncoder.encode(encoder, source, 0, source.length);
-        Assert.assertEquals(compLen, asBlockStd.length);
-        Assert.assertEquals(bufferAsBlock, asBlockStd);
+        assertArrayEquals(bufferAsBlock, asBlockStd);
 
         // then uncompress, verify
         byte[] uncomp = uncompress(buffer, 0, compLen);
 
-        Assert.assertEquals(uncomp.length, source.length);
-        Assert.assertEquals(uncomp, source);
+        assertArrayEquals(source, uncomp);
     }
 
     @Test
@@ -136,37 +130,37 @@ public class LZFEncoderTest extends BaseForTests
         byte[] comp = enc.encodeChunk(input, 0, input.length).getData();
         int pct = (int) (100.0 * comp.length / input.length);
         // happens to compress to about 61%, good
-        Assert.assertEquals(pct, 61);
+        assertEquals(61, pct);
 
         // should be ok if we only require down to 70% compression
         byte[] buf = new byte[60000];
         int offset = enc.appendEncodedIfCompresses(input, 0.70, 0, input.length, buf, 0);
-        Assert.assertEquals(offset, comp.length);
+        assertEquals(comp.length, offset);
 
         // but not to 60%
         offset = enc.appendEncodedIfCompresses(input, 0.60, 0, input.length, buf, 0);
-        Assert.assertEquals(offset, -1);
+        assertEquals(-1, offset);
 
         // // // Second part: OutputStream alternatives
         
         ByteArrayOutputStream bytes = new ByteArrayOutputStream(60000);
-        Assert.assertTrue(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.70));
-        Assert.assertEquals(comp.length, bytes.size());
+        assertTrue(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.70));
+        assertEquals(comp.length, bytes.size());
         byte[] output = bytes.toByteArray();
-        Assert.assertEquals(output, comp);
+        assertArrayEquals(comp, output);
 
         bytes = new ByteArrayOutputStream(60000);
-        Assert.assertFalse(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.60));
-        Assert.assertEquals(0, bytes.size());
+        assertFalse(enc.encodeAndWriteChunkIfCompresses(input, 0, input.length, bytes, 0.60));
+        assertEquals(0, bytes.size());
 
         // // // Third part: chunk creation
 
         LZFChunk chunk = enc.encodeChunkIfCompresses(input, 0, input.length, 0.70);
-        Assert.assertNotNull(chunk);
-        Assert.assertEquals(chunk.length(), comp.length);
-        Assert.assertEquals(chunk.getData(), comp);
+        assertNotNull(chunk);
+        assertEquals(comp.length, chunk.length());
+        assertArrayEquals(comp, chunk.getData());
 
         chunk = enc.encodeChunkIfCompresses(input, 0, input.length, 0.60);
-        Assert.assertNull(chunk);
+        assertNull(chunk);
     }
 }

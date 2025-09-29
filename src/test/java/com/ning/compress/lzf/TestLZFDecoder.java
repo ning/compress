@@ -1,12 +1,13 @@
 package com.ning.compress.lzf;
 
 import java.io.*;
-
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import java.nio.charset.StandardCharsets;
 
 import com.ning.compress.BaseForTests;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class TestLZFDecoder extends BaseForTests
 {
@@ -36,21 +37,21 @@ public class TestLZFDecoder extends BaseForTests
 
     private void _testSimple(ChunkDecoder decoder) throws IOException
     {
-        byte[] orig = "Another trivial test".getBytes("UTF-8");
+        byte[] orig = "Another trivial test".getBytes(StandardCharsets.UTF_8);
         byte[] compressed = compress(orig);
         byte[] result = decoder.decode(compressed);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
 
         // also, ensure that offset, length are passed
         byte[] compressed2 = new byte[compressed.length + 4];
         System.arraycopy(compressed, 0, compressed2, 2, compressed.length);
 
         result = decoder.decode(compressed2, 2, compressed.length);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
 
         // two ways to do that as well:
         result = LZFDecoder.decode(compressed2, 2, compressed.length);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
     }
     
     private void _testLonger(ChunkDecoder decoder) throws IOException
@@ -58,24 +59,24 @@ public class TestLZFDecoder extends BaseForTests
         byte[] orig = this.constructFluff(250000); // 250k
         byte[] compressed = compress(orig);
         byte[] result = decoder.decode(compressed);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
 
         // also, ensure that offset, length are passed
         byte[] compressed2 = new byte[compressed.length + 4];
         System.arraycopy(compressed, 0, compressed2, 2, compressed.length);
 
         result = decoder.decode(compressed2, 2, compressed.length);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
 
         // two ways to do that as well:
         result = LZFDecoder.decode(compressed2, 2, compressed.length);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
     }
 
     private void _testChunks(ChunkDecoder decoder) throws IOException
     {
-        byte[] orig1 = "Another trivial test".getBytes("UTF-8");
-        byte[] orig2 = " with some of repepepepepetitition too!".getBytes("UTF-8");
+        byte[] orig1 = "Another trivial test".getBytes(StandardCharsets.UTF_8);
+        byte[] orig2 = " with some of repepepepepetitition too!".getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(orig1);
         out.write(orig2);
@@ -89,6 +90,6 @@ public class TestLZFDecoder extends BaseForTests
         byte[] compressed = out.toByteArray();
         
         byte[] result = decoder.decode(compressed);
-        Assert.assertEquals(result, orig);
+        assertArrayEquals(orig, result);
    }
 }

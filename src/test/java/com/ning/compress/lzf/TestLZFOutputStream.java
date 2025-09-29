@@ -3,26 +3,27 @@ package com.ning.compress.lzf;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
-import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeEach;
 
 import com.ning.compress.BaseForTests;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestLZFOutputStream extends BaseForTests
 {
-    private static int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
+    private static final int BUFFER_SIZE = LZFChunk.MAX_CHUNK_LEN * 64;
     private byte[] nonEncodableBytesToWrite;
     private byte[] bytesToWrite;
 
-    @BeforeTest(alwaysRun = true)
-    public void setUp() throws Exception
-    {
+    @BeforeEach
+    public void setUp() {
         nonEncodableBytesToWrite = constructUncompressable(BUFFER_SIZE);
         String phrase = "all work and no play make Jack a dull boy";
         bytesToWrite = new byte[BUFFER_SIZE];
-        byte[] bytes = phrase.getBytes();
+        byte[] bytes = phrase.getBytes(StandardCharsets.UTF_8);
         int cursor = 0;
         while(cursor <= bytesToWrite.length) {
             System.arraycopy(bytes, 0, bytesToWrite, cursor, (bytes.length+cursor < bytesToWrite.length)?bytes.length:bytesToWrite.length-cursor);
@@ -37,7 +38,7 @@ public class TestLZFOutputStream extends BaseForTests
         OutputStream os = new LZFOutputStream(bos);
         os.write(nonEncodableBytesToWrite);
         os.close();
-        Assert.assertTrue(bos.toByteArray().length > nonEncodableBytesToWrite.length);
+        assertTrue(bos.toByteArray().length > nonEncodableBytesToWrite.length);
         verifyOutputStream(bos, nonEncodableBytesToWrite);
     }
 
@@ -51,7 +52,7 @@ public class TestLZFOutputStream extends BaseForTests
         int len = bos.toByteArray().length;
         int max = bytesToWrite.length/2;
         if (len <= 10 || len >= max) {
-            Assert.fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
+            fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
         }
         verifyOutputStream(bos, bytesToWrite);
     }
@@ -72,7 +73,7 @@ public class TestLZFOutputStream extends BaseForTests
         int len = bos.toByteArray().length;
         int max = bytesToWrite.length/2;
         if (len <= 10 || len >= max) {
-            Assert.fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
+            fail("Sanity check: should have 10 < len < "+max+"; len = "+len);
         }
         verifyOutputStream(bos, bytesToWrite);
     }
@@ -86,8 +87,8 @@ public class TestLZFOutputStream extends BaseForTests
         OutputStream os = new LZFOutputStream(bos);
         os.write(bytesToWrite, offset, len);
         os.close();
-        Assert.assertTrue(bos.toByteArray().length > 10);
-        Assert.assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
+        assertTrue(bos.toByteArray().length > 10);
+        assertTrue(bos.toByteArray().length < bytesToWrite.length*.5);
         int bytesToCopy = Math.min(len, bytesToWrite.length);
         byte[] compareBytes = new byte[bytesToCopy];
         System.arraycopy(bytesToWrite, offset, compareBytes, 0, bytesToCopy);
@@ -104,7 +105,7 @@ public class TestLZFOutputStream extends BaseForTests
         os.close();
         int len = bos.toByteArray().length;
         if (len != 0) {
-            Assert.fail("Sanity check: should have len == 0; len = "+len);
+            fail("Sanity check: should have len == 0; len = "+len);
         }
         verifyOutputStream(bos, input);
     }
@@ -113,11 +114,11 @@ public class TestLZFOutputStream extends BaseForTests
     {
         ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
         LZFInputStream lzfi = new LZFInputStream(bis);
-        int val =0;
+        int val;
         int idx = 0;
         while((val = lzfi.read()) != -1) {
             int refVal = ((int)reference[idx++]) & 255;
-            Assert.assertEquals(refVal, val);
+            assertEquals(refVal, val);
         }
         lzfi.close();
     }

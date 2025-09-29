@@ -2,10 +2,11 @@ package com.ning.compress.lzf;
 
 import java.io.*;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.ning.compress.BaseForTests;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestLZFCompressingInputStream extends BaseForTests
 {
@@ -17,11 +18,11 @@ public class TestLZFCompressingInputStream extends BaseForTests
         LZFCompressingInputStream compIn = new LZFCompressingInputStream(new ByteArrayInputStream(source));
         byte[] comp = readAll(compIn);
         byte[] uncomp = uncompress(comp);
-        Assert.assertEquals(uncomp, source);
+        assertArrayEquals(source, uncomp);
 
         // and then check that size is about same as with static methods
         byte[] comp2 = compress(source);
-        Assert.assertEquals(comp2.length, comp.length);
+        assertEquals(comp.length, comp2.length);
     }
 
     @Test
@@ -32,8 +33,8 @@ public class TestLZFCompressingInputStream extends BaseForTests
         LZFCompressingInputStream compIn = new LZFCompressingInputStream(new ByteArrayInputStream(source));
         byte[] comp = readAll(compIn);
         // 2 non-compressed chunks with headers:
-        Assert.assertEquals(comp.length, 89000 + 5 + 5);
+        assertEquals(89000 + 5 + 5, comp.length);
         byte[] uncomp = uncompress(comp);
-        Assert.assertEquals(uncomp, source);
+        assertArrayEquals(source, uncomp);
     }
 }

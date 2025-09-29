@@ -1,5 +1,7 @@
 1.2.0 (not yet released)
 
+#60: Convert tests to JUnit 5 & refactor tests
+ (contributed by @Marcono1234)
 #61: Prevent user code from subclassing `UnsafeChunkEncoder`
  (contributed by @Marcono1234)
 - Updated `oss-parent` dep to latest (v72)

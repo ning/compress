@@ -1,16 +1,16 @@
 package com.ning.compress.lzf;
 
 import java.io.*;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import com.ning.compress.BaseForTests;
-import com.ning.compress.lzf.LZFChunk;
 import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
 import com.ning.compress.lzf.impl.VanillaChunkDecoder;
 import com.ning.compress.lzf.util.ChunkEncoderFactory;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestLZFRoundTrip
 {
@@ -23,22 +23,25 @@ public class TestLZFRoundTrip
         ,"/binary/help.bin"
         ,"/binary/word.doc"
     };
-    
-    @Test 
+
+    @TempDir
+    Path tempDir;
+
+    @Test
     public void testVanillaCodec() throws Exception
     {
         _testUsingBlock(new VanillaChunkDecoder());
         _testUsingReader(new VanillaChunkDecoder());
     }
 
-    @Test 
+    @Test
     public void testUnsafeCodec() throws IOException
     {
         _testUsingBlock(new UnsafeChunkDecoder());
         _testUsingReader(new UnsafeChunkDecoder());
     }
 
-    @Test 
+    @Test
     public void testLZFCompressionOnTestFiles() throws IOException {
         for (int i = 0; i < 100; i++) {
             testLZFCompressionOnDir(new File("src/test/resources/shakespeare"));
@@ -48,47 +51,44 @@ public class TestLZFRoundTrip
     private void testLZFCompressionOnDir(File dir) throws IOException
     {
         File[] files = dir.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
+        for (File file : files) {
             if (!file.isDirectory()) {
-                testLZFCompressionOnFile(file);
+                testLZFCompressionOnFile(file.toPath());
             } else {
                 testLZFCompressionOnDir(file);
             }
         }
     }
 
-    private void testLZFCompressionOnFile(File file) throws IOException
+    private void testLZFCompressionOnFile(Path file) throws IOException
     {
         final ChunkDecoder decoder = new UnsafeChunkDecoder();
-        
-        // File compressedFile = createEmptyFile("test.lzf");
-        File compressedFile = new File("/tmp/test.lzf");
-        InputStream in = new BufferedInputStream(new FileInputStream(file));
-        OutputStream out = new LZFOutputStream(new BufferedOutputStream(
-                new FileOutputStream(compressedFile)));
         byte[] buf = new byte[64 * 1024];
-        int len;
-        while ((len = in.read(buf, 0, buf.length)) >= 0) {
-            out.write(buf, 0, len);
+
+        Path compressedFile = Files.createTempFile(tempDir, "test", ".lzf");
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file));
+            OutputStream out = new LZFOutputStream(new BufferedOutputStream(
+                Files.newOutputStream(compressedFile)))) {
+            int len;
+            while ((len = in.read(buf, 0, buf.length)) >= 0) {
+                out.write(buf, 0, len);
+            }
         }
-        in.close();
-        out.close();
 
         // decompress and verify bytes haven't changed
-        in = new BufferedInputStream(new FileInputStream(file));
-        DataInputStream compressedIn = new DataInputStream(new LZFInputStream(decoder,
-                new FileInputStream(compressedFile), false));
-        while ((len = in.read(buf, 0, buf.length)) >= 0) {
-            byte[] buf2 = new byte[len];
-            compressedIn.readFully(buf2, 0, len);
-            byte[] trimmedBuf = new byte[len];
-            System.arraycopy(buf, 0, trimmedBuf, 0, len);
-            Assert.assertEquals(trimmedBuf, buf2);
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file));
+            DataInputStream compressedIn = new DataInputStream(new LZFInputStream(decoder,
+                    Files.newInputStream(compressedFile), false))) {
+            int len;
+            while ((len = in.read(buf, 0, buf.length)) >= 0) {
+                byte[] buf2 = new byte[len];
+                compressedIn.readFully(buf2, 0, len);
+                byte[] trimmedBuf = new byte[len];
+                System.arraycopy(buf, 0, trimmedBuf, 0, len);
+                assertArrayEquals(trimmedBuf, buf2);
+            }
+            assertEquals(-1, compressedIn.read());
         }
-        Assert.assertEquals(-1, compressedIn.read());
-        in.close();
-        compressedIn.close();
     }
 
     @Test
@@ -107,12 +107,12 @@ public class TestLZFRoundTrip
         ChunkEncoder encoder = ChunkEncoderFactory.safeInstance();
         ChunkDecoder decoder = new VanillaChunkDecoder();
         _testCollision(encoder, decoder, b1, 0, b1.length);
-        _testCollision(encoder, decoder, b2, off, b2.length - off);       
+        _testCollision(encoder, decoder, b2, off, b2.length - off);
 
         encoder = ChunkEncoderFactory.optimalInstance();
         decoder = new UnsafeChunkDecoder();
         _testCollision(encoder, decoder, b1, 0, b1.length);
-        _testCollision(encoder, decoder, b2, off, b2.length - off);       
+        _testCollision(encoder, decoder, b2, off, b2.length - off);
    }
 
    private void _testCollision(ChunkEncoder encoder, ChunkDecoder decoder, byte[] bytes, int offset, int length) throws IOException
@@ -124,8 +124,8 @@ public class TestLZFRoundTrip
         System.arraycopy(bytes, offset, expected, 0, length);
         encoder.encodeAndWriteChunk(bytes, offset, length, outputStream);
         InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-        Assert.assertEquals(decoder.decodeChunk(inputStream, buffer, output), length);
-        Assert.assertEquals(expected, output); 
+        assertEquals(length, decoder.decodeChunk(inputStream, buffer, output));
+        assertArrayEquals(expected, output);
    }
     
     /*
@@ -142,8 +142,7 @@ public class TestLZFRoundTrip
             byte[] lzf = LZFEncoder.encode(data);
             byte[] decoded = decoder.decode(lzf);
 
-            Assert.assertEquals(decoded.length,  data.length);
-            Assert.assertEquals(decoded,  data,
+            assertArrayEquals(data, decoded,
             		String.format("File '%s', %d->%d bytes", name, data.length, lzf.length));
         }
     }
@@ -155,12 +154,11 @@ public class TestLZFRoundTrip
             byte[] lzf = LZFEncoder.encode(data);
             LZFInputStream comp = new LZFInputStream(decoder, new ByteArrayInputStream(lzf), false);
             byte[] decoded = readAll(comp);
-    
-            Assert.assertEquals(decoded.length,  data.length);
-            Assert.assertEquals(decoded,  data);
+
+            assertArrayEquals(data, decoded);
         }
     }
-    
+
     protected byte[] readResource(String name) throws IOException
     {
         return readAll(getClass().getResourceAsStream(name));
@@ -168,7 +166,7 @@ public class TestLZFRoundTrip
 
     protected byte[] readAll(InputStream in) throws IOException
     {
-        Assert.assertNotNull(in);
+        assertNotNull(in);
         byte[] buffer = new byte[4000];
         int count;
         ByteArrayOutputStream bytes = new ByteArrayOutputStream(4000);
