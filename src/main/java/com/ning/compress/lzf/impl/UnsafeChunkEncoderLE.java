@@ -7,7 +7,7 @@ import com.ning.compress.lzf.LZFChunk;
  * Implementation to use on Little Endian architectures.
  */
 @SuppressWarnings("restriction")
-public class UnsafeChunkEncoderLE
+public final class UnsafeChunkEncoderLE
     extends UnsafeChunkEncoder
 {
     public UnsafeChunkEncoderLE(int totalLength) {
