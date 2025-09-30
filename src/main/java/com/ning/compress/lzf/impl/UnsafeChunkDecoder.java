@@ -71,6 +71,10 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
+        // Sanity checks; otherwise if any of the arguments are invalid `Unsafe` might corrupt memory
+        checkArrayIndices(in, inPos, in.length);
+        checkArrayIndices(out, outPos, outEnd);
+
         // We need to take care of end condition, leave last 32 bytes out
         final int outputEnd8 = outEnd - 8;
         final int outputEnd32 = outEnd - 32;
@@ -175,7 +179,17 @@ public class UnsafeChunkDecoder extends ChunkDecoder
     // Internal methods
     ///////////////////////////////////////////////////////////////////////
      */
-    
+
+    /**
+     * @param start start index, inclusive
+     * @param end end index, exclusive
+     */
+    private static void checkArrayIndices(byte[] array, int start, int end) {
+        if (start < 0 || end < start || end > array.length) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+    }
+
     private final int copyOverlappingShort(final byte[] out, int outPos, final int offset, int len)
     {
         out[outPos] = out[outPos++ + offset];

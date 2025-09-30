@@ -4,10 +4,12 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 import com.ning.compress.BaseForTests;
+import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
 import com.ning.compress.lzf.util.ChunkDecoderFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestLZFDecoder extends BaseForTests
 {
@@ -27,6 +29,22 @@ public class TestLZFDecoder extends BaseForTests
     public void testChunks() throws IOException {
         _testChunks(ChunkDecoderFactory.safeInstance());
         _testChunks(ChunkDecoderFactory.optimalInstance());
+    }
+
+    @Test
+    public void testUnsafeValidation() {
+        UnsafeChunkDecoder decoder = new UnsafeChunkDecoder();
+
+        byte[] array = new byte[10];
+        int goodStart = 2;
+        int goodEnd = 5;
+        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(null, goodStart, array, goodStart, goodEnd));
+        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(array, goodStart, null, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, -1, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, 12, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, -1, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, goodStart, 1));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, goodStart, 12));
     }
 
     /*
