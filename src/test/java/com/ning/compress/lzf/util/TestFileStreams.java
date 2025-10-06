@@ -24,20 +24,20 @@ public class TestFileStreams extends BaseForTests
         // First, write encoded stuff (won't compress, but produces something)
         byte[] input = "Whatever stuff...".getBytes(StandardCharsets.UTF_8);
 
-        LZFFileOutputStream out = new LZFFileOutputStream(f);
-        out.write(input);
-        out.close();
+        try (LZFFileOutputStream out = new LZFFileOutputStream(f)) {
+            out.write(input);
+        }
 
         long len = f.length();
         // happens to be 22; 17 bytes uncompressed, with 5 byte header
         assertEquals(22L, len);
 
-        LZFFileInputStream in = new LZFFileInputStream(f);
-        for (byte b : input) {
-            assertEquals(b & 0xFF, in.read());
+        try (LZFFileInputStream in = new LZFFileInputStream(f)) {
+            for (byte b : input) {
+                assertEquals(b & 0xFF, in.read());
+            }
+            assertEquals(-1, in.read());
         }
-        assertEquals(-1, in.read());
-        in.close();
     }
 
     @Test 
@@ -46,14 +46,14 @@ public class TestFileStreams extends BaseForTests
         File f = tempDir.resolve("lzf-test.lzf").toFile();
 
         byte[] fluff = constructFluff(132000);
-        LZFFileOutputStream fout = new LZFFileOutputStream(f);
-        fout.write(fluff);
-        fout.close();
-        
-        LZFFileInputStream in = new LZFFileInputStream(f);
+        try (LZFFileOutputStream fout = new LZFFileOutputStream(f)) {
+            fout.write(fluff);
+        }
+
         ByteArrayOutputStream bytes = new ByteArrayOutputStream(fluff.length);
-        in.readAndWrite(bytes);
-        in.close();
+        try (LZFFileInputStream in = new LZFFileInputStream(f)) {
+            in.readAndWrite(bytes);
+        }
         byte[] actual = bytes.toByteArray();
         assertArrayEquals(fluff, actual);
     }

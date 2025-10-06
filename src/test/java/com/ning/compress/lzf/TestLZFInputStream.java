@@ -31,7 +31,7 @@ public class TestLZFInputStream extends BaseForTests
 			System.arraycopy(bytes, 0, bytesToWrite, cursor, (bytes.length+cursor < bytesToWrite.length)?bytes.length:bytesToWrite.length-cursor);
 			cursor += bytes.length;
 		}
-	        ByteArrayOutputStream nonCompressed = new ByteArrayOutputStream();
+        ByteArrayOutputStream nonCompressed = new ByteArrayOutputStream();
 		OutputStream os = new LZFOutputStream(nonCompressed);
 		os.write(nonEncodableBytesToWrite);
 		os.close();
@@ -88,7 +88,7 @@ public class TestLZFInputStream extends BaseForTests
         assertSame(bis, is.getUnderlyingInputStream());
         assertEquals(0, is.available());
         // read one byte; should decode bunch more, make available
-        is.read();
+        assertNotEquals(-1, is.read());
         int total = 1; // since we read one byte already
         assertEquals(65534, is.available());
         // and after we skip through all of it, end with -1 for EOF
