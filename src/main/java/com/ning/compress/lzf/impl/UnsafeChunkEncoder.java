@@ -72,6 +72,14 @@ public abstract class UnsafeChunkEncoder
         }
     }
 
+    static void _checkOutputLength(int inputLen, int outputLen) {
+        int maxEncoded = inputLen + ((inputLen + 31) >> 5);
+
+        if (maxEncoded > outputLen) {
+            throw new IllegalArgumentException("Output length " + outputLen + " is too small for input length " + inputLen);
+        }
+    }
+
     final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {

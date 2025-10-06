@@ -32,7 +32,7 @@ public final class UnsafeChunkEncoderBE
         // Sanity checks; otherwise if any of the arguments are invalid `Unsafe` might corrupt memory
         _checkArrayIndices(in, inPos, inEnd);
         _checkArrayIndices(out, outPos, out.length);
-        // TODO: Validate that `out.length - outPos` is large enough?
+        _checkOutputLength(inEnd - inPos, out.length - outPos);
 
         final int[] hashTable = _hashTable;
         int literals = 0;
