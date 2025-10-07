@@ -5,7 +5,7 @@
 LZF-compress is a Java library for encoding and decoding data in LZF format,
 written by Tatu Saloranta (tatu.saloranta@iki.fi)
 
-Data format and algorithm based on original [LZF library](http://freshmeat.net/projects/liblzf) by Marc A Lehmann.
+Data format and algorithm based on original [LZF library](https://oldhome.schmorp.de/marc/liblzf.html) by Marc A Lehmann.
 See [LZF Format Specification](https://github.com/ning/compress/wiki/LZFFormat) for full description.
 
 Format differs slightly from some other adaptations, such as the one used
