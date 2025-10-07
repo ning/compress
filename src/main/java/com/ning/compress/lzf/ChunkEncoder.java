@@ -93,8 +93,11 @@ public abstract class ChunkEncoder
      */
     protected ChunkEncoder(int totalLength, BufferRecycler bufferRecycler)
     {
+        if (totalLength <= 0) {
+            throw new IllegalArgumentException("Invalid total length: " + totalLength);
+        }
         // Need room for at most a single full chunk
-        int largestChunkLen = Math.min(totalLength, LZFChunk.MAX_CHUNK_LEN);       
+        int largestChunkLen = Math.min(totalLength, LZFChunk.MAX_CHUNK_LEN);
         int suggestedHashLen = calcHashLen(largestChunkLen);
         _recycler = bufferRecycler;
         _hashTable = bufferRecycler.allocEncodingHash(suggestedHashLen);

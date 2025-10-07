@@ -29,6 +29,11 @@ public final class UnsafeChunkEncoderBE
     @Override
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
+        // Sanity checks; otherwise if any of the arguments are invalid `Unsafe` might corrupt memory
+        _checkArrayIndices(in, inPos, inEnd);
+        _checkArrayIndices(out, outPos, out.length);
+        _checkOutputLength(inEnd - inPos, out.length - outPos);
+
         final int[] hashTable = _hashTable;
         int literals = 0;
         inEnd -= TAIL_LENGTH;
@@ -83,7 +88,7 @@ public final class UnsafeChunkEncoderBE
             ++inPos;
         }
         // try offlining the tail
-        return _handleTail(in, inPos, inEnd+4, out, outPos, literals);
+        return _handleTail(in, inPos, inEnd+TAIL_LENGTH, out, outPos, literals);
     }
 
     private final static int _getInt(final byte[] in, final int inPos) {

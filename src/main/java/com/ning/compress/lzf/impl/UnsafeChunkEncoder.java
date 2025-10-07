@@ -62,6 +62,24 @@ public abstract class UnsafeChunkEncoder
     ///////////////////////////////////////////////////////////////////////
      */
 
+    /**
+     * @param start start index, inclusive
+     * @param end end index, exclusive
+     */
+    static void _checkArrayIndices(byte[] array, int start, int end) {
+        if (start < 0 || end < start || end > array.length) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+    }
+
+    static void _checkOutputLength(int inputLen, int outputLen) {
+        int maxEncoded = inputLen + ((inputLen + 31) >> 5);
+
+        if (maxEncoded > outputLen) {
+            throw new IllegalArgumentException("Output length " + outputLen + " is too small for input length " + inputLen);
+        }
+    }
+
     final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
