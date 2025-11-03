@@ -4,7 +4,7 @@ import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.LZFChunk;
 
 /**
- * Implementation to use on Little Endian architectures.
+ * Implementation to use on Little-Endian architectures.
  */
 @SuppressWarnings("restriction")
 public final class UnsafeChunkEncoderLE
@@ -26,7 +26,7 @@ public final class UnsafeChunkEncoderLE
         super(totalLength, bufferRecycler, bogus);
     }
 
-	@Override
+    @Override
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
     {
         // Sanity checks; otherwise if any of the arguments are invalid `Unsafe` might corrupt memory
@@ -43,11 +43,11 @@ public final class UnsafeChunkEncoderLE
         
         while (inPos < inEnd) {
             seen = (seen << 8) + (in[inPos + 2] & 255);
-//            seen = (seen << 8) + (unsafe.getByte(in, BYTE_ARRAY_OFFSET_PLUS2 + inPos) & 0xFF);
 
             int off = hash(seen);
             int ref = hashTable[off];
             hashTable[off] = inPos;
+
             // First expected common case: no back-ref (for whatever reason)
             if ((ref >= inPos) // can't refer forward (i.e. leftovers)
                     || (ref < firstPos) // or to previous block
@@ -61,17 +61,13 @@ public final class UnsafeChunkEncoderLE
                 }
                 continue;
             }
+
             if (literals > 0) {
                 outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
                 literals = 0;
             }
             // match
             final int maxLen = Math.min(MAX_REF, inEnd - inPos + 2);
-            /*int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }*/
-            
             int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
             
             --off; // was off by one earlier
