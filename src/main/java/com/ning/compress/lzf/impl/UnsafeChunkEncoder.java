@@ -38,8 +38,6 @@ public abstract class UnsafeChunkEncoder
 
     static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
 
-    static final long BYTE_ARRAY_OFFSET_PLUS2 = BYTE_ARRAY_OFFSET + 2;
-
     UnsafeChunkEncoder(int totalLength) {
         super(totalLength);
     }

@@ -17,6 +17,7 @@ public final class UnsafeChunkEncoderBE
     public UnsafeChunkEncoderBE(int totalLength, boolean bogus) {
         super(totalLength, bogus);
     }
+
     public UnsafeChunkEncoderBE(int totalLength, BufferRecycler bufferRecycler) {
         super(totalLength, bufferRecycler);
     }
@@ -24,7 +25,6 @@ public final class UnsafeChunkEncoderBE
     public UnsafeChunkEncoderBE(int totalLength, BufferRecycler bufferRecycler, boolean bogus) {
         super(totalLength, bufferRecycler, bogus);
     }
-
 
     @Override
     protected int tryCompress(byte[] in, int inPos, int inEnd, byte[] out, int outPos)
@@ -61,15 +61,13 @@ public final class UnsafeChunkEncoderBE
                 }
                 continue;
             }
-            // match
-            int maxLen = inEnd - inPos + 2;
-            if (maxLen > MAX_REF) {
-                maxLen = MAX_REF;
-            }
+
             if (literals > 0) {
                 outPos = _copyPartialLiterals(in, inPos, out, outPos, literals);
                 literals = 0;
             }
+            // match
+            final int maxLen = Math.min(MAX_REF, inEnd - inPos + 2);
             int len = _findMatchLength(in, ref+3, inPos+3, ref+maxLen);
             
             --off; // was off by one earlier
