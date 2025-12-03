@@ -75,7 +75,10 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         checkArrayIndices(in, inPos, in.length);
         checkArrayIndices(out, outPos, outEnd);
 
+        final int outPosStart = outPos;
+
         // We need to take care of end condition, leave last 32 bytes out
+        final int inputEnd32 = in.length - 32;
         final int outputEnd8 = outEnd - 8;
         final int outputEnd32 = outEnd - 32;
 
@@ -83,7 +86,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         do {
             int ctrl = in[inPos++] & 255;
             while (ctrl < LZFChunk.MAX_LITERAL) { // literal run(s)
-                if (outPos > outputEnd32) {
+                if (outPos > outputEnd32 || inPos > inputEnd32) {
                     System.arraycopy(in, inPos, out, outPos, ctrl+1);
                 } else {
                     copyUpTo32(in, inPos, out, outPos, ctrl);
@@ -103,6 +106,9 @@ public class UnsafeChunkDecoder extends ChunkDecoder
             if (len < 7) {
                 ctrl -= in[inPos++] & 255;
                 if (ctrl < -7 && outPos < outputEnd8) { // non-overlapping? can use efficient bulk copy
+                    if (outPos + ctrl < outPosStart) {
+                        throw new LZFException("Invalid back reference");
+                    }
                     final long rawOffset = BYTE_ARRAY_OFFSET + outPos;
                     unsafe.putLong(out, rawOffset, unsafe.getLong(out, rawOffset + ctrl));
 //                    moveLong(out, outPos, outEnd, ctrl);
@@ -122,6 +128,9 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 continue;
             }
             // but non-overlapping is simple
+            if (outPos + ctrl < outPosStart) {
+                throw new LZFException("Invalid back reference");
+            }
             if (len <= 32) {
                 copyUpTo32(out, outPos+ctrl, outPos, len-1);
                 outPos += len;
