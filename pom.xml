@@ -76,6 +76,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.code-intelligence</groupId>
+            <artifactId>jazzer-junit</artifactId>
+            <version>0.28.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -236,6 +242,106 @@
     </build>
 
     <profiles>
+        <!--
+            Profile for fuzzing, setting ENV variable and configuring individual fuzz methods to run
+            Should be run separately from regular build because it disables normal unit tests and only runs fuzz tests
+        -->
+        <profile>
+            <id>fuzz</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <environmentVariables>
+                                <!-- Enable Jazzer fuzzing mode, see https://github.com/CodeIntelligenceTesting/jazzer?tab=readme-ov-file#fuzzing-mode -->
+                                <JAZZER_FUZZ>1</JAZZER_FUZZ>
+                            </environmentVariables>
+                            <failIfNoTests>true</failIfNoTests>
+                        </configuration>
+                        <!--
+                            Currently have to list all fuzz tests separately, see
+                            https://github.com/CodeIntelligenceTesting/jazzer/issues/599
+                        -->
+                        <executions>
+                            <!-- Skip default execution -->
+                            <execution>
+                                <id>default-test</id>
+                                <configuration>
+                                    <skipTests>true</skipTests>
+                                </configuration>
+                            </execution>
+                            <!-- Explicitly list separate fuzz test methods -->
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#decode</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#decode</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#roundtrip</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#roundtrip</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#encode</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#encode</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#encodeAppend</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#encodeAppend</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#inputStreamRead</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#inputStreamRead</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#inputStreamSkip</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#inputStreamSkip</test>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>fuzz-TestFuzzUnsafeLZF#outputStream</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <test>TestFuzzUnsafeLZF#outputStream</test>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>release-sign-artifacts</id>
             <activation>

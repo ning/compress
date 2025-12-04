@@ -4,8 +4,8 @@ on:
     branches:
     - master
     paths-ignore:
-    - "README.md"
-    - "VERSION.txt"
+    - 'README.md'
+    - 'VERSION.txt'
   pull_request:
     branches:
     - master
@@ -21,13 +21,13 @@ jobs:
       matrix:
         java_version: ['8', '11', '17', '21']
     env:
-      JAVA_OPTS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+      JAVA_OPTS: '-XX:+TieredCompilation -XX:TieredStopAtLevel=1'
     steps:
     - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
     - name: Set up JDK
       uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
       with:
-        distribution: "temurin"
+        distribution: 'temurin'
         java-version: ${{ matrix.java_version }}
         cache: 'maven'
     - name: Build
@@ -42,3 +42,26 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./target/site/jacoco/jacoco.xml
         flags: unittests
+
+  # TODO: Maybe consider caching Jazzer `.cifuzz-corpus` directory if that improves fuzzing performance?
+  #   But could become outdated when fuzz test methods are changed
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - name: Set up JDK
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'maven'
+      - name: Run tests
+        id: fuzz-tests
+        # Don't run with `-q`, to see fuzzing progress
+        run: ./mvnw -B -ff -ntp --activate-profiles fuzz test
+      - name: Upload fuzz test inputs
+        if: always() && steps.fuzz-tests.outcome == 'failure'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: fuzz-test-inputs
+          path: src/test/resources/**/*Inputs/**

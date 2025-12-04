@@ -1,0 +1,3 @@
+# Mark all Jazzer inputs as binary, to avoid bytes in them being misinterpreted as line terminators and being
+# changed on checkout
+/src/test/resources/**/*Inputs/** binary
