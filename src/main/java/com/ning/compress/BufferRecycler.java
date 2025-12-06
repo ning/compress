@@ -1,6 +1,7 @@
 package com.ning.compress;
 
 import java.lang.ref.SoftReference;
+import java.util.Arrays;
 
 /**
  * Simple helper class to encapsulate details of basic buffer
@@ -66,6 +67,8 @@ public final class BufferRecycler
     public void releaseEncodeBuffer(byte[] buffer)
     {
         if (_encodingBuffer == null || (buffer != null && buffer.length > _encodingBuffer.length)) {
+            // Clear the buffer to protect against bugs which might leak the content during next use
+            Arrays.fill(buffer, (byte) 0);
             _encodingBuffer = buffer;
         }
     }
@@ -84,6 +87,8 @@ public final class BufferRecycler
     public void releaseOutputBuffer(byte[] buffer)
     {
         if (_outputBuffer == null || (buffer != null && buffer.length > _outputBuffer.length)) {
+            // Clear the buffer to protect against bugs which might leak the content during next use
+            Arrays.fill(buffer, (byte) 0);
             _outputBuffer = buffer;
         }
     }
@@ -102,6 +107,8 @@ public final class BufferRecycler
     public void releaseEncodingHash(int[] buffer)
     {
         if (_encodingHash == null || (buffer != null && buffer.length > _encodingHash.length)) {
+            // Clear the buffer to protect against bugs which might leak the content during next use
+            Arrays.fill(buffer, 0);
             _encodingHash = buffer;
         }
     }
@@ -126,6 +133,8 @@ public final class BufferRecycler
     public void releaseInputBuffer(byte[] buffer)
     {
         if (_inputBuffer == null || (buffer != null && buffer.length > _inputBuffer.length)) {
+            // Clear the buffer to protect against bugs which might leak the content during next use
+            Arrays.fill(buffer, (byte) 0);
             _inputBuffer = buffer;
         }
     }
@@ -144,6 +153,8 @@ public final class BufferRecycler
     public void releaseDecodeBuffer(byte[] buffer)
     {
         if (_decodingBuffer == null || (buffer != null && buffer.length > _decodingBuffer.length)) {
+            // Clear the buffer to protect against bugs which might leak the content during next use
+            Arrays.fill(buffer, (byte) 0);
             _decodingBuffer = buffer;
         }
     }

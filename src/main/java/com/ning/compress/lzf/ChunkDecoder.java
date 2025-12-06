@@ -35,7 +35,8 @@ public abstract class ChunkDecoder
     public final byte[] decode(final byte[] inputBuffer) throws LZFException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, 0, inputBuffer.length)];
-        decode(inputBuffer, 0, inputBuffer.length, result);
+        int decodedLen = decode(inputBuffer, 0, inputBuffer.length, result);
+        assert decodedLen == result.length;
         return result;
     }
 
@@ -49,7 +50,8 @@ public abstract class ChunkDecoder
     public final byte[] decode(final byte[] inputBuffer, int inputPtr, int inputLen) throws LZFException
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, inputPtr, inputLen)];
-        decode(inputBuffer, inputPtr, inputLen, result);
+        int decodedLen = decode(inputBuffer, inputPtr, inputLen, result);
+        assert decodedLen == result.length;
         return result;
     }
     
@@ -78,9 +80,9 @@ public abstract class ChunkDecoder
         int outPtr = 0;
         int blockNr = 0;
 
-        final int end = inPtr + inLength - 1; // -1 to offset possible end marker
+        final int endMinusOne = inPtr + inLength - 1; // -1 to offset possible end marker
         
-        while (inPtr < end) {
+        while (inPtr < endMinusOne) {
             // let's do basic sanity checks; no point in skimping with these checks
             if (sourceBuffer[inPtr] != LZFChunk.BYTE_Z || sourceBuffer[inPtr+1] != LZFChunk.BYTE_V) {
                 throw new LZFException("Corrupt input data, block #"+blockNr+" (at offset "+inPtr+"): did not start with 'ZV' signature bytes");
@@ -101,10 +103,15 @@ public abstract class ChunkDecoder
                     _reportArrayOverflow(targetBuffer, outPtr, uncompLen);
                 }
                 inPtr += 2;
-                decodeChunk(sourceBuffer, inPtr, targetBuffer, outPtr, outPtr+uncompLen);
+                decodeChunk(sourceBuffer, inPtr, inPtr + len, targetBuffer, outPtr, outPtr+uncompLen);
                 outPtr += uncompLen;
             }
             inPtr += len;
+
+            // Fail if more input than expected was consumed, respectively if `inLength` does not include full block
+            if (inPtr > endMinusOne + 1) {
+                throw new LZFException("Corrupt input data, block #" + blockNr + " is incomplete");
+            }
             ++blockNr;
         }
         return outPtr;
@@ -122,12 +129,23 @@ public abstract class ChunkDecoder
      */
     public abstract int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
         throws IOException;
-    
+
     /**
      * Main decode method for individual chunks.
      */
     public abstract void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException;
+
+    /**
+     * Main decode method for individual chunks.
+     *
+     * <p>For backward compatibility this method just delegates to {@link #decodeChunk(byte[], int, byte[], int, int)},
+     * ignoring the {@code inEnd} parameter. Subclasses should override it and consider the {@code inEnd} parameter.
+     */
+    public void decodeChunk(byte[] in, int inPos, int inEnd, byte[] out, int outPos, int outEnd)
+        throws LZFException {
+        decodeChunk(in, inPos, out, outPos, outEnd);
+    }
 
     /**
      * @return If positive number, number of bytes skipped; if -1, end-of-stream was

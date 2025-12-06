@@ -85,6 +85,7 @@ public final class UnsafeChunkEncoderLE
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
+        assert inPos <= inEnd + TAIL_LENGTH;
         // try offlining the tail
         return _handleTail(in, inPos, inEnd+TAIL_LENGTH, out, outPos, literals);
     }

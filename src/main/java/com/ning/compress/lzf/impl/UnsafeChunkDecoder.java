@@ -63,22 +63,27 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         // compressed
         readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
         int uncompLen = uint16(inputBuffer, 0);
-        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        decodeChunk(inputBuffer, 2, 2 + compLen, outputBuffer, 0, uncompLen);
         return uncompLen;
     }
-    
+
     @Override
-    public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
+    public void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd) throws LZFException {
+        decodeChunk(in, inPos, in.length, out, outPos, outEnd);
+    }
+
+    @Override
+    public final void decodeChunk(byte[] in, int inPos, int inEnd, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
         // Sanity checks; otherwise if any of the arguments are invalid `Unsafe` might corrupt memory
-        checkArrayIndices(in, inPos, in.length);
+        checkArrayIndices(in, inPos, inEnd);
         checkArrayIndices(out, outPos, outEnd);
 
         final int outPosStart = outPos;
 
         // We need to take care of end condition, leave last 32 bytes out
-        final int inputEnd32 = in.length - 32;
+        final int inputEnd32 = inEnd - 32;
         final int outputEnd8 = outEnd - 8;
         final int outputEnd32 = outEnd - 32;
 
@@ -141,6 +146,9 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         } while (outPos < outEnd);
 
         // sanity check to guard against corrupt data:
+        if (inPos != inEnd) {
+            throw new LZFException("Corrupt data: unexpected input amount was consumed");
+        }
         if (outPos != outEnd) {
             throw new LZFException("Corrupt data: overrun in decompress, input offset "+inPos+", output offset "+outPos);
         }
@@ -179,7 +187,7 @@ public class UnsafeChunkDecoder extends ChunkDecoder
         }
         // otherwise, read and uncompress the chunk normally
         readFully(is, true, inputBuffer, 2, compLen); // first 2 bytes are uncompressed length
-        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        decodeChunk(inputBuffer, 2, 2 + compLen, outputBuffer, 0, uncompLen);
         return -(uncompLen+1);
     }
     
