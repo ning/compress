@@ -37,12 +37,17 @@ public class VanillaChunkDecoder extends ChunkDecoder
         // compressed
         readFully(is, true, inputBuffer, 0, 2+compLen); // first 2 bytes are uncompressed length
         int uncompLen = uint16(inputBuffer, 0);
-        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        decodeChunk(inputBuffer, 2, 2 + compLen, outputBuffer, 0, uncompLen);
         return uncompLen;
     }
 
     @Override
-    public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
+    public void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd) throws LZFException {
+        decodeChunk(in, inPos, in.length, out, outPos, outEnd);
+    }
+
+    @Override
+    public final void decodeChunk(byte[] in, int inPos, int inEnd, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
         do {
@@ -190,6 +195,9 @@ public class VanillaChunkDecoder extends ChunkDecoder
         } while (outPos < outEnd);
 
         // sanity check to guard against corrupt data:
+        if (inPos != inEnd) {
+            throw new LZFException("Corrupt data: unexpected input amount was consumed");
+        }
         if (outPos != outEnd) {
             throw new LZFException("Corrupt data: overrun in decompress, input offset "+inPos+", output offset "+outPos);
         }
@@ -228,7 +236,7 @@ public class VanillaChunkDecoder extends ChunkDecoder
         }
         // otherwise, read and uncompress the chunk normally
         readFully(is, true, inputBuffer, 2, compLen); // first 2 bytes are uncompressed length
-        decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
+        decodeChunk(inputBuffer, 2, 2 + compLen, outputBuffer, 0, uncompLen);
         return -(uncompLen+1);
     }
     
@@ -308,5 +316,4 @@ public class VanillaChunkDecoder extends ChunkDecoder
             out[outPos++] = in[inPos++];
         }
     }
-    
 }

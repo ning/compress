@@ -52,7 +52,7 @@ public final class UnsafeChunkEncoderLE
             if ((ref >= inPos) // can't refer forward (i.e. leftovers)
                     || (ref < firstPos) // or to previous block
                     || (off = inPos - ref) > MAX_OFF
-                    || ((seen << 8) != (_getInt(in, ref-1) << 8))) {
+                    || ((seen << 8) != _getShifted3Bytes(in, ref))) {
                 ++inPos;
                 ++literals;
                 if (literals == LZFChunk.MAX_LITERAL) {
@@ -85,12 +85,29 @@ public final class UnsafeChunkEncoderLE
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
-        // try offlining the tail
+        // Should never happen but verify:
+        if (inPos > inEnd + TAIL_LENGTH) {
+            throw new IllegalStateException("Internal error: consumed input past end, `inPos` > "+(inEnd + TAIL_LENGTH));
+        }
+        // offline the tail handling
         return _handleTail(in, inPos, inEnd+TAIL_LENGTH, out, outPos, literals);
     }
 
     private final static int _getInt(final byte[] in, final int inPos) {
         return Integer.reverseBytes(unsafe.getInt(in, BYTE_ARRAY_OFFSET + inPos));
+    }
+
+    /**
+     * Reads 3 bytes, shifted to the left by 8.
+     */
+    private static int _getShifted3Bytes(byte[] in, int inPos) {
+        // For inPos 0 have to read bytes manually to avoid Unsafe out-of-bounds access at `inPos - 1`
+        // But for higher inPos values can use Unsafe to read as int and discard first byte
+        if (inPos == 0) {
+            return ((in[0] & 0xFF) << 24) | ((in[1] & 0xFF) << 16) | ((in[2] & 0xFF) << 8);
+        } else {
+            return _getInt(in, inPos - 1) << 8;
+        }
     }
 
     /*

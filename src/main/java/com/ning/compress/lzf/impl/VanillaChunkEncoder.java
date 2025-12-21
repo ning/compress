@@ -130,8 +130,12 @@ public class VanillaChunkEncoder
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
+        // Should never happen but verify:
+        if (inPos > inEnd + TAIL_LENGTH) {
+            throw new IllegalStateException("Internal error: consumed input past end, `inPos` > "+(inEnd + TAIL_LENGTH));
+        }
         // try offlining the tail
-        return _handleTail(in, inPos, inEnd+4, out, outPos, literals);
+        return _handleTail(in, inPos, inEnd+TAIL_LENGTH, out, outPos, literals);
     }
 
     private final int _handleTail(byte[] in, int inPos, int inEnd, byte[] out, int outPos,

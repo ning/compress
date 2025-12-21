@@ -327,7 +327,7 @@ public class LZFUncompressor extends Uncompressor
         if (_decodeBuffer == null) {
             _decodeBuffer = _recycler.allocDecodeBuffer(LZFChunk.MAX_CHUNK_LEN);
         }
-        _decoder.decodeChunk(src, srcOffset, _decodeBuffer, 0, _uncompressedLength);
+        _decoder.decodeChunk(src, srcOffset, srcOffset + len, _decodeBuffer, 0, _uncompressedLength);
         _handler.handleData(_decodeBuffer, 0, _uncompressedLength);
     }
 

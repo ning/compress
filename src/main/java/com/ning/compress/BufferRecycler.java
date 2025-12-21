@@ -20,9 +20,8 @@ public final class BufferRecycler
      * to a {@link BufferRecycler} used to provide a low-cost
      * buffer recycling for buffers we need for encoding, decoding.
      */
-     final protected static ThreadLocal<SoftReference<BufferRecycler>> _recyclerRef
-         = new ThreadLocal<SoftReference<BufferRecycler>>();
-   
+    final protected static ThreadLocal<SoftReference<BufferRecycler>> _recyclerRef
+        = new ThreadLocal<SoftReference<BufferRecycler>>();
 
     private byte[] _inputBuffer;
     private byte[] _outputBuffer;
@@ -31,7 +30,7 @@ public final class BufferRecycler
     private byte[] _encodingBuffer;
 
     private int[] _encodingHash;
-    
+
     /**
      * Accessor to get thread-local recycler instance
      */
@@ -51,7 +50,7 @@ public final class BufferRecycler
     // Buffers for encoding (output)
     ///////////////////////////////////////////////////////////////////////
      */
-    
+
     public byte[] allocEncodingBuffer(int minSize)
     {
         byte[] buf = _encodingBuffer;
@@ -69,7 +68,7 @@ public final class BufferRecycler
             _encodingBuffer = buffer;
         }
     }
-    
+
     public byte[] allocOutputBuffer(int minSize)
     {
         byte[] buf = _outputBuffer;
@@ -147,5 +146,4 @@ public final class BufferRecycler
             _decodingBuffer = buffer;
         }
     }
-    
 }

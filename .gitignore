@@ -17,3 +17,6 @@ test-output
 server/logs
 runtime
 logs
+
+# Jazzer fuzzing corpus
+/.cifuzz-corpus/

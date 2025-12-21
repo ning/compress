@@ -73,7 +73,7 @@ public abstract class UnsafeChunkEncoder
     static void _checkOutputLength(int inputLen, int outputLen) {
         int maxEncoded = inputLen + ((inputLen + 31) >> 5);
 
-        if (maxEncoded > outputLen) {
+        if (maxEncoded < 0 || maxEncoded > outputLen) {
             throw new IllegalArgumentException("Output length " + outputLen + " is too small for input length " + inputLen);
         }
     }
@@ -81,6 +81,10 @@ public abstract class UnsafeChunkEncoder
     final static int _copyPartialLiterals(byte[] in, int inPos, byte[] out, int outPos,
             int literals)
     {
+        if (out.length - outPos < literals + 1) {
+            throw new IllegalArgumentException("Not enough space in output array");
+        }
+
         out[outPos++] = (byte) (literals-1);
 
         // Here use of Unsafe is clear win:
@@ -104,10 +108,8 @@ public abstract class UnsafeChunkEncoder
             rawOutPtr += 8;
         }
         int left = (literals & 7);
-        if (left > 4) {
-            unsafe.putLong(out, rawOutPtr, unsafe.getLong(in, rawInPtr));
-        } else {
-            unsafe.putInt(out, rawOutPtr, unsafe.getInt(in, rawInPtr));
+        if (left > 0) {
+            System.arraycopy(in, (int) (rawInPtr - BYTE_ARRAY_OFFSET), out, (int) (rawOutPtr - BYTE_ARRAY_OFFSET), left);
         }
 
         return outPos+literals;
@@ -150,6 +152,10 @@ public abstract class UnsafeChunkEncoder
     
     final static int _copyFullLiterals(byte[] in, int inPos, byte[] out, int outPos)
     {
+        if (out.length - outPos < 32 + 1) {
+            throw new IllegalArgumentException("Not enough space in output array");
+        }
+
         // literals == 32
         out[outPos++] = (byte) 31;
 

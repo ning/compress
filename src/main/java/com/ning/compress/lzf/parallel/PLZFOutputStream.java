@@ -212,7 +212,6 @@ public class PLZFOutputStream extends FilterOutputStream implements WritableByte
             }
             byte[] buf = _outputBuffer;
             if (buf != null) {
-                assert _position == 0;
                 blockManager.releaseBlockToPool(_outputBuffer);
                 _outputBuffer = null;
             }

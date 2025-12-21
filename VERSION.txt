@@ -8,6 +8,8 @@
  (contributed by @Marcono1234)
 #64: Fix differences between big- and little-endian encoder
  (contributed by @Marcono1234)
+#68: Improve bounds checks
+ (contributed by @Marcono1234)
 - Updated `oss-parent` dep to latest (v72)
 
 1.1.3 (26-Sep-2025)

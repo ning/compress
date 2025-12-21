@@ -38,13 +38,16 @@ public class TestLZFDecoder extends BaseForTests
         byte[] array = new byte[10];
         int goodStart = 2;
         int goodEnd = 5;
-        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(null, goodStart, array, goodStart, goodEnd));
-        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(array, goodStart, null, goodStart, goodEnd));
-        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, -1, array, goodStart, goodEnd));
-        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, 12, array, goodStart, goodEnd));
-        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, -1, goodEnd));
-        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, goodStart, 1));
-        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array, goodStart, 12));
+        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(null, goodStart, goodEnd, array, goodStart, goodEnd));
+        assertThrows(NullPointerException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, null, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, -1, goodEnd, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodStart - 1, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, -1, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, array.length + 1, array, goodStart, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, array, -1, goodEnd));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, array, goodStart, goodStart - 1));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, array, goodStart, -1));
+        assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, array, goodStart, array.length + 1));
     }
 
     /*
