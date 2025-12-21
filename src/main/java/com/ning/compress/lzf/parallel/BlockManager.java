@@ -29,7 +29,6 @@ class BlockManager {
     }
 
     public void releaseBlockToPool(byte[] block) {
-        assert ! blockPool.contains(block);
 //        Arrays.fill(block, (byte)0);
         try {
             blockPool.putLast(block);
@@ -37,5 +36,4 @@ class BlockManager {
         	throw new RuntimeException(e);
         }
     }
-
 }

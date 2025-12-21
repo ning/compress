@@ -85,8 +85,11 @@ public final class UnsafeChunkEncoderLE
             hashTable[hash(seen)] = inPos;
             ++inPos;
         }
-        assert inPos <= inEnd + TAIL_LENGTH;
-        // try offlining the tail
+        // Should never happen but verify:
+        if (inPos > inEnd + TAIL_LENGTH) {
+            throw new IllegalStateException("Internal error: consumed input past end, `inPos` > "+(inEnd + TAIL_LENGTH));
+        }
+        // offline the tail handling
         return _handleTail(in, inPos, inEnd+TAIL_LENGTH, out, outPos, literals);
     }
 
