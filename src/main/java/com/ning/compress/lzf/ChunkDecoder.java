@@ -155,7 +155,7 @@ public abstract class ChunkDecoder
     public abstract int skipOrDecodeChunk(final InputStream is, final byte[] inputBuffer,
             final byte[] outputBuffer, final long maxToSkip)
         throws IOException;
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public static methods

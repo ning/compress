@@ -316,5 +316,4 @@ public class VanillaChunkDecoder extends ChunkDecoder
             out[outPos++] = in[inPos++];
         }
     }
-    
 }
