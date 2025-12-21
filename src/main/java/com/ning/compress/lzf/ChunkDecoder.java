@@ -34,10 +34,7 @@ public abstract class ChunkDecoder
      */
     public final byte[] decode(final byte[] inputBuffer) throws LZFException
     {
-        byte[] result = new byte[calculateUncompressedSize(inputBuffer, 0, inputBuffer.length)];
-        int decodedLen = decode(inputBuffer, 0, inputBuffer.length, result);
-        assert decodedLen == result.length;
-        return result;
+        return decode(inputBuffer, 0, inputBuffer.length);
     }
 
     /**
@@ -51,7 +48,9 @@ public abstract class ChunkDecoder
     {
         byte[] result = new byte[calculateUncompressedSize(inputBuffer, inputPtr, inputLen)];
         int decodedLen = decode(inputBuffer, inputPtr, inputLen, result);
-        assert decodedLen == result.length;
+        if (decodedLen != result.length) {
+            throw new LZFException("Bad `decode()`: decodedLen="+decodedLen+" != "+result.length+" (expected)");
+        }
         return result;
     }
     
