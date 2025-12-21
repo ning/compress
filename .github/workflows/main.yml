@@ -4,8 +4,8 @@ on:
     branches:
     - master
     paths-ignore:
-    - "README.md"
-    - "VERSION.txt"
+    - 'README.md'
+    - 'VERSION.txt'
   pull_request:
     branches:
     - master
@@ -21,13 +21,13 @@ jobs:
       matrix:
         java_version: ['8', '11', '17', '21']
     env:
-      JAVA_OPTS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+      JAVA_OPTS: '-XX:+TieredCompilation -XX:TieredStopAtLevel=1'
     steps:
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
     - name: Set up JDK
       uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
       with:
-        distribution: "temurin"
+        distribution: 'temurin'
         java-version: ${{ matrix.java_version }}
         cache: 'maven'
     - name: Build

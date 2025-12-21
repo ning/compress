@@ -122,7 +122,7 @@ public abstract class ChunkDecoder
      */
     public abstract int decodeChunk(final InputStream is, final byte[] inputBuffer, final byte[] outputBuffer) 
         throws IOException;
-    
+
     /**
      * Main decode method for individual chunks.
      */
@@ -137,7 +137,7 @@ public abstract class ChunkDecoder
     public abstract int skipOrDecodeChunk(final InputStream is, final byte[] inputBuffer,
             final byte[] outputBuffer, final long maxToSkip)
         throws IOException;
-    
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public static methods

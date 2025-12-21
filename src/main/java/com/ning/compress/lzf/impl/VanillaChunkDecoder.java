@@ -40,7 +40,7 @@ public class VanillaChunkDecoder extends ChunkDecoder
         decodeChunk(inputBuffer, 2, outputBuffer, 0, uncompLen);
         return uncompLen;
     }
-    
+
     @Override
     public final void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException
