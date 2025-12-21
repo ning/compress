@@ -131,7 +131,10 @@ public abstract class ChunkDecoder
 
     /**
      * Main decode method for individual chunks.
+     * 
+     * @deprecated since 1.2 Use {@link #decodeChunk(byte[], int, int, byte[], int, int)} instead
      */
+    @Deprecated // @since 1.2
     public abstract void decodeChunk(byte[] in, int inPos, byte[] out, int outPos, int outEnd)
         throws LZFException;
 
@@ -140,6 +143,8 @@ public abstract class ChunkDecoder
      *
      * <p>For backward compatibility this method just delegates to {@link #decodeChunk(byte[], int, byte[], int, int)},
      * ignoring the {@code inEnd} parameter. Subclasses should override it and consider the {@code inEnd} parameter.
+     *
+     * @since 1.2
      */
     public void decodeChunk(byte[] in, int inPos, int inEnd, byte[] out, int outPos, int outEnd)
         throws LZFException {
