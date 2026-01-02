@@ -1,4 +1,4 @@
-1.2.0 (not yet released)
+1.2.0 (02-Jan-2026)
 
 #54: Validate arguments for `Unsafe` codecs
  (contributed by @Marcono1234)
