@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Implementation-Title: Compress-LZF
+Implementation-Version: 1.2.0
+X-Compile-Target-JDK: 1.6
+Specification-Vendor: FasterXML
+Specification-Title: Compress-LZF
+X-Compile-Source-JDK: 1.6
+Build-Jdk-Spec: 1.8
+Created-By: Maven Javadoc Plugin 3.12.0
+Specification-Version: 1.2
+Implementation-Vendor: FasterXML
+
