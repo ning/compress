@@ -89,35 +89,49 @@ public class UnsafeChunkDecoder extends ChunkDecoder
 
         main_loop:
         do {
+            if (inPos >= inEnd) {
+                throw new LZFException("Corrupt data: truncated block");
+            }
             int ctrl = in[inPos++] & 255;
             while (ctrl < LZFChunk.MAX_LITERAL) { // literal run(s)
+                final int literalLength = ctrl + 1;
+                if (inPos > inEnd - literalLength || outPos > outEnd - literalLength) {
+                    throw new LZFException("Corrupt data: truncated block");
+                }
                 if (outPos > outputEnd32 || inPos > inputEnd32) {
-                    System.arraycopy(in, inPos, out, outPos, ctrl+1);
+                    System.arraycopy(in, inPos, out, outPos, literalLength);
                 } else {
                     copyUpTo32(in, inPos, out, outPos, ctrl);
                 }
-                ++ctrl;
-                inPos += ctrl;
-                outPos += ctrl;
+                inPos += literalLength;
+                outPos += literalLength;
                 if (outPos >= outEnd) {
                     break main_loop;
+                }
+                // The literal run may end exactly at inEnd, but another byte is required for the next control token.
+                if (inPos >= inEnd) {
+                    throw new LZFException("Corrupt data: truncated block");
                 }
                 ctrl = in[inPos++] & 255;
             }
             // back reference
             int len = ctrl >> 5;
             ctrl = -((ctrl & 0x1f) << 8) - 1;
-            // short back reference? 2 bytes; run lengths of 2 - 8 bytes
+            // short back reference? 2 bytes; run lengths of 3 - 8 bytes
             if (len < 7) {
+                if (inPos >= inEnd) {
+                    throw new LZFException("Corrupt data: truncated block");
+                }
                 ctrl -= in[inPos++] & 255;
+                final int copyLength = len + 2;
+                if (outPos > outEnd - copyLength || outPos + ctrl < outPosStart) {
+                    throw new LZFException("Invalid back reference");
+                }
                 if (ctrl < -7 && outPos < outputEnd8) { // non-overlapping? can use efficient bulk copy
-                    if (outPos + ctrl < outPosStart) {
-                        throw new LZFException("Invalid back reference");
-                    }
                     final long rawOffset = BYTE_ARRAY_OFFSET + outPos;
                     unsafe.putLong(out, rawOffset, unsafe.getLong(out, rawOffset + ctrl));
 //                    moveLong(out, outPos, outEnd, ctrl);
-                    outPos += len+2;
+                    outPos += copyLength;
                     continue;
                 }
                 // otherwise, byte-by-byte
@@ -125,17 +139,20 @@ public class UnsafeChunkDecoder extends ChunkDecoder
                 continue;
             }
             // long back reference: 3 bytes, length of up to 264 bytes
+            if (inPos > inEnd - 2) {
+                throw new LZFException("Corrupt data: truncated block");
+            }
             len = (in[inPos++] & 255) + 9;
             ctrl -= in[inPos++] & 255;
+            if (outPos > outEnd - len || outPos + ctrl < outPosStart) {
+                throw new LZFException("Invalid back reference");
+            }
             // First: ovelapping case can't use default handling, off line.
             if ((ctrl > -9) || (outPos > outputEnd32)) {
                 outPos = copyOverlappingLong(out, outPos, ctrl, len-9);
                 continue;
             }
             // but non-overlapping is simple
-            if (outPos + ctrl < outPosStart) {
-                throw new LZFException("Invalid back reference");
-            }
             if (len <= 32) {
                 copyUpTo32(out, outPos+ctrl, outPos, len-1);
                 outPos += len;

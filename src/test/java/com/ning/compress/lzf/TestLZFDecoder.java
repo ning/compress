@@ -50,6 +50,27 @@ public class TestLZFDecoder extends BaseForTests
         assertThrows(ArrayIndexOutOfBoundsException.class, () -> decoder.decodeChunk(array, goodStart, goodEnd, array, goodStart, array.length + 1));
     }
 
+    @Test
+    public void testMalformedShortBackReference() {
+        byte[] inputWithTrailingByte = new byte[] {
+                LZFChunk.BYTE_Z, LZFChunk.BYTE_V, LZFChunk.BLOCK_TYPE_COMPRESSED,
+                0, 3, 0, (byte) 0x8f, 0, 4, 0x50, 0x53
+        };
+        byte[] truncatedInput = new byte[] {
+                LZFChunk.BYTE_Z, LZFChunk.BYTE_V, LZFChunk.BLOCK_TYPE_COMPRESSED,
+                0, 3, 0, (byte) 0x8f, 0, 4, 0x50
+        };
+
+        assertMalformedShortBackReference(inputWithTrailingByte, ChunkDecoderFactory.safeInstance());
+        assertMalformedShortBackReference(inputWithTrailingByte, ChunkDecoderFactory.optimalInstance());
+        assertMalformedShortBackReference(truncatedInput, ChunkDecoderFactory.safeInstance());
+        assertMalformedShortBackReference(truncatedInput, ChunkDecoderFactory.optimalInstance());
+    }
+
+    private void assertMalformedShortBackReference(byte[] input, ChunkDecoder decoder) {
+        assertThrows(LZFException.class, () -> decoder.decodeChunk(input, 7, 10, new byte[143], 0, 143));
+    }
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Second-level test methods

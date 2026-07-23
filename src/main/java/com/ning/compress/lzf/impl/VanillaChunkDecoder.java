@@ -50,82 +50,34 @@ public class VanillaChunkDecoder extends ChunkDecoder
     public final void decodeChunk(byte[] in, int inPos, int inEnd, byte[] out, int outPos, int outEnd)
         throws LZFException
     {
-        do {
+        final int outStart = outPos;
+        while (outPos < outEnd) {
+            if (inPos >= inEnd) {
+                throw new LZFException("Corrupt data: truncated block");
+            }
             int ctrl = in[inPos++] & 255;
             if (ctrl < LZFChunk.MAX_LITERAL) { // literal run
-                switch (ctrl) {
-                case 31:
-                    out[outPos++] = in[inPos++];
-                case 30:
-                    out[outPos++] = in[inPos++];
-                case 29:
-                    out[outPos++] = in[inPos++];
-                case 28:
-                    out[outPos++] = in[inPos++];
-                case 27:
-                    out[outPos++] = in[inPos++];
-                case 26:
-                    out[outPos++] = in[inPos++];
-                case 25:
-                    out[outPos++] = in[inPos++];
-                case 24:
-                    out[outPos++] = in[inPos++];
-                case 23:
-                    out[outPos++] = in[inPos++];
-                case 22:
-                    out[outPos++] = in[inPos++];
-                case 21:
-                    out[outPos++] = in[inPos++];
-                case 20:
-                    out[outPos++] = in[inPos++];
-                case 19:
-                    out[outPos++] = in[inPos++];
-                case 18:
-                    out[outPos++] = in[inPos++];
-                case 17:
-                    out[outPos++] = in[inPos++];
-                case 16:
-                    out[outPos++] = in[inPos++];
-                case 15:
-                    out[outPos++] = in[inPos++];
-                case 14:
-                    out[outPos++] = in[inPos++];
-                case 13:
-                    out[outPos++] = in[inPos++];
-                case 12:
-                    out[outPos++] = in[inPos++];
-                case 11:
-                    out[outPos++] = in[inPos++];
-                case 10:
-                    out[outPos++] = in[inPos++];
-                case 9:
-                    out[outPos++] = in[inPos++];
-                case 8:
-                    out[outPos++] = in[inPos++];
-                case 7:
-                    out[outPos++] = in[inPos++];
-                case 6:
-                    out[outPos++] = in[inPos++];
-                case 5:
-                    out[outPos++] = in[inPos++];
-                case 4:
-                    out[outPos++] = in[inPos++];
-                case 3:
-                    out[outPos++] = in[inPos++];
-                case 2:
-                    out[outPos++] = in[inPos++];
-                case 1:
-                    out[outPos++] = in[inPos++];
-                case 0:
-                    out[outPos++] = in[inPos++];
+                int literalLen = ctrl + 1;
+                if (inPos > inEnd - literalLen || outPos > outEnd - literalLen) {
+                    throw new LZFException("Corrupt data: truncated block");
                 }
+                System.arraycopy(in, inPos, out, outPos, literalLen);
+                inPos += literalLen;
+                outPos += literalLen;
                 continue;
             }
             // back reference
             int len = ctrl >> 5;
             ctrl = -((ctrl & 0x1f) << 8) - 1;
             if (len < 7) { // 2 bytes; length of 3 - 8 bytes
+                if (inPos >= inEnd) {
+                    throw new LZFException("Corrupt data: truncated block");
+                }
                 ctrl -= in[inPos++] & 255;
+                final int copyLength = len + 2;
+                if (outPos > outEnd - copyLength || outPos + ctrl < outStart) {
+                    throw new LZFException("Invalid back reference");
+                }
                 out[outPos] = out[outPos++ + ctrl];
                 out[outPos] = out[outPos++ + ctrl];
                 switch (len) {
@@ -146,9 +98,16 @@ public class VanillaChunkDecoder extends ChunkDecoder
             }
 
             // long version (3 bytes, length of up to 264 bytes)
+            if (inPos > inEnd - 2) {
+                throw new LZFException("Corrupt data: truncated block");
+            }
             len = in[inPos++] & 255;
             ctrl -= in[inPos++] & 255;
-            
+            final int copyLength = len + 9;
+            if (outPos > outEnd - copyLength || outPos + ctrl < outStart) {
+                throw new LZFException("Invalid back reference");
+            }
+
             // First: if there is no overlap, can just use arraycopy:
             if ((ctrl + len) < -9) {
                 len += 9;
@@ -192,7 +151,7 @@ public class VanillaChunkDecoder extends ChunkDecoder
             case 1:
                 out[outPos] = out[outPos++ + ctrl];
             }
-        } while (outPos < outEnd);
+        }
 
         // sanity check to guard against corrupt data:
         if (inPos != inEnd) {
