@@ -61,14 +61,14 @@ public class TestLZFDecoder extends BaseForTests
                 0, 3, 0, (byte) 0x8f, 0, 4, 0x50
         };
 
-        assertMalformedShortBackReference(inputWithTrailingByte, ChunkDecoderFactory.safeInstance());
-        assertMalformedShortBackReference(inputWithTrailingByte, ChunkDecoderFactory.optimalInstance());
-        assertMalformedShortBackReference(truncatedInput, ChunkDecoderFactory.safeInstance());
-        assertMalformedShortBackReference(truncatedInput, ChunkDecoderFactory.optimalInstance());
-    }
-
-    private void assertMalformedShortBackReference(byte[] input, ChunkDecoder decoder) {
-        assertThrows(LZFException.class, () -> decoder.decodeChunk(input, 7, 10, new byte[143], 0, 143));
+        assertThrows(LZFException.class, () ->
+                ChunkDecoderFactory.safeInstance().decodeChunk(inputWithTrailingByte, 7, 10, new byte[143], 0, 143));
+        assertThrows(LZFException.class, () ->
+                ChunkDecoderFactory.optimalInstance().decodeChunk(inputWithTrailingByte, 7, 10, new byte[143], 0, 143));
+        assertThrows(LZFException.class, () ->
+                ChunkDecoderFactory.safeInstance().decodeChunk(truncatedInput, 7, 10, new byte[143], 0, 143));
+        assertThrows(LZFException.class, () ->
+                ChunkDecoderFactory.optimalInstance().decodeChunk(truncatedInput, 7, 10, new byte[143], 0, 143));
     }
 
     /*
