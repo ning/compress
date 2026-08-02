@@ -6,6 +6,7 @@ import java.util.Random;
 import java.security.SecureRandom;
 
 import com.ning.compress.BaseForTests;
+import com.ning.compress.lzf.util.ChunkDecoderFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -225,6 +226,70 @@ public class TestLZFInputStream extends BaseForTests
             ++i;
         }
         is.close();
+    }
+
+    /**
+     * Verifies that malformed compressed content is reported as {@link LZFException} when read
+     * through the stream, and never as an unchecked exception; and that the "safe" and "optimal"
+     * decoders agree on which content is malformed. Covers all 256 possible control bytes,
+     * since the stream path reaches decoder methods that the block API does not.
+     */
+    @Test
+    public void testMalformedContentReporting()
+    {
+        ChunkDecoder safe = ChunkDecoderFactory.safeInstance();
+        ChunkDecoder optimal = ChunkDecoderFactory.optimalInstance();
+
+        for (int ctrl = 0; ctrl < 256; ++ctrl) {
+            for (byte[] tail : new byte[][] { {}, { 0x00 }, { 0x00, 0x41 }, { 0x41, 0x42, 0x43 } }) {
+                byte[] payload = new byte[1 + tail.length];
+                payload[0] = (byte) ctrl;
+                System.arraycopy(tail, 0, payload, 1, tail.length);
+
+                for (int uncompLen : new int[] { 1, 3, 9, 40 }) {
+                    byte[] input = _asSingleChunk(payload, uncompLen);
+                    String desc = "control byte 0x"+String.format("%02x", ctrl)
+                            +", compressed length "+payload.length
+                            +", declared uncompressed length "+uncompLen;
+                    assertEquals(_readOutcome(safe, input, desc), _readOutcome(optimal, input, desc),
+                            "Decoders disagree for "+desc);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return Description of the outcome of reading given content: either the number of bytes
+     *    read, or the fact that `LZFException` was thrown. Fails the test for any other
+     *    exception: content problems have to be reported as `LZFException`
+     */
+    private String _readOutcome(ChunkDecoder decoder, byte[] input, String desc)
+    {
+        try (LZFInputStream in = new LZFInputStream(decoder, new ByteArrayInputStream(input))) {
+            byte[] buffer = new byte[64];
+            int total = 0, count;
+            while ((count = in.read(buffer)) != -1) {
+                total += count;
+            }
+            return "read "+total+" bytes";
+        } catch (LZFException e) {
+            return "LZFException";
+        } catch (IOException e) {
+            fail(decoder.getClass().getSimpleName()+" threw "+e.getClass().getName()
+                    +" instead of LZFException for "+desc, e);
+        } catch (RuntimeException e) {
+            fail(decoder.getClass().getSimpleName()+" threw "+e.getClass().getName()
+                    +" instead of LZFException for "+desc, e);
+        }
+        return null; // never gets here
+    }
+
+    private byte[] _asSingleChunk(byte[] payload, int uncompLen)
+    {
+        byte[] chunk = new byte[LZFChunk.HEADER_LEN_COMPRESSED + payload.length];
+        LZFChunk.appendCompressedHeader(uncompLen, payload.length, chunk, 0);
+        System.arraycopy(payload, 0, chunk, LZFChunk.HEADER_LEN_COMPRESSED, payload.length);
+        return chunk;
     }
 
     private void doDecompressReadBlock(byte[] bytes, byte[] reference) throws IOException

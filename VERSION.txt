@@ -1,3 +1,8 @@
+1.2.1 (not yet released)
+
+#85: Handle malformed LZF back references
+ (contributed by @yawkat)
+
 1.2.0 (02-Jan-2026)
 
 #54: Validate arguments for `Unsafe` codecs
