@@ -1,4 +1,4 @@
-1.2.1 (not yet released)
+1.2.1 (02-Aug-2026)
 
 #85: Handle malformed LZF back references
  (contributed by @yawkat)
