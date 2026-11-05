@@ -43,8 +43,6 @@ jobs:
         files: ./target/site/jacoco/jacoco.xml
         flags: unittests
 
-  # TODO: Maybe consider caching Jazzer `.cifuzz-corpus` directory if that improves fuzzing performance?
-  #   But could become outdated when fuzz test methods are changed
   fuzz:
     runs-on: ubuntu-latest
     steps:
@@ -55,12 +53,23 @@ jobs:
           distribution: 'temurin'
           java-version: 17
           cache: 'maven'
+      # Cache the Jazzer fuzzing corpus so that fuzzing can continue from the previous
+      # progress it made, instead of starting from scratch
+      - name: Cache fuzzing corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cifuzz-corpus/
+          # Invalidate cache when fuzz test changes; it might be consuming the fuzzing data differently
+          # now and the previous data would be misinterpreted
+          # Don't invalidate when POM or main sources change; fuzz corpus represents LZF data, and that
+          # is unaffected by implementation changes
+          key: fuzz-corpus-${{ hashFiles('src/test/java/com/ning/compress/lzf/TestFuzzUnsafeLZF.java') }}
       - name: Run tests
         id: fuzz-tests
         # Don't run with `-q`, to see fuzzing progress
         run: ./mvnw -B -ff -ntp --activate-profiles fuzz test
       - name: Upload fuzz test inputs
-        if: always() && steps.fuzz-tests.outcome == 'failure'
+        if: ${{ !cancelled() && steps.fuzz-tests.outcome == 'failure' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fuzz-test-inputs
