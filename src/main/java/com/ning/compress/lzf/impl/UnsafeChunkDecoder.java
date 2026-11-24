@@ -2,11 +2,11 @@ package com.ning.compress.lzf.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-
-import sun.misc.Unsafe;
 
 import com.ning.compress.lzf.*;
+
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.BYTE_ARRAY_OFFSET;
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.unsafe;
 
 /**
  * Highly optimized {@link ChunkDecoder} implementation that uses
@@ -21,18 +21,6 @@ import com.ning.compress.lzf.*;
 @SuppressWarnings("restriction")
 public class UnsafeChunkDecoder extends ChunkDecoder
 {
-    private static final Unsafe unsafe;
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            unsafe = (Unsafe) theUnsafe.get(null);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * Maximum offset of a back-reference: 5 bits from the control byte, a full byte,
      * and the implicit 1 -- so at most 8192 bytes back
@@ -43,10 +31,6 @@ public class UnsafeChunkDecoder extends ChunkDecoder
      * Maximum run length of a back-reference: 255 + 9, for the long form
      */
     private final static int MAX_BACK_REF_LENGTH = 264;
-
-    private static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
-//    private static final long SHORT_ARRAY_OFFSET = unsafe.arrayBaseOffset(short[].class);
-//    private static final long SHORT_ARRAY_STRIDE = unsafe.arrayIndexScale(short[].class);
     
     public UnsafeChunkDecoder() { }
 

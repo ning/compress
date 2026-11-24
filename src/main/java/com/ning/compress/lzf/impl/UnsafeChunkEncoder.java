@@ -1,12 +1,12 @@
 package com.ning.compress.lzf.impl;
 
 import com.ning.compress.BufferRecycler;
-import java.lang.reflect.Field;
-
-import sun.misc.Unsafe;
 
 import com.ning.compress.lzf.ChunkEncoder;
 import com.ning.compress.lzf.LZFChunk;
+
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.BYTE_ARRAY_OFFSET;
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.unsafe;
 
 /**
  * {@link ChunkEncoder} implementation that handles actual encoding of individual chunks,
@@ -19,24 +19,8 @@ import com.ning.compress.lzf.LZFChunk;
 public abstract class UnsafeChunkEncoder
     extends ChunkEncoder
 {
-    // // Our Nitro Booster, mr. Unsafe!
-
-    static final Unsafe unsafe;
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            unsafe = (Unsafe) theUnsafe.get(null);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     // All members here (fields, constructors, methods) are at most package-private; users are
     // not supposed to subclass this class
-
-    static final long BYTE_ARRAY_OFFSET = unsafe.arrayBaseOffset(byte[].class);
 
     UnsafeChunkEncoder(int totalLength) {
         super(totalLength);
