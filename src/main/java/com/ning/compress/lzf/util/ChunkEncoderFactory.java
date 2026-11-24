@@ -3,6 +3,7 @@ package com.ning.compress.lzf.util;
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.ChunkEncoder;
 import com.ning.compress.lzf.LZFChunk;
+import com.ning.compress.lzf.impl.UnsafeAccess;
 import com.ning.compress.lzf.impl.UnsafeChunkEncoders;
 import com.ning.compress.lzf.impl.VanillaChunkEncoder;
 
@@ -13,6 +14,13 @@ import com.ning.compress.lzf.impl.VanillaChunkEncoder;
  */
 public class ChunkEncoderFactory
 {
+    /**
+     * @deprecated There is no need to create an instance of this class; use
+     *    the static factory methods.
+     */
+    @Deprecated
+    public ChunkEncoderFactory() { }
+
     /*
     ///////////////////////////////////////////////////////////////////////
     // Public API
@@ -47,11 +55,9 @@ public class ChunkEncoderFactory
      * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance(int totalLength) {
-        try {
-            return UnsafeChunkEncoders.createEncoder(totalLength);
-        } catch (Exception e) {
-            return safeInstance(totalLength);
-        }
+        return UnsafeAccess.isUnsafeSupported()
+                ? UnsafeChunkEncoders.createEncoder(totalLength)
+                : safeInstance(totalLength);
     }
 
     /**
@@ -63,11 +69,9 @@ public class ChunkEncoderFactory
      * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength) {
-        try {
-            return UnsafeChunkEncoders.createNonAllocatingEncoder(totalLength);
-        } catch (Exception e) {
-            return safeNonAllocatingInstance(totalLength);
-        }
+        return UnsafeAccess.isUnsafeSupported()
+                ? UnsafeChunkEncoders.createNonAllocatingEncoder(totalLength)
+                : safeNonAllocatingInstance(totalLength);
     }
 
     /**
@@ -136,11 +140,9 @@ public class ChunkEncoderFactory
      * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalInstance(int totalLength, BufferRecycler bufferRecycler) {
-        try {
-            return UnsafeChunkEncoders.createEncoder(totalLength, bufferRecycler);
-        } catch (Exception e) {
-            return safeInstance(totalLength, bufferRecycler);
-        }
+        return UnsafeAccess.isUnsafeSupported()
+                ? UnsafeChunkEncoders.createEncoder(totalLength, bufferRecycler)
+                : safeInstance(totalLength, bufferRecycler);
     }
 
     /**
@@ -150,11 +152,9 @@ public class ChunkEncoderFactory
      * @return ChunkEncoder constructed
      */
     public static ChunkEncoder optimalNonAllocatingInstance(int totalLength, BufferRecycler bufferRecycler) {
-        try {
-            return UnsafeChunkEncoders.createNonAllocatingEncoder(totalLength, bufferRecycler);
-        } catch (Exception e) {
-            return safeNonAllocatingInstance(totalLength, bufferRecycler);
-        }
+        return UnsafeAccess.isUnsafeSupported()
+                ? UnsafeChunkEncoders.createNonAllocatingEncoder(totalLength, bufferRecycler)
+                : safeNonAllocatingInstance(totalLength, bufferRecycler);
     }
 
     /**

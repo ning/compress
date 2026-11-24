@@ -3,6 +3,9 @@ package com.ning.compress.lzf.impl;
 import com.ning.compress.BufferRecycler;
 import com.ning.compress.lzf.LZFChunk;
 
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.BYTE_ARRAY_OFFSET;
+import static com.ning.compress.lzf.impl.UnsafeAccess.Access.unsafe;
+
 /**
  * Implementation to use on Big-Endian architectures.
  */

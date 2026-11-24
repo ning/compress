@@ -86,11 +86,17 @@ New public functionality generally needs to be reachable from all three where it
 
 ### Safe vs optimal codec selection
 
-`ChunkDecoderFactory.optimalInstance()` resolves `UnsafeChunkDecoder` via `Class.forName` in a static
-initializer and silently falls back to `VanillaChunkDecoder` on any `Throwable`;
-`ChunkEncoderFactory.optimalInstance()` catches exceptions from `UnsafeChunkEncoders.createEncoder`
-and falls back to `VanillaChunkEncoder`. So "optimal" must never hard-fail on odd platforms — keep
-the fallback paths intact when touching these.
+`ChunkDecoderFactory.optimalInstance()` and `ChunkEncoderFactory.optimalInstance()` guard access to
+the `Unsafe`-based implementation with a `UnsafeAccess.isUnsafeSupported()` check to avoid uncaught
+exceptions and errors.
+If `Unsafe` is not supported, the 'vanilla' decoder and encoder are used as fallback. So "optimal"
+must never hard-fail on odd platforms — keep the fallback paths intact when touching these.
+
+The result of `isUnsafeSupported()` is looked up on demand and not on class initialization of
+`ChunkDecoderFactory` and `ChunkEncoderFactory` to avoid interacting with `Unsafe` if the user
+does not want to use the `Unsafe`-based implementation in the first place. Otherwise the user
+would see warnings on the console due to "JEP 498: Warn upon Use of Memory-Access Methods in
+sun.misc.Unsafe".
 
 ```
 ChunkEncoder (abstract; hashing, chunk splitting, output framing)

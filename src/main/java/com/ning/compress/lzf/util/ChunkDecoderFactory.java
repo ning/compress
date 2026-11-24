@@ -1,6 +1,7 @@
 package com.ning.compress.lzf.util;
 
 import com.ning.compress.lzf.ChunkDecoder;
+import com.ning.compress.lzf.impl.UnsafeAccess;
 import com.ning.compress.lzf.impl.VanillaChunkDecoder;
 import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
 
@@ -14,26 +15,12 @@ import com.ning.compress.lzf.impl.UnsafeChunkDecoder;
  */
 public class ChunkDecoderFactory
 {
-    private final static ChunkDecoderFactory _instance;
-    static {
-        Class<?> impl = null;
-        try {
-            // first, try loading optimal one, which uses Sun JDK Unsafe...
-            impl = (Class<?>) Class.forName(UnsafeChunkDecoder.class.getName());
-        } catch (Throwable t) { }
-        if (impl == null) {
-            impl = VanillaChunkDecoder.class;
-        }
-        _instance = new ChunkDecoderFactory(impl);
-    }
-
-    private final Class<? extends ChunkDecoder> _implClass;
-    
-    @SuppressWarnings("unchecked")
-    private ChunkDecoderFactory(Class<?> imp)
-    {
-        _implClass = (Class<? extends ChunkDecoder>) imp;
-    }
+    /**
+     * @deprecated There is no need to create an instance of this class; use
+     *    the static factory methods.
+     */
+    @Deprecated
+    public ChunkDecoderFactory() { }
 
     /*
     ///////////////////////////////////////////////////////////////////////
@@ -49,12 +36,9 @@ public class ChunkDecoderFactory
      * instances, or use {@link #safeInstance()}.
      */
     public static ChunkDecoder optimalInstance() {
-        try {
-            return _instance._implClass.newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to load a ChunkDecoder instance ("+e.getClass().getName()+"): "
-                    +e.getMessage(), e);
-        }
+        return UnsafeAccess.isUnsafeSupported()
+                ? new UnsafeChunkDecoder()
+                : safeInstance();
     }
 
     /**
