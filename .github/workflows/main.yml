@@ -63,7 +63,10 @@ jobs:
           # now and the previous data would be misinterpreted
           # Don't invalidate when POM or main sources change; fuzz corpus represents LZF data, and that
           # is unaffected by implementation changes
-          key: fuzz-corpus-${{ hashFiles('src/test/java/com/ning/compress/lzf/TestFuzzUnsafeLZF.java') }}
+          # Include `github.run_id` to always update the cache, see https://github.com/actions/cache/blob/v6.1.0/tips-and-workarounds.md#update-a-cache
+          key: fuzz-corpus-${{ hashFiles('src/test/java/com/ning/compress/lzf/TestFuzzUnsafeLZF.java') }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ hashFiles('src/test/java/com/ning/compress/lzf/TestFuzzUnsafeLZF.java') }}-
       - name: Run tests
         id: fuzz-tests
         # Don't run with `-q`, to see fuzzing progress
